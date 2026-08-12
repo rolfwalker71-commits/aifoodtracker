@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/meals/camera-capture";
 import { FoodLookup } from "@/components/meals/food-lookup";
@@ -12,6 +11,8 @@ import { PortionPrompt } from "@/components/meals/portion-prompt";
 import { RecognitionPopup } from "@/components/meals/recognition-popup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toFormDateTime } from "@/lib/datetime";
+import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
 import { scaleIngredients } from "@/lib/meal-ingredients";
 import {
@@ -32,7 +33,7 @@ function emptyForm(): MealFormValues {
     name: "",
     portionSize: "",
     mealType: "SNACK",
-    consumedAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+    consumedAt: toFormDateTime(),
     calories: 0,
     protein: 0,
     carbs: 0,
@@ -157,7 +158,9 @@ export default function NewMealPage() {
   ) {
     const suggested =
       item.servingGrams && item.servingGrams > 0 ? item.servingGrams : 200;
-    const name = item.brand ? `${item.brand} ${item.name}` : item.name;
+    const name = localizeGermanLabel(
+      item.brand ? `${item.brand} ${item.name}` : item.name,
+    );
 
     beginPortionFlow(
       {
@@ -192,7 +195,7 @@ export default function NewMealPage() {
 
     beginPortionFlow(
       {
-        name: analysis.name,
+        name: localizeGermanLabel(analysis.name),
         mealType: analysis.mealType,
         notes: analysis.notes,
         imagePath,
@@ -202,12 +205,13 @@ export default function NewMealPage() {
         suggestedGrams: suggested,
         ingredients: analysis.ingredients,
         amountLabel:
-          analysis.portionSize || formatPortionLabel(suggested),
+          analysis.portionSize ||
+          `Gesamtgewicht auf dem Teller ca. ${Math.round(suggested)} g`,
         recognitionSubtitle: analysis.needsPortionInput
-          ? "Menge geschätzt – bitte prüfen und anpassen"
-          : "Erkannt – Menge bestätigen oder anpassen",
+          ? "Gesamtgewicht aller Speisen auf dem Teller – bitte prüfen und anpassen"
+          : "Erkannt – Gesamtmenge bestätigen oder anpassen",
         helperText:
-          "Für Tellergerichte ohne Packungsangabe schätzen wir die Menge. Passe sie bei Bedarf an – die Nährwerte werden sauber umgerechnet.",
+          "Die Gramm-Angabe ist das geschätzte Gesamtgewicht aller Speisen (z. B. Fleisch + Beilagen). Passe sie bei Bedarf an – die Nährwerte werden darauf umgerechnet.",
       },
       true,
     );

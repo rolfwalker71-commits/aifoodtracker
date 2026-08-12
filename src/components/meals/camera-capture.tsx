@@ -79,7 +79,7 @@ export function CameraCapture({ onAnalyzed }: Props) {
               <ImagePlus className="mb-3 h-8 w-8 text-muted-foreground transition group-hover:text-primary" />
               <p className="text-sm font-medium">Kamera oder Galerie öffnen</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Bei unsicherer Portionsgröße wirst du danach gefragt
+                Bei unsicherer Portionsgrösse wirst du danach gefragt
               </p>
             </>
           )}

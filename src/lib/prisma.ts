@@ -26,6 +26,6 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") {
-  // Keep the same singleton behavior in development after first use.
-  void globalForPrisma;
+  // Drop cached client on module reload so `prisma generate` is picked up.
+  globalForPrisma.prisma = undefined;
 }

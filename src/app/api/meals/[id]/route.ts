@@ -73,17 +73,24 @@ export async function PUT(request: Request, { params }: Params) {
       );
     }
 
-    const imagePath = parsed.data.imagePath
-      ? await persistRemoteImage(parsed.data.imagePath, user.id)
-      : parsed.data.imagePath;
+    const {
+      ingredients = [],
+      imagePath: rawImagePath,
+      consumedAt,
+      ...mealFields
+    } = parsed.data;
+
+    const imagePath = rawImagePath
+      ? await persistRemoteImage(rawImagePath, user.id)
+      : rawImagePath;
 
     const meal = await prisma.meal.update({
       where: { id },
       data: {
-        ...parsed.data,
-        ingredients: parsed.data.ingredients ?? [],
+        ...mealFields,
+        ingredients,
         imagePath,
-        consumedAt: parseAppDateTime(parsed.data.consumedAt),
+        consumedAt: parseAppDateTime(consumedAt),
       },
     });
 
@@ -92,10 +99,11 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ meal }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Aktualisierung fehlgeschlagen" },
-      { status: 500 },
-    );
+    const detail =
+      error instanceof Error && error.message.includes("Unknown argument")
+        ? "Datenbankschema veraltet – App bitte neu starten."
+        : "Aktualisierung fehlgeschlagen";
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
 }
 

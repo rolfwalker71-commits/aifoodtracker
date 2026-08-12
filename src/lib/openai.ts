@@ -76,20 +76,26 @@ const textFoodSchema = z.object({
   notes: z.string().optional(),
 });
 
-const LANGUAGE_RULES = `SPRACHE (verbindlich):
-- Alle Freitexte AUSSCHLIESSLICH auf Deutsch: name, portionSize, ingredients[].name, ingredients[].portionSize, notes, servingSizeLabel.
+const LANGUAGE_RULES = `SPRACHE (verbindlich) – Schweizer Hochdeutsch:
+- Alle Freitexte AUSSCHLIESSLICH auf Deutsch (Schweiz): name, portionSize, ingredients[].name, ingredients[].portionSize, notes, servingSizeLabel.
+- NIEMALS den Buchstaben ß verwenden – immer "ss" (z. B. Klösse, Grösse, heiss, Strasse, süss).
+- Schreibe "gross/Grösse" statt "groß/Größe".
 - Kein Englisch für Lebensmittel oder Einheiten (nicht Apple/Bar/piece/slice/serving).
-- Richtig: Apfel, Riegel, Stück, Scheibe, Portion, Tasse, EL, TL, Teller, ca., mittel, groß, klein.
+- Richtig: Apfel, Riegel, Stück, Scheibe, Portion, Tasse, EL, TL, Teller, ca., mittel, gross, klein.
 - Markennamen unverändert lassen (z. B. Toblerone), aber Gattung/Einheit deutsch: "Toblerone-Riegel", "1 Riegel (35 g)".
-- Beispiele: name="Apfel", portionSize="1 mittelgroßer Apfel (ca. 180 g)"; name="Toblerone", portionSize="1 Riegel (35 g)".`;
+- Beispiele: name="Apfel", portionSize="1 mittelgrosser Apfel (ca. 180 g)"; name="Toblerone", portionSize="1 Riegel (35 g)".
+- Bei Tellergerichten: estimatedPortionGrams = geschätztes GESAMTGEWICHT aller Speisen auf dem Teller (essbarer Anteil, ohne Teller selbst).
+- portionSize dann z. B. "Gesamtgewicht auf dem Teller ca. 500 g" oder "1 Teller, Gesamtgewicht ca. 500 g" – nie mehrdeutig.`;
 
-const ANALYSIS_PROMPT = `Du bist ein deutschsprachiger Ernährungsexperte. Analysiere das Essen auf dem Foto.
-Liefere Nährwerte möglichst als Werte pro 100g UND IMMER eine Schätzung der Portionsgröße in Gramm.
-Bei Tellergerichten / Mittagessen ohne Packungsangabe die sichtbare Menge bestmöglich schätzen
-(estimatedPortionGrams + lesbare portionSize, z. B. "ca. 350 g" oder "1 Teller (ca. 400 g)").
-Zerlege zusammengesetzte Gerichte in sichtbare/typische Hauptbestandteile mit geschätzter Portionsgröße
+const ANALYSIS_PROMPT = `Du bist ein Ernährungsexperte und schreibst in Schweizer Hochdeutsch (kein ß, immer ss).
+Analysiere das Essen auf dem Foto.
+Liefere Nährwerte möglichst als Werte pro 100g UND IMMER eine Schätzung der Portionsgrösse in Gramm.
+Bei Tellergerichten / Mittagessen ohne Packungsangabe die sichtbare Menge bestmöglich schätzen:
+estimatedPortionGrams ist das Gesamtgewicht ALLER Speisen auf dem Teller (z. B. Fleisch + Beilagen zusammen).
+portionSize klar formulieren, z. B. "Gesamtgewicht auf dem Teller ca. 500 g".
+Zerlege zusammengesetzte Gerichte in sichtbare/typische Hauptbestandteile mit geschätzter Portionsgrösse
 (z. B. Spaghetti Bolognese → Spaghetti, Rindfleisch, Tomatensauce, Reibkäse – nur was erkennbar oder sehr wahrscheinlich ist).
-Wenn die Portionsgröße unsicher ist (z. B. Nudeln, Reis, unklarer Teller), setze needsPortionInput=true und portionConfidence niedrig (<0.55) – schätze trotzdem estimatedPortionGrams.
+Wenn die Portionsgrösse unsicher ist (z. B. Nudeln, Reis, unklarer Teller), setze needsPortionInput=true und portionConfidence niedrig (<0.55) – schätze trotzdem estimatedPortionGrams.
 ${LANGUAGE_RULES}
 Antworte AUSSCHLIESSLICH mit gültigem JSON ohne Markdown.
 Schema:
@@ -121,10 +127,11 @@ Schema:
 Einheiten: Makros/Ballaststoffe/Zucker/gesättigte Fette in g; Natrium/Kalium/Calcium/Eisen in mg;
 Vitamin A in µg RAE; Vitamin C/D in mg.
 Die Top-Level-Nährwerte beziehen sich auf die geschätzte Portion.
-ingredients: 2–8 Hauptzutaten; portionSize lesbar auf Deutsch (z. B. "180 g", "2 EL"); grams wenn sinnvoll schätzbar.`;
+ingredients: 2–8 Hauptzutaten; portionSize lesbar auf Schweizer Deutsch (z. B. "180 g", "2 EL"); grams wenn sinnvoll schätzbar.`;
 
-const TEXT_FOOD_PROMPT = `Du bist ein deutschsprachiger Ernährungsexperte. Schätze realistische Nährwerte pro 100g für das genannte Gericht/Lebensmittel.
-Liste typische Hauptbestandteile mit Portionsgrößen für eine übliche Portion.
+const TEXT_FOOD_PROMPT = `Du bist ein Ernährungsexperte und schreibst in Schweizer Hochdeutsch (kein ß, immer ss).
+Schätze realistische Nährwerte pro 100g für das genannte Gericht/Lebensmittel.
+Liste typische Hauptbestandteile mit Portionsgrössen für eine übliche Portion.
 ${LANGUAGE_RULES}
 Antworte AUSSCHLIESSLICH mit gültigem JSON.
 Schema:
@@ -290,7 +297,7 @@ export async function analyzeMealImage(params: {
         content: [
           {
             type: "text",
-            text: "Analysiere dieses Mahlzeitenfoto und gib nur JSON zurück. Alle Bezeichnungen und Einheiten auf Deutsch (Apfel statt Apple, Riegel statt Bar). Wenn die Portionsgröße unsicher ist, markiere needsPortionInput=true.",
+            text: "Analysiere dieses Mahlzeitenfoto und gib nur JSON zurück. Schweizer Schreibweise ohne ß (ss statt ß). Bei Tellern: estimatedPortionGrams = Gesamtgewicht aller Speisen auf dem Teller. Wenn die Portionsgrösse unsicher ist, markiere needsPortionInput=true.",
           },
           {
             type: "image_url",
@@ -327,7 +334,7 @@ export async function estimateFoodByName(params: {
       { role: "system", content: TEXT_FOOD_PROMPT },
       {
         role: "user",
-        content: `Schätze Nährwerte pro 100g für: "${params.query}". Antworte mit deutschen Bezeichnungen und Einheiten (kein Englisch).`,
+        content: `Schätze Nährwerte pro 100g für: "${params.query}". Antworte in Schweizer Hochdeutsch ohne ß (ss statt ß), mit deutschen Bezeichnungen und Einheiten.`,
       },
     ],
   });

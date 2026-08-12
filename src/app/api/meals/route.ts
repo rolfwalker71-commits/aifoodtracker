@@ -75,17 +75,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const imagePath = parsed.data.imagePath
-      ? await persistRemoteImage(parsed.data.imagePath, user.id)
+    const {
+      ingredients = [],
+      imagePath: rawImagePath,
+      consumedAt,
+      ...mealFields
+    } = parsed.data;
+
+    const imagePath = rawImagePath
+      ? await persistRemoteImage(rawImagePath, user.id)
       : null;
 
     const meal = await prisma.meal.create({
       data: {
-        ...parsed.data,
-        ingredients: parsed.data.ingredients ?? [],
+        ...mealFields,
+        ingredients,
         imagePath,
         userId: user.id,
-        consumedAt: parseAppDateTime(parsed.data.consumedAt),
+        consumedAt: parseAppDateTime(consumedAt),
       },
     });
 
@@ -97,9 +104,10 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Mahlzeit konnte nicht gespeichert werden" },
-      { status: 500 },
-    );
+    const detail =
+      error instanceof Error && error.message.includes("Unknown argument")
+        ? "Datenbankschema veraltet – App bitte neu starten."
+        : "Mahlzeit konnte nicht gespeichert werden";
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
 }

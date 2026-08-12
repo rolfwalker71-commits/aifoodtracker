@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SwissDateTimeInput } from "@/components/ui/swiss-datetime-input";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
 import { parsePortionGrams } from "@/lib/portion";
 import type { MealFormValues, MealIngredient } from "@/types/meals";
@@ -150,7 +151,7 @@ export function MealForm({
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="portionSize">Portionsgröße gesamt</Label>
+          <Label htmlFor="portionSize">Portionsgrösse gesamt</Label>
           <Input
             id="portionSize"
             value={values.portionSize ?? ""}
@@ -221,14 +222,12 @@ export function MealForm({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="consumedAt">Datum & Uhrzeit</Label>
-          <Input
+        <div className="sm:col-span-2">
+          <SwissDateTimeInput
             id="consumedAt"
-            type="datetime-local"
-            required
             value={values.consumedAt}
-            onChange={(e) => update("consumedAt", e.target.value)}
+            onChange={(consumedAt) => update("consumedAt", consumedAt)}
+            required
           />
         </div>
       </div>
@@ -238,7 +237,7 @@ export function MealForm({
           <div>
             <Label>Hauptbestandteile</Label>
             <p className="text-xs text-muted-foreground">
-              Von der KI erkannt bzw. typisch – mit geschätzter Portionsgröße
+              Von der KI erkannt bzw. typisch – mit geschätzter Portionsgrösse
             </p>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={addIngredient}>

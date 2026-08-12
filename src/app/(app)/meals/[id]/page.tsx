@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import { MealForm } from "@/components/meals/meal-form";
 import { MealSaveConfirm } from "@/components/meals/meal-save-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toFormDateTime } from "@/lib/datetime";
+import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
 import { scaleIngredients } from "@/lib/meal-ingredients";
 import { parseStoredIngredients } from "@/lib/meal-ingredients";
@@ -51,10 +52,10 @@ export default function EditMealPage() {
       if (cancelled) return;
       const meal = data.meal;
       setValues({
-        name: meal.name,
+        name: localizeGermanLabel(meal.name),
         portionSize: meal.portionSize ?? "",
         mealType: meal.mealType,
-        consumedAt: format(new Date(meal.consumedAt), "yyyy-MM-dd'T'HH:mm"),
+        consumedAt: toFormDateTime(meal.consumedAt),
         calories: meal.calories,
         protein: meal.protein,
         carbs: meal.carbs,

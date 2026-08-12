@@ -8,11 +8,11 @@ const PHRASE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\benergy\s+bar\b/gi, "Energieriegel"],
   [/\bprotein\s+bar\b/gi, "Proteinriegel"],
   [/\bcandy\s+bar\b/gi, "Schokoriegel"],
-  [/\bmedium[- ]sized\b/gi, "mittelgroßer"],
-  [/\blarge[- ]sized\b/gi, "großer"],
+  [/\bmedium[- ]sized\b/gi, "mittelgrosser"],
+  [/\blarge[- ]sized\b/gi, "grosser"],
   [/\bsmall[- ]sized\b/gi, "kleiner"],
   [/\bper\s+serving\b/gi, "pro Portion"],
-  [/\bserving\s+size\b/gi, "Portionsgröße"],
+  [/\bserving\s+size\b/gi, "Portionsgrösse"],
 ];
 
 const WORD_REPLACEMENTS: Array<[RegExp, string]> = [
@@ -86,7 +86,7 @@ const WORD_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bgrams?\b/gi, "g"],
   [/\bmilliliters?\b/gi, "ml"],
   [/\bmedium\b/gi, "mittel"],
-  [/\blarge\b/gi, "groß"],
+  [/\blarge\b/gi, "gross"],
   [/\bsmall\b/gi, "klein"],
   [/\bwhole\b/gi, "ganz"],
   [/\bhalf\b/gi, "halb"],
@@ -96,6 +96,15 @@ const WORD_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bwith\b/gi, "mit"],
   [/\band\b/gi, "und"],
 ];
+
+function toSwissSpelling(text: string): string {
+  return text
+    .replaceAll("ß", "ss")
+    .replaceAll("Größe", "Grösse")
+    .replaceAll("größe", "grösse")
+    .replaceAll("groß", "gross")
+    .replaceAll("Groß", "Gross");
+}
 
 function applyReplacements(input: string): string {
   let text = input;
@@ -109,7 +118,7 @@ function applyReplacements(input: string): string {
   text = text.replace(/(\d)\s*g\b/gi, "$1 g");
   text = text.replace(/(\d)\s*ml\b/gi, "$1 ml");
   text = text.replace(/\s{2,}/g, " ").trim();
-  return text;
+  return toSwissSpelling(text);
 }
 
 /** Preserve brand-like tokens (Toblerone) while translating surrounding English. */

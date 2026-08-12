@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SwissDateTimeInput } from "@/components/ui/swiss-datetime-input";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
 import { parsePortionGrams } from "@/lib/portion";
 import { formatNumber } from "@/lib/utils";
@@ -144,39 +145,33 @@ export function MealSaveConfirm({
           ) : null}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Kategorie</Label>
-            <Select
-              value={values.mealType}
-              onValueChange={(value) =>
-                onChange({ ...values, mealType: value as MealType })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(MEAL_TYPE_LABELS) as MealType[]).map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {MEAL_TYPE_LABELS[type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirm-time">Datum & Uhrzeit</Label>
-            <Input
-              id="confirm-time"
-              type="datetime-local"
-              value={values.consumedAt}
-              onChange={(e) =>
-                onChange({ ...values, consumedAt: e.target.value })
-              }
-            />
-          </div>
+        <div className="space-y-2">
+          <Label>Kategorie</Label>
+          <Select
+            value={values.mealType}
+            onValueChange={(value) =>
+              onChange({ ...values, mealType: value as MealType })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(MEAL_TYPE_LABELS) as MealType[]).map((type) => (
+                <SelectItem key={type} value={type}>
+                  {MEAL_TYPE_LABELS[type]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        <SwissDateTimeInput
+          id="confirm-time"
+          value={values.consumedAt}
+          onChange={(consumedAt) => onChange({ ...values, consumedAt })}
+          required
+        />
 
         {summary ? (
           <p className="text-sm text-muted-foreground">
