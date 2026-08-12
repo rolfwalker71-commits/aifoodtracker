@@ -17,7 +17,8 @@ export function ServiceWorkerRegister() {
                 key.startsWith("nutrisight-shell") ||
                 key === "nutrisight-static-v1" ||
                 key === "nutrisight-static-v2" ||
-                key === "nutrisight-static-v3",
+                key === "nutrisight-static-v3" ||
+                key === "nutrisight-static-v4",
             )
             .map((key) => caches.delete(key)),
         );

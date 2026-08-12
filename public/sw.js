@@ -1,4 +1,4 @@
-const CACHE_NAME = "nutrisight-static-v4";
+const CACHE_NAME = "nutrisight-static-v5";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/favicon.ico",
