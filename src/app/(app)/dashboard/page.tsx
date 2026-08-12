@@ -6,7 +6,7 @@ import { Camera, ChartColumn, Sparkles } from "lucide-react";
 import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import { MacroChart } from "@/components/dashboard/macro-chart";
-import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
+import { DailyGoalsSummary } from "@/components/dashboard/daily-goals-summary";
 import { FavoriteMealsStrip } from "@/components/meals/favorite-meals-strip";
 import { MealList } from "@/components/meals/meal-list";
 import { Button } from "@/components/ui/button";
@@ -145,100 +145,11 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle>Tagesbedarf</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {!profileComplete && (
-              <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
-                Für eine persönliche Kalorienberechnung bitte unter{" "}
-                <Link href="/settings" className="font-semibold underline">
-                  Benutzer
-                </Link>{" "}
-                Geschlecht, Grösse, Gewicht und Geburtsjahr hinterlegen.
-              </p>
-            )}
-            <NutrientProgress
-              label="Kalorien"
-              current={stats.totals.calories}
-              goal={stats.goals.dailyCaloriesGoal}
-              unit="kcal"
-            />
-            <NutrientProgress
-              label="Protein"
-              current={stats.totals.protein}
-              goal={stats.goals.dailyProteinGoal}
-              colorClass="bg-teal-600"
-            />
-            <NutrientProgress
-              label="Kohlenhydrate"
-              current={stats.totals.carbs}
-              goal={stats.goals.dailyCarbsGoal}
-              colorClass="bg-cyan-600"
-            />
-            <NutrientProgress
-              label="Fett"
-              current={stats.totals.fat}
-              goal={stats.goals.dailyFatGoal}
-              colorClass="bg-orange-600"
-            />
-            <NutrientProgress
-              label="Ballaststoffe"
-              current={stats.totals.fiber}
-              goal={stats.goals.dailyFiberGoal}
-              colorClass="bg-emerald-700"
-            />
-            <NutrientProgress
-              label="Zucker"
-              current={stats.totals.sugar}
-              goal={stats.goals.dailySugarGoal}
-              colorClass="bg-rose-600"
-            />
-            <NutrientProgress
-              label="Natrium"
-              current={stats.totals.sodium}
-              goal={stats.goals.dailySodiumGoal}
-              unit="mg"
-              colorClass="bg-sky-700"
-            />
-            <NutrientProgress
-              label="Kalium"
-              current={stats.totals.potassium}
-              goal={stats.goals.dailyPotassiumGoal}
-              unit="mg"
-              colorClass="bg-violet-600"
-            />
-            <NutrientProgress
-              label="Vitamin A"
-              current={stats.totals.vitaminA}
-              goal={stats.goals.dailyVitaminAGoal}
-              unit="µg"
-              colorClass="bg-amber-600"
-            />
-            <NutrientProgress
-              label="Vitamin C"
-              current={stats.totals.vitaminC}
-              goal={stats.goals.dailyVitaminCGoal}
-              unit="mg"
-              colorClass="bg-lime-600"
-            />
-            <NutrientProgress
-              label="Vitamin D"
-              current={stats.totals.vitaminD}
-              goal={stats.goals.dailyVitaminDGoal}
-              unit="µg"
-              colorClass="bg-yellow-600"
-            />
-            <NutrientProgress
-              label="Kalzium"
-              current={stats.totals.calcium}
-              goal={stats.goals.dailyCalciumGoal}
-              unit="mg"
-              colorClass="bg-stone-600"
-            />
-            <NutrientProgress
-              label="Eisen"
-              current={stats.totals.iron}
-              goal={stats.goals.dailyIronGoal}
-              unit="mg"
-              colorClass="bg-red-700"
+          <CardContent>
+            <DailyGoalsSummary
+              totals={stats.totals}
+              goals={stats.goals}
+              profileComplete={profileComplete}
             />
           </CardContent>
         </Card>

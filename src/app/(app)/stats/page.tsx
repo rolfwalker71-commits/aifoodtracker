@@ -169,88 +169,96 @@ export default function StatsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Soll / Ist (Tagesziele)</CardTitle>
+                    <CardTitle>Makros (Ø/Tag)</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <NutrientProgress
-                      label="Kalorien (Ø/Tag)"
+                      label="Kalorien"
                       current={stats.averages.calories}
                       goal={stats.goals.dailyCaloriesGoal}
                       unit="kcal"
                     />
                     <NutrientProgress
-                      label="Protein (Ø/Tag)"
+                      label="Protein"
                       current={stats.averages.protein}
                       goal={stats.goals.dailyProteinGoal}
                     />
                     <NutrientProgress
-                      label="Kohlenhydrate (Ø/Tag)"
+                      label="Kohlenhydrate"
                       current={stats.averages.carbs}
                       goal={stats.goals.dailyCarbsGoal}
                       colorClass="bg-cyan-600"
                     />
                     <NutrientProgress
-                      label="Fett (Ø/Tag)"
+                      label="Fett"
                       current={stats.averages.fat}
                       goal={stats.goals.dailyFatGoal}
                       colorClass="bg-orange-600"
                     />
                     <NutrientProgress
-                      label="Ballaststoffe (Ø/Tag)"
+                      label="Ballaststoffe"
                       current={stats.averages.fiber}
                       goal={stats.goals.dailyFiberGoal}
                       colorClass="bg-emerald-700"
                     />
                     <NutrientProgress
-                      label="Zucker (Ø/Tag)"
+                      label="Zucker"
                       current={stats.averages.sugar}
                       goal={stats.goals.dailySugarGoal}
                       colorClass="bg-amber-600"
                     />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mikronährstoffe (Ø/Tag)</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <NutrientProgress
-                      label="Natrium (Ø/Tag)"
+                      label="Natrium"
                       current={stats.averages.sodium}
                       goal={stats.goals.dailySodiumGoal}
                       unit="mg"
                       colorClass="bg-sky-700"
                     />
                     <NutrientProgress
-                      label="Kalium (Ø/Tag)"
+                      label="Kalium"
                       current={stats.averages.potassium}
                       goal={stats.goals.dailyPotassiumGoal}
                       unit="mg"
                       colorClass="bg-violet-600"
                     />
                     <NutrientProgress
-                      label="Vitamin A (Ø/Tag)"
+                      label="Vitamin A"
                       current={stats.averages.vitaminA}
                       goal={stats.goals.dailyVitaminAGoal}
                       unit="µg"
                       colorClass="bg-amber-600"
                     />
                     <NutrientProgress
-                      label="Vitamin C (Ø/Tag)"
+                      label="Vitamin C"
                       current={stats.averages.vitaminC}
                       goal={stats.goals.dailyVitaminCGoal}
                       unit="mg"
                       colorClass="bg-lime-600"
                     />
                     <NutrientProgress
-                      label="Vitamin D (Ø/Tag)"
+                      label="Vitamin D"
                       current={stats.averages.vitaminD}
                       goal={stats.goals.dailyVitaminDGoal}
                       unit="µg"
                       colorClass="bg-yellow-600"
                     />
                     <NutrientProgress
-                      label="Kalzium (Ø/Tag)"
+                      label="Kalzium"
                       current={stats.averages.calcium}
                       goal={stats.goals.dailyCalciumGoal}
                       unit="mg"
                       colorClass="bg-stone-600"
                     />
                     <NutrientProgress
-                      label="Eisen (Ø/Tag)"
+                      label="Eisen"
                       current={stats.averages.iron}
                       goal={stats.goals.dailyIronGoal}
                       unit="mg"
@@ -259,7 +267,7 @@ export default function StatsPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="lg:col-span-2">
                   <CardHeader>
                     <CardTitle>Makros im Zeitraum</CardTitle>
                   </CardHeader>
