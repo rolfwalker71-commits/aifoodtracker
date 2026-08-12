@@ -260,12 +260,12 @@ export default function MealDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight">
+    <div className="mx-auto max-w-2xl space-y-3 md:space-y-5">
+      <div className="md:space-y-1">
+        <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
           {mode === "view" ? "Mahlzeit" : "Mahlzeit bearbeiten"}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="hidden text-sm text-muted-foreground md:block">
           {mode === "view"
             ? "Wischen: Einblick, Coach, Tagesanteil"
             : "Menge ändern → neu berechnen → speichern"}
