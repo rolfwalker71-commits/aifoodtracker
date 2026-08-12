@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { normalizeIngredients } from "@/lib/meal-ingredients";
 import { estimateFoodByName } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
         estimate.servingSizeLabel || `${estimate.suggestedServingGrams} g`,
       servingGrams: estimate.suggestedServingGrams,
       nutrientsPer100g: estimate.nutrientsPer100g,
+      ingredients: normalizeIngredients(estimate.ingredients),
     };
 
     return NextResponse.json({

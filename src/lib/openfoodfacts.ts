@@ -1,3 +1,4 @@
+import { localizeGermanLabel } from "@/lib/de-labels";
 import type { FoodLookupItem, NutrientValues } from "@/types/nutrition";
 import { EMPTY_NUTRIENTS, roundNutrient } from "@/lib/portion";
 
@@ -59,12 +60,12 @@ function mapNutrientsPer100g(n: OffNutriments = {}): NutrientValues {
 }
 
 function productName(product: OffProduct) {
-  return (
+  const raw =
     product.product_name_de ||
     product.product_name ||
     product.product_name_en ||
-    "Unbenanntes Produkt"
-  );
+    "Unbenanntes Produkt";
+  return localizeGermanLabel(raw);
 }
 
 function toLookupItem(product: OffProduct): FoodLookupItem | null {
@@ -89,10 +90,10 @@ function toLookupItem(product: OffProduct): FoodLookupItem | null {
       product.image_url ||
       product.image_front_small_url ||
       product.image_small_url,
-    servingSizeLabel: product.serving_size,
+    servingSizeLabel: localizeGermanLabel(product.serving_size),
     servingGrams: servingGrams && servingGrams > 0 ? servingGrams : null,
     nutrientsPer100g: nutrients,
-    quantityLabel: product.quantity,
+    quantityLabel: localizeGermanLabel(product.quantity),
   };
 }
 
@@ -121,6 +122,8 @@ async function searchCgi(domain: string, query: string, pageSize: number) {
   url.searchParams.set("action", "process");
   url.searchParams.set("json", "1");
   url.searchParams.set("page_size", String(pageSize));
+  url.searchParams.set("lc", "de");
+  url.searchParams.set("cc", "ch");
   const data = (await fetchJson(url.toString())) as { products?: OffProduct[] };
   return data.products ?? [];
 }
@@ -162,9 +165,9 @@ export async function searchOpenFoodFacts(
   if (q.length < 2) return [];
 
   const domains = [
-    "world.openfoodfacts.org",
     "ch.openfoodfacts.org",
     "de.openfoodfacts.org",
+    "world.openfoodfacts.org",
     "world.openfoodfacts.net", // staging fallback if prod is unavailable
   ];
 

@@ -95,6 +95,8 @@ model Meal {
   name         String
   imagePath    String?
   portionSize  String?
+  /// AI-erkannte Hauptzutaten [{ name, portionSize, grams? }]
+  ingredients  Json?
   calories     Float    @default(0)
   protein      Float    @default(0)
   carbs        Float    @default(0)

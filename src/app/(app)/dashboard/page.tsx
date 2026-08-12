@@ -11,7 +11,11 @@ import { MealList } from "@/components/meals/meal-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
-import { APP_TIMEZONE, getRangeBoundsInAppTz } from "@/lib/datetime";
+import {
+  APP_DATE_FORMAT,
+  APP_TIMEZONE,
+  getRangeBoundsInAppTz,
+} from "@/lib/datetime";
 import { formatNumber } from "@/lib/utils";
 import { getStatsForUser } from "@/lib/stats";
 import { prisma } from "@/lib/prisma";
@@ -58,7 +62,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <section className="animate-rise">
         <p className="text-sm text-muted-foreground">
-          {format(todayLabel, "EEEE, d. MMMM", { locale: de })}
+          {format(todayLabel, `EEEE, ${APP_DATE_FORMAT}`, { locale: de })}
         </p>
         <h1 className="font-display text-3xl font-semibold tracking-tight">
           Hallo {session.user.name?.split(" ")[0] || "du"}

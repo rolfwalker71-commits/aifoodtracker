@@ -1,4 +1,5 @@
 import type { MealType } from "@/generated/prisma/client";
+import type { MealIngredient } from "@/types/meals";
 
 export type NutrientValues = {
   calories: number;
@@ -28,6 +29,7 @@ export type FoodLookupItem = {
   servingGrams?: number | null;
   nutrientsPer100g: NutrientValues;
   quantityLabel?: string;
+  ingredients?: MealIngredient[];
 };
 
 export type PortionAwareAnalysis = {
@@ -39,6 +41,7 @@ export type PortionAwareAnalysis = {
   needsPortionInput: boolean;
   nutrientsPer100g: NutrientValues;
   nutrients: NutrientValues;
+  ingredients: MealIngredient[];
   confidence?: number;
   notes?: string;
 };

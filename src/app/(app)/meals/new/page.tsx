@@ -11,8 +11,9 @@ import { PortionPrompt } from "@/components/meals/portion-prompt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { navigateFresh } from "@/lib/fresh-navigate";
+import { scaleIngredients } from "@/lib/meal-ingredients";
 import { formatPortionLabel, nutrientsFromPortion, scaleNutrients } from "@/lib/portion";
-import type { MealFormValues } from "@/types/meals";
+import type { MealFormValues, MealIngredient } from "@/types/meals";
 import type {
   FoodLookupItem,
   NutrientValues,
@@ -42,6 +43,7 @@ function emptyForm(): MealFormValues {
     iron: 0,
     notes: "",
     imagePath: null,
+    ingredients: [],
   };
 }
 
@@ -64,6 +66,7 @@ type PendingFood = {
   suggestedGrams?: number | null;
   helperText?: string;
   allowSkip?: boolean;
+  ingredients?: MealIngredient[];
 };
 
 export default function NewMealPage() {
@@ -105,6 +108,8 @@ export default function NewMealPage() {
       imagePath: item.imageUrl ?? null,
       nutrientsPer100g: item.nutrientsPer100g,
       suggestedGrams: suggested,
+      estimatedPortionGrams: suggested,
+      ingredients: item.ingredients ?? [],
       helperText:
         item.source === "openfoodfacts"
           ? "Produkt gefunden. Gib nur noch die gegessene Menge an – die Nährwerte werden berechnet."
@@ -124,6 +129,7 @@ export default function NewMealPage() {
         currentNutrients: analysis.nutrients,
         suggestedGrams: analysis.estimatedPortionGrams,
         allowSkip: Boolean(analysis.estimatedPortionGrams),
+        ingredients: analysis.ingredients,
         helperText: `Die Portionsgröße von „${analysis.name}“ ist unsicher. Wie viel hast du gegessen? Die Nährwerte werden entsprechend umgerechnet.`,
       });
       toast.message("Portionsgröße benötigt", {
@@ -145,6 +151,7 @@ export default function NewMealPage() {
           mealType: analysis.mealType,
           notes: analysis.notes ?? "",
           imagePath,
+          ingredients: analysis.ingredients,
         },
         analysis.nutrients,
       ),
@@ -171,6 +178,11 @@ export default function NewMealPage() {
           mealType: pendingFood.mealType || "SNACK",
           notes: pendingFood.notes ?? "",
           imagePath: pendingFood.imagePath ?? null,
+          ingredients: scaleIngredients(
+            pendingFood.ingredients ?? [],
+            pendingFood.estimatedPortionGrams,
+            grams,
+          ),
         },
         nutrients,
       ),
@@ -195,6 +207,7 @@ export default function NewMealPage() {
           mealType: pendingFood.mealType || "SNACK",
           notes: pendingFood.notes ?? "",
           imagePath: pendingFood.imagePath ?? null,
+          ingredients: pendingFood.ingredients ?? [],
         },
         pendingFood.currentNutrients,
       ),

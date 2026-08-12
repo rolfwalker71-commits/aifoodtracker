@@ -5,8 +5,11 @@ import {
   startOfDay,
   subDays,
 } from "date-fns";
-import { de } from "date-fns/locale";
-import { getRangeBoundsInAppTz } from "@/lib/datetime";
+import {
+  APP_DATE_FORMAT,
+  APP_DATE_TIME_FORMAT,
+  getRangeBoundsInAppTz,
+} from "@/lib/datetime";
 import { prisma } from "@/lib/prisma";
 import { sumNutrients } from "@/lib/nutrition";
 import type { StatsRange } from "@/types/meals";
@@ -44,10 +47,7 @@ export async function getStatsForUser(userId: string, range: StatsRange) {
     );
     const dayTotals = sumNutrients(dayMeals);
     return {
-      label:
-        range === "month"
-          ? format(day, "dd.MM", { locale: de })
-          : format(day, range === "day" ? "HH:mm" : "EEE", { locale: de }),
+      label: format(day, APP_DATE_FORMAT),
       ...dayTotals,
     };
   });
@@ -56,7 +56,7 @@ export async function getStatsForUser(userId: string, range: StatsRange) {
   const daySeries =
     range === "day"
       ? meals.map((meal) => ({
-          label: format(meal.consumedAt, "HH:mm", { locale: de }),
+          label: format(meal.consumedAt, APP_DATE_TIME_FORMAT),
           calories: meal.calories,
           protein: meal.protein,
           carbs: meal.carbs,

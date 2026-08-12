@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { MealType } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
-import type { MealFormValues } from "@/types/meals";
+import type { MealFormValues, MealIngredient } from "@/types/meals";
 
 type Props = {
   initialValues: MealFormValues;
@@ -39,7 +40,7 @@ const numberFields: Array<{
   { key: "vitaminA", label: "Vitamin A (µg)" },
   { key: "vitaminC", label: "Vitamin C (mg)" },
   { key: "vitaminD", label: "Vitamin D (mg)" },
-  { key: "calcium", label: "Calcium (mg)" },
+  { key: "calcium", label: "Kalzium (mg)" },
   { key: "iron", label: "Eisen (mg)" },
 ];
 
@@ -49,7 +50,12 @@ export function MealForm({
   onSubmit,
   busy,
 }: Props) {
-  const [values, setValues] = useState<MealFormValues>(initialValues);
+  const [values, setValues] = useState<MealFormValues>({
+    ...initialValues,
+    ingredients: initialValues.ingredients ?? [],
+  });
+
+  const ingredients = values.ingredients ?? [];
 
   function update<K extends keyof MealFormValues>(
     key: K,
@@ -58,12 +64,53 @@ export function MealForm({
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
+  function updateIngredient(
+    index: number,
+    key: keyof MealIngredient,
+    value: string,
+  ) {
+    update(
+      "ingredients",
+      ingredients.map((item, i) => {
+        if (i !== index) return item;
+        if (key === "grams") {
+          const grams = value.trim() ? Number(value) : null;
+          return {
+            ...item,
+            grams:
+              typeof grams === "number" && Number.isFinite(grams) && grams > 0
+                ? grams
+                : null,
+          };
+        }
+        return { ...item, [key]: value };
+      }),
+    );
+  }
+
+  function addIngredient() {
+    update("ingredients", [
+      ...ingredients,
+      { name: "", portionSize: "", grams: null },
+    ]);
+  }
+
+  function removeIngredient(index: number) {
+    update(
+      "ingredients",
+      ingredients.filter((_, i) => i !== index),
+    );
+  }
+
   return (
     <form
       className="space-y-5"
       onSubmit={async (event) => {
         event.preventDefault();
-        await onSubmit(values);
+        await onSubmit({
+          ...values,
+          ingredients: ingredients.filter((item) => item.name.trim()),
+        });
       }}
     >
       <div className="grid gap-4 sm:grid-cols-2">
@@ -78,7 +125,7 @@ export function MealForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="portionSize">Portionsgröße</Label>
+          <Label htmlFor="portionSize">Portionsgröße gesamt</Label>
           <Input
             id="portionSize"
             value={values.portionSize ?? ""}
@@ -105,7 +152,7 @@ export function MealForm({
           </Select>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="consumedAt">Uhrzeit</Label>
+          <Label htmlFor="consumedAt">Datum & Uhrzeit</Label>
           <Input
             id="consumedAt"
             type="datetime-local"
@@ -114,6 +161,75 @@ export function MealForm({
             onChange={(e) => update("consumedAt", e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <Label>Hauptbestandteile</Label>
+            <p className="text-xs text-muted-foreground">
+              Von der KI erkannt bzw. typisch – mit geschätzter Portionsgröße
+            </p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={addIngredient}>
+            <Plus className="h-4 w-4" />
+            Zutat
+          </Button>
+        </div>
+
+        {ingredients.length === 0 ? (
+          <p className="rounded-xl border border-dashed px-3 py-4 text-sm text-muted-foreground">
+            Noch keine Bestandteile. Nach Foto-/KI-Analyse erscheinen sie hier.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {ingredients.map((item, index) => (
+              <div
+                key={`ingredient-${index}`}
+                className="grid grid-cols-[1fr_7rem_auto] gap-2 sm:grid-cols-[1fr_9rem_5.5rem_auto]"
+              >
+                <Input
+                  aria-label={`Zutat ${index + 1}`}
+                  value={item.name}
+                  onChange={(e) =>
+                    updateIngredient(index, "name", e.target.value)
+                  }
+                  placeholder="z. B. Spaghetti"
+                />
+                <Input
+                  aria-label={`Portion Zutat ${index + 1}`}
+                  value={item.portionSize}
+                  onChange={(e) =>
+                    updateIngredient(index, "portionSize", e.target.value)
+                  }
+                  placeholder="180 g"
+                />
+                <Input
+                  className="hidden sm:block"
+                  aria-label={`Gramm Zutat ${index + 1}`}
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  value={item.grams ?? ""}
+                  onChange={(e) =>
+                    updateIngredient(index, "grams", e.target.value)
+                  }
+                  placeholder="g"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Zutat entfernen"
+                  onClick={() => removeIngredient(index)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

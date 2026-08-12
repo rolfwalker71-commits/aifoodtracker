@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseAppDateTime } from "@/lib/datetime";
 import { persistRemoteImage } from "@/lib/images";
+import { mealIngredientsField } from "@/lib/meal-ingredients";
 import { NO_STORE_HEADERS, revalidateMealViews } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -27,6 +28,7 @@ const mealSchema = z.object({
   calcium: z.coerce.number().nonnegative().default(0),
   iron: z.coerce.number().nonnegative().default(0),
   notes: z.string().optional().nullable(),
+  ingredients: mealIngredientsField,
 });
 
 export async function GET(request: Request) {
@@ -80,6 +82,7 @@ export async function POST(request: Request) {
     const meal = await prisma.meal.create({
       data: {
         ...parsed.data,
+        ingredients: parsed.data.ingredients ?? [],
         imagePath,
         userId: user.id,
         consumedAt: parseAppDateTime(parsed.data.consumedAt),

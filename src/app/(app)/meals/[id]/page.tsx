@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { MealForm } from "@/components/meals/meal-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { navigateFresh } from "@/lib/fresh-navigate";
+import { parseStoredIngredients } from "@/lib/meal-ingredients";
 import type { MealFormValues } from "@/types/meals";
 
 export default function EditMealPage() {
@@ -51,6 +52,7 @@ export default function EditMealPage() {
         iron: meal.iron,
         notes: meal.notes ?? "",
         imagePath: meal.imagePath,
+        ingredients: parseStoredIngredients(meal.ingredients),
       });
     }
 

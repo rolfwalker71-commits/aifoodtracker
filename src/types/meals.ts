@@ -1,5 +1,13 @@
 import { MealType } from "@/generated/prisma/client";
 
+export type MealIngredient = {
+  name: string;
+  /** Lesbare Portionsangabe, z. B. "180 g" oder "2 EL" */
+  portionSize: string;
+  /** Geschätzte Menge in Gramm, falls bekannt */
+  grams?: number | null;
+};
+
 export type MealFormValues = {
   name: string;
   portionSize?: string;
@@ -21,6 +29,7 @@ export type MealFormValues = {
   iron: number;
   notes?: string;
   imagePath?: string | null;
+  ingredients?: MealIngredient[];
 };
 
 export type StatsRange = "day" | "week" | "month";

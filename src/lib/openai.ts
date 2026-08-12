@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { decryptSecret } from "@/lib/crypto";
 import { toMealType } from "@/lib/nutrition";
+import { localizeGermanLabel } from "@/lib/de-labels";
+import { normalizeIngredients } from "@/lib/meal-ingredients";
 import { scaleNutrients } from "@/lib/portion";
 import type { NutrientValues, PortionAwareAnalysis } from "@/types/nutrition";
 
@@ -22,6 +24,12 @@ const nutrientsSchema = z.object({
   iron: z.coerce.number().nonnegative().default(0),
 });
 
+const ingredientSchema = z.object({
+  name: z.string().min(1),
+  portionSize: z.string().optional().default(""),
+  grams: z.coerce.number().positive().nullable().optional(),
+});
+
 export const mealAnalysisSchema = z.object({
   name: z.string(),
   portionSize: z.string().optional().default(""),
@@ -33,6 +41,7 @@ export const mealAnalysisSchema = z.object({
   portionConfidence: z.coerce.number().min(0).max(1).default(0.5),
   needsPortionInput: z.boolean().optional(),
   nutrientsPer100g: nutrientsSchema.optional(),
+  ingredients: z.array(ingredientSchema).optional().default([]),
   calories: z.coerce.number().nonnegative().default(0),
   protein: z.coerce.number().nonnegative().default(0),
   carbs: z.coerce.number().nonnegative().default(0),
@@ -63,12 +72,23 @@ const textFoodSchema = z.object({
   suggestedServingGrams: z.coerce.number().positive().default(200),
   servingSizeLabel: z.string().optional().default(""),
   nutrientsPer100g: nutrientsSchema,
+  ingredients: z.array(ingredientSchema).optional().default([]),
   notes: z.string().optional(),
 });
 
-const ANALYSIS_PROMPT = `Du bist ein Ernährungsexperte. Analysiere das Essen auf dem Foto.
+const LANGUAGE_RULES = `SPRACHE (verbindlich):
+- Alle Freitexte AUSSCHLIESSLICH auf Deutsch: name, portionSize, ingredients[].name, ingredients[].portionSize, notes, servingSizeLabel.
+- Kein Englisch für Lebensmittel oder Einheiten (nicht Apple/Bar/piece/slice/serving).
+- Richtig: Apfel, Riegel, Stück, Scheibe, Portion, Tasse, EL, TL, Teller, ca., mittel, groß, klein.
+- Markennamen unverändert lassen (z. B. Toblerone), aber Gattung/Einheit deutsch: "Toblerone-Riegel", "1 Riegel (35 g)".
+- Beispiele: name="Apfel", portionSize="1 mittelgroßer Apfel (ca. 180 g)"; name="Toblerone", portionSize="1 Riegel (35 g)".`;
+
+const ANALYSIS_PROMPT = `Du bist ein deutschsprachiger Ernährungsexperte. Analysiere das Essen auf dem Foto.
 Liefere Nährwerte möglichst als Werte pro 100g UND eine Schätzung der Portionsgröße in Gramm.
+Zerlege zusammengesetzte Gerichte in sichtbare/typische Hauptbestandteile mit geschätzter Portionsgröße
+(z. B. Spaghetti Bolognese → Spaghetti, Rindfleisch, Tomatensauce, Reibkäse – nur was erkennbar oder sehr wahrscheinlich ist).
 Wenn die Portionsgröße unsicher ist (z. B. Nudeln, Reis, unklarer Teller), setze needsPortionInput=true und portionConfidence niedrig (<0.55).
+${LANGUAGE_RULES}
 Antworte AUSSCHLIESSLICH mit gültigem JSON ohne Markdown.
 Schema:
 {
@@ -78,6 +98,9 @@ Schema:
   "estimatedPortionGrams": number | null,
   "portionConfidence": number,
   "needsPortionInput": boolean,
+  "ingredients": [
+    { "name": string, "portionSize": string, "grams": number | null }
+  ],
   "nutrientsPer100g": {
     "calories": number, "protein": number, "carbs": number, "fat": number,
     "fiber": number, "sugar": number, "saturatedFat": number,
@@ -95,9 +118,12 @@ Schema:
 }
 Einheiten: Makros/Ballaststoffe/Zucker/gesättigte Fette in g; Natrium/Kalium/Calcium/Eisen in mg;
 Vitamin A in µg RAE; Vitamin C/D in mg.
-Die Top-Level-Nährwerte beziehen sich auf die geschätzte Portion.`;
+Die Top-Level-Nährwerte beziehen sich auf die geschätzte Portion.
+ingredients: 2–8 Hauptzutaten; portionSize lesbar auf Deutsch (z. B. "180 g", "2 EL"); grams wenn sinnvoll schätzbar.`;
 
-const TEXT_FOOD_PROMPT = `Du bist ein Ernährungsexperte. Schätze realistische Nährwerte pro 100g für das genannte Gericht/Lebensmittel.
+const TEXT_FOOD_PROMPT = `Du bist ein deutschsprachiger Ernährungsexperte. Schätze realistische Nährwerte pro 100g für das genannte Gericht/Lebensmittel.
+Liste typische Hauptbestandteile mit Portionsgrößen für eine übliche Portion.
+${LANGUAGE_RULES}
 Antworte AUSSCHLIESSLICH mit gültigem JSON.
 Schema:
 {
@@ -106,6 +132,9 @@ Schema:
   "mealType": "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK",
   "suggestedServingGrams": number,
   "servingSizeLabel": string,
+  "ingredients": [
+    { "name": string, "portionSize": string, "grams": number | null }
+  ],
   "nutrientsPer100g": {
     "calories": number, "protein": number, "carbs": number, "fat": number,
     "fiber": number, "sugar": number, "saturatedFat": number,
@@ -217,17 +246,26 @@ export function toPortionAwareAnalysis(
           iron: analysis.iron,
         });
 
+  const ingredients = normalizeIngredients(analysis.ingredients).map((item) => ({
+    ...item,
+    name: localizeGermanLabel(item.name),
+    portionSize: localizeGermanLabel(item.portionSize),
+  }));
+
   return {
-    name: analysis.name,
+    name: localizeGermanLabel(analysis.name),
     mealType: analysis.mealType,
-    portionSize: analysis.portionSize || "",
+    portionSize: localizeGermanLabel(analysis.portionSize || ""),
     estimatedPortionGrams,
     portionConfidence,
     needsPortionInput,
     nutrientsPer100g,
     nutrients,
+    ingredients,
     confidence: analysis.confidence,
-    notes: analysis.notes,
+    notes: analysis.notes
+      ? localizeGermanLabel(analysis.notes)
+      : analysis.notes,
   };
 }
 
@@ -250,7 +288,7 @@ export async function analyzeMealImage(params: {
         content: [
           {
             type: "text",
-            text: "Analysiere dieses Mahlzeitenfoto und gib nur JSON zurück. Wenn die Portionsgröße unsicher ist, markiere needsPortionInput=true.",
+            text: "Analysiere dieses Mahlzeitenfoto und gib nur JSON zurück. Alle Bezeichnungen und Einheiten auf Deutsch (Apfel statt Apple, Riegel statt Bar). Wenn die Portionsgröße unsicher ist, markiere needsPortionInput=true.",
           },
           {
             type: "image_url",
@@ -287,7 +325,7 @@ export async function estimateFoodByName(params: {
       { role: "system", content: TEXT_FOOD_PROMPT },
       {
         role: "user",
-        content: `Schätze Nährwerte pro 100g für: "${params.query}"`,
+        content: `Schätze Nährwerte pro 100g für: "${params.query}". Antworte mit deutschen Bezeichnungen und Einheiten (kein Englisch).`,
       },
     ],
   });
@@ -297,5 +335,16 @@ export async function estimateFoodByName(params: {
     throw new Error("Leere Antwort von OpenAI erhalten.");
   }
 
-  return textFoodSchema.parse(JSON.parse(extractJson(content)));
+  const parsed = textFoodSchema.parse(JSON.parse(extractJson(content)));
+  return {
+    ...parsed,
+    name: localizeGermanLabel(parsed.name),
+    servingSizeLabel: localizeGermanLabel(parsed.servingSizeLabel),
+    notes: parsed.notes ? localizeGermanLabel(parsed.notes) : parsed.notes,
+    ingredients: normalizeIngredients(parsed.ingredients).map((item) => ({
+      ...item,
+      name: localizeGermanLabel(item.name),
+      portionSize: localizeGermanLabel(item.portionSize),
+    })),
+  };
 }
