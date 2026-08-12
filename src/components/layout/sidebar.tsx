@@ -6,10 +6,10 @@ import {
   Camera,
   ChartColumn,
   Home,
-  Leaf,
   Settings,
   Utensils,
 } from "lucide-react";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -25,10 +25,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border/70 bg-card/40 p-5 md:flex md:flex-col">
-      <div className="mb-8 flex items-center gap-2 px-2">
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-          <Leaf className="h-5 w-5" />
-        </span>
+      <div className="mb-8 flex items-center gap-2.5 px-2">
+        <BrandMark size="md" />
         <div>
           <p className="font-display text-lg font-bold leading-none">
             NutriSight

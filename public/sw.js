@@ -1,10 +1,12 @@
-const CACHE_NAME = "nutrisight-static-v3";
+const CACHE_NAME = "nutrisight-static-v4";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
+  "/favicon.ico",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/maskable-512.png",
   "/icons/apple-touch-icon.png",
+  "/icons/logo-leaf-eye.png",
 ];
 
 self.addEventListener("install", (event) => {

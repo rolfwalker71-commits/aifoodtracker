@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/brand/brand-mark";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -8,13 +9,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl md:px-6">
-          <div>
-            <p className="font-display text-lg font-bold md:hidden">
-              NutriSight
-            </p>
-            <p className="hidden text-sm text-muted-foreground md:block">
-              Dein persönlicher Nährwert-Überblick
-            </p>
+          <div className="flex items-center gap-2.5">
+            <BrandMark size="sm" className="md:hidden" />
+            <div>
+              <p className="font-display text-lg font-bold md:hidden">
+                NutriSight
+              </p>
+              <p className="hidden text-sm text-muted-foreground md:block">
+                Dein persönlicher Nährwert-Überblick
+              </p>
+            </div>
           </div>
           <ThemeToggle />
         </header>

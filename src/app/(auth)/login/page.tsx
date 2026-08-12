@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useState } from "react";
-import { Leaf } from "lucide-react";
 import { toast } from "sonner";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -84,9 +84,7 @@ export default function LoginPage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-10">
       <div className="mb-8 text-center animate-rise">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-          <Leaf className="h-7 w-7" />
-        </div>
+        <BrandMark size="lg" className="mx-auto mb-4" />
         <h1 className="font-display text-3xl font-bold tracking-tight">
           NutriSight
         </h1>
