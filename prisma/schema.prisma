@@ -59,8 +59,24 @@ model User {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   meals              Meal[]
+  apiAccessKeys      ApiAccessKey[]
   accounts           Account[]
   sessions           Session[]
+}
+
+/// NutriSight REST API access key (plaintext shown once; only hash stored)
+model ApiAccessKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String    @default("Standard")
+  /// Display prefix, e.g. "ns_a1b2c3d4"
+  keyPrefix  String
+  keyHash    String    @unique
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {

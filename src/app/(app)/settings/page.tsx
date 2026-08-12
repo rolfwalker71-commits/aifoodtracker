@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
+import { ApiAccessKeysCard } from "@/components/settings/api-access-keys-card";
 import { triggerMissingImageBackfill } from "@/components/meals/missing-image-backfill";
 import { formatNumber } from "@/lib/utils";
 import {
@@ -573,6 +574,8 @@ export default function SettingsPage() {
           {busy ? "Speichern…" : "Profil & Ziele speichern"}
         </Button>
       </form>
+
+      <ApiAccessKeysCard />
 
       <form onSubmit={changePassword}>
         <Card>
