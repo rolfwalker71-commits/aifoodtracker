@@ -209,6 +209,44 @@ export async function searchOpenFoodFacts(
   return results;
 }
 
+const PRODUCT_FIELDS =
+  "code,product_name,product_name_de,brands,image_front_url,image_front_small_url,image_url,serving_size,serving_quantity,quantity,nutriments";
+
+/** Lookup a single packaged product by EAN/UPC barcode. */
+export async function fetchOpenFoodFactsByBarcode(
+  barcode: string,
+): Promise<FoodLookupItem | null> {
+  const code = barcode.replace(/\D/g, "");
+  if (code.length < 8 || code.length > 14) {
+    throw new Error("Barcode muss 8–14 Ziffern haben.");
+  }
+
+  const domains = [
+    "world.openfoodfacts.org",
+    "ch.openfoodfacts.org",
+    "de.openfoodfacts.org",
+    "world.openfoodfacts.net",
+  ];
+
+  for (const domain of domains) {
+    try {
+      const url = `https://${domain}/api/v2/product/${code}.json?fields=${PRODUCT_FIELDS}`;
+      const detail = (await fetchJson(url)) as {
+        status?: number;
+        product?: OffProduct;
+      };
+      if (detail.status === 1 && detail.product) {
+        const item = toLookupItem({ ...detail.product, code });
+        if (item) return item;
+      }
+    } catch {
+      // try next domain
+    }
+  }
+
+  return null;
+}
+
 export function emptyNutrients(): NutrientValues {
   return { ...EMPTY_NUTRIENTS };
 }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { BarcodeCapture } from "@/components/meals/barcode-capture";
 import { CameraCapture } from "@/components/meals/camera-capture";
 import { FoodLookup } from "@/components/meals/food-lookup";
 import { MealForm } from "@/components/meals/meal-form";
@@ -360,7 +361,7 @@ export default function NewMealPage() {
           Mahlzeit erfassen
         </h1>
         <p className="text-sm text-muted-foreground">
-          Foto, Freitext oder Suche → Menge prüfen → berechnen → speichern.
+          Foto, Freitext, Barcode oder Suche → Menge prüfen → speichern.
         </p>
       </div>
 
@@ -427,9 +428,10 @@ export default function NewMealPage() {
 
       {step === "capture" ? (
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
             <TabsTrigger value="photo">Foto</TabsTrigger>
             <TabsTrigger value="text">Freitext</TabsTrigger>
+            <TabsTrigger value="barcode">Barcode</TabsTrigger>
             <TabsTrigger value="manual">Suche</TabsTrigger>
           </TabsList>
 
@@ -439,6 +441,10 @@ export default function NewMealPage() {
 
           <TabsContent value="text" className="space-y-4">
             <TextMealCapture onSelect={onFoodSelected} />
+          </TabsContent>
+
+          <TabsContent value="barcode" className="space-y-4">
+            <BarcodeCapture onSelect={onFoodSelected} />
           </TabsContent>
 
           <TabsContent value="manual" className="space-y-4">
