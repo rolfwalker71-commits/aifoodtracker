@@ -7,10 +7,13 @@ import { CameraCapture } from "@/components/meals/camera-capture";
 import { FoodLookup } from "@/components/meals/food-lookup";
 import { MealForm } from "@/components/meals/meal-form";
 import { MealSaveConfirm } from "@/components/meals/meal-save-confirm";
+import { OffCompareCard } from "@/components/meals/off-compare-card";
 import { PortionPrompt } from "@/components/meals/portion-prompt";
 import { RecognitionPopup } from "@/components/meals/recognition-popup";
+import { TextMealCapture } from "@/components/meals/text-meal-capture";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { confidenceLevel } from "@/lib/confidence";
 import { toFormDateTime } from "@/lib/datetime";
 import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
@@ -75,12 +78,16 @@ type PendingFood = {
   ingredients?: MealIngredient[];
   amountLabel?: string;
   recognitionSubtitle?: string;
+  portionConfidence?: number | null;
+  confidence?: number | null;
 };
 
 type RecognitionState = {
   name: string;
   amountLabel: string;
   subtitle?: string;
+  portionConfidence?: number | null;
+  confidence?: number | null;
 };
 
 export default function NewMealPage() {
@@ -93,6 +100,7 @@ export default function NewMealPage() {
   );
   const [pendingFood, setPendingFood] = useState<PendingFood | null>(null);
   const [recognition, setRecognition] = useState<RecognitionState | null>(null);
+  const [offMatch, setOffMatch] = useState<FoodLookupItem | null>(null);
 
   const formKey = useMemo(
     () =>
@@ -145,9 +153,28 @@ export default function NewMealPage() {
         name: pending.name,
         amountLabel,
         subtitle: pending.recognitionSubtitle,
+        portionConfidence: pending.portionConfidence,
+        confidence: pending.confidence,
       });
     } else {
       setRecognition(null);
+    }
+  }
+
+  async function lookupOffMatch(query: string) {
+    try {
+      const response = await fetch(
+        `/api/foods/search?q=${encodeURIComponent(query)}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json();
+      if (!response.ok) return;
+      const items = (data.items || data.results || data) as FoodLookupItem[];
+      const list = Array.isArray(items) ? items : [];
+      const first = list.find((item) => item.source === "openfoodfacts");
+      setOffMatch(first || null);
+    } catch {
+      setOffMatch(null);
     }
   }
 
@@ -161,6 +188,8 @@ export default function NewMealPage() {
     const name = localizeGermanLabel(
       item.brand ? `${item.brand} ${item.name}` : item.name,
     );
+    const portionConfidence =
+      item.portionConfidence ?? (item.source === "ai" ? 0.55 : 0.8);
 
     beginPortionFlow(
       {
@@ -182,9 +211,12 @@ export default function NewMealPage() {
             : "KI-Schätzung – bitte Menge bestätigen",
         helperText:
           "Gib die gegessene Menge ein. Alle Nährwerte werden darauf umgerechnet und erst beim Speichern übernommen.",
+        portionConfidence,
+        confidence: item.confidence ?? portionConfidence,
       },
       true,
     );
+    setOffMatch(null);
   }
 
   function onCameraAnalyzed(analysis: PortionAwareAnalysis, imagePath: string) {
@@ -192,10 +224,12 @@ export default function NewMealPage() {
       analysis.estimatedPortionGrams && analysis.estimatedPortionGrams > 0
         ? analysis.estimatedPortionGrams
         : 250;
+    const portion = confidenceLevel(analysis.portionConfidence);
+    const name = localizeGermanLabel(analysis.name);
 
     beginPortionFlow(
       {
-        name: localizeGermanLabel(analysis.name),
+        name,
         mealType: analysis.mealType,
         notes: analysis.notes,
         imagePath,
@@ -208,13 +242,37 @@ export default function NewMealPage() {
           analysis.portionSize ||
           `Gesamtgewicht auf dem Teller ca. ${Math.round(suggested)} g`,
         recognitionSubtitle: analysis.needsPortionInput
-          ? "Gesamtgewicht aller Speisen auf dem Teller – bitte prüfen und anpassen"
-          : "Erkannt – Gesamtmenge bestätigen oder anpassen",
+          ? `Gesamtgewicht prüfen (${portion.label})`
+          : `Erkannt – Menge bestätigen (${portion.label})`,
         helperText:
           "Die Gramm-Angabe ist das geschätzte Gesamtgewicht aller Speisen (z. B. Fleisch + Beilagen). Passe sie bei Bedarf an – die Nährwerte werden darauf umgerechnet.",
+        portionConfidence: analysis.portionConfidence,
+        confidence: analysis.confidence ?? null,
       },
       true,
     );
+
+    void lookupOffMatch(name);
+  }
+
+  function applyOffMatch(item: FoodLookupItem) {
+    if (!pendingFood) return;
+    const label = item.brand ? `${item.brand} ${item.name}` : item.name;
+    setPendingFood({
+      ...pendingFood,
+      name: localizeGermanLabel(label),
+      brand: item.brand,
+      nutrientsPer100g: item.nutrientsPer100g,
+      currentNutrients: undefined,
+      imagePath: pendingFood.imagePath || item.imageUrl || null,
+      notes: pendingFood.notes
+        ? `${pendingFood.notes}\nNährwerte von Open Food Facts übernommen.`
+        : "Nährwerte von Open Food Facts übernommen.",
+      portionConfidence: 0.85,
+      recognitionSubtitle: "OFF-Werte übernommen – Menge noch bestätigen",
+    });
+    setOffMatch(null);
+    toast.success("Open-Food-Facts-Werte übernommen");
   }
 
   function confirmPortion(grams: number) {
@@ -230,7 +288,6 @@ export default function NewMealPage() {
 
   function recalculatePortion(grams: number) {
     if (!pendingFood) {
-      // Fallback: scale from current form nutrients using previous grams if possible
       const previous = Number(
         String(formValues.portionSize || "").match(/(\d+(?:[.,]\d+)?)/)?.[1]?.replace(
           ",",
@@ -303,7 +360,7 @@ export default function NewMealPage() {
           Mahlzeit erfassen
         </h1>
         <p className="text-sm text-muted-foreground">
-          Foto oder Suche → Menge eingeben → berechnen → speichern.
+          Foto, Freitext oder Suche → Menge prüfen → berechnen → speichern.
         </p>
       </div>
 
@@ -312,17 +369,31 @@ export default function NewMealPage() {
         name={recognition?.name || ""}
         amountLabel={recognition?.amountLabel}
         subtitle={recognition?.subtitle}
+        portionConfidence={recognition?.portionConfidence}
+        confidence={recognition?.confidence}
         onContinue={() => setRecognition(null)}
       />
 
       {step === "portion" && pendingFood ? (
-        <PortionPrompt
-          foodName={pendingFood.name}
-          suggestedGrams={pendingFood.suggestedGrams}
-          helperText={pendingFood.helperText}
-          confirmLabel="Berechnen"
-          onConfirm={(grams) => confirmPortion(grams)}
-        />
+        <>
+          <PortionPrompt
+            foodName={pendingFood.name}
+            suggestedGrams={pendingFood.suggestedGrams}
+            helperText={pendingFood.helperText}
+            portionConfidence={pendingFood.portionConfidence}
+            confirmLabel="Berechnen"
+            onConfirm={(grams) => confirmPortion(grams)}
+          />
+          {offMatch ? (
+            <OffCompareCard
+              aiName={pendingFood.name}
+              aiPer100g={pendingFood.nutrientsPer100g}
+              match={offMatch}
+              onUseOff={applyOffMatch}
+              onDismiss={() => setOffMatch(null)}
+            />
+          ) : null}
+        </>
       ) : null}
 
       {step === "confirm" ? (
@@ -356,13 +427,18 @@ export default function NewMealPage() {
 
       {step === "capture" ? (
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="photo">Foto</TabsTrigger>
-            <TabsTrigger value="manual">Suche / Manuell</TabsTrigger>
+            <TabsTrigger value="text">Freitext</TabsTrigger>
+            <TabsTrigger value="manual">Suche</TabsTrigger>
           </TabsList>
 
           <TabsContent value="photo" className="space-y-4">
             <CameraCapture onAnalyzed={onCameraAnalyzed} />
+          </TabsContent>
+
+          <TabsContent value="text" className="space-y-4">
+            <TextMealCapture onSelect={onFoodSelected} />
           </TabsContent>
 
           <TabsContent value="manual" className="space-y-4">
@@ -393,6 +469,7 @@ export default function NewMealPage() {
             setStep("capture");
             setPendingFood(null);
             setRecognition(null);
+            setOffMatch(null);
           }}
         >
           Abbrechen und neu erfassen

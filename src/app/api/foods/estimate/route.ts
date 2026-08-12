@@ -42,6 +42,9 @@ export async function POST(request: Request) {
       servingGrams: estimate.suggestedServingGrams,
       nutrientsPer100g: estimate.nutrientsPer100g,
       ingredients: normalizeIngredients(estimate.ingredients),
+      portionConfidence: estimate.portionConfidence,
+      needsPortionInput: estimate.needsPortionInput,
+      confidence: estimate.confidence,
     };
 
     return NextResponse.json({

@@ -3,12 +3,19 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  confidenceLevel,
+  confidencePercent,
+} from "@/lib/confidence";
+import { cn } from "@/lib/utils";
 
 type Props = {
   open: boolean;
   name: string;
   amountLabel?: string | null;
   subtitle?: string | null;
+  portionConfidence?: number | null;
+  confidence?: number | null;
   onContinue: () => void;
 };
 
@@ -25,6 +32,8 @@ export function RecognitionPopup({
   name,
   amountLabel,
   subtitle,
+  portionConfidence,
+  confidence,
   onContinue,
 }: Props) {
   useEffect(() => {
@@ -37,6 +46,9 @@ export function RecognitionPopup({
   }, [open]);
 
   const lines = amountLabel ? amountLines(amountLabel) : [];
+  const portion = confidenceLevel(portionConfidence);
+  const dish =
+    typeof confidence === "number" ? confidenceLevel(confidence) : null;
 
   return (
     <AnimatePresence>
@@ -73,6 +85,22 @@ export function RecognitionPopup({
                 ))}
               </div>
             ) : null}
+
+            <div className="mx-auto mt-5 flex max-w-sm flex-col gap-2">
+              <UncertaintyBadge
+                label={`Portionsgrösse ${portion.label}`}
+                detail={`${confidencePercent(portion.score)} % · ${portion.detail}`}
+                level={portion.key}
+              />
+              {dish ? (
+                <UncertaintyBadge
+                  label={`Gericht ${dish.label}`}
+                  detail={`${confidencePercent(dish.score)} %`}
+                  level={dish.key}
+                />
+              ) : null}
+            </div>
+
             {subtitle ? (
               <p className="mt-3 text-sm text-muted-foreground">{subtitle}</p>
             ) : null}
@@ -88,5 +116,29 @@ export function RecognitionPopup({
         </motion.div>
       ) : null}
     </AnimatePresence>
+  );
+}
+
+function UncertaintyBadge({
+  label,
+  detail,
+  level,
+}: {
+  label: string;
+  detail: string;
+  level: "high" | "medium" | "low";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl px-4 py-2.5 text-left text-sm",
+        level === "high" && "bg-emerald-500/15 text-emerald-900 dark:text-emerald-100",
+        level === "medium" && "bg-amber-500/15 text-amber-900 dark:text-amber-100",
+        level === "low" && "bg-orange-500/20 text-orange-950 dark:text-orange-100",
+      )}
+    >
+      <p className="font-semibold">{label}</p>
+      <p className="mt-0.5 opacity-90">{detail}</p>
+    </div>
   );
 }

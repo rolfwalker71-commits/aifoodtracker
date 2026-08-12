@@ -71,9 +71,12 @@ const textFoodSchema = z.object({
     .transform((value) => toMealType(String(value))),
   suggestedServingGrams: z.coerce.number().positive().default(200),
   servingSizeLabel: z.string().optional().default(""),
+  portionConfidence: z.coerce.number().min(0).max(1).default(0.6),
+  needsPortionInput: z.boolean().optional().default(true),
   nutrientsPer100g: nutrientsSchema,
   ingredients: z.array(ingredientSchema).optional().default([]),
   notes: z.string().optional(),
+  confidence: z.coerce.number().min(0).max(1).optional(),
 });
 
 const LANGUAGE_RULES = `SPRACHE (verbindlich) – Schweizer Hochdeutsch:
@@ -132,6 +135,7 @@ ingredients: 2–8 Hauptzutaten; portionSize lesbar auf Schweizer Deutsch (z. B.
 const TEXT_FOOD_PROMPT = `Du bist ein Ernährungsexperte und schreibst in Schweizer Hochdeutsch (kein ß, immer ss).
 Schätze realistische Nährwerte pro 100g für das genannte Gericht/Lebensmittel.
 Liste typische Hauptbestandteile mit Portionsgrössen für eine übliche Portion.
+Wenn die Menge unklar ist, setze needsPortionInput=true und portionConfidence niedriger (<0.6).
 ${LANGUAGE_RULES}
 Antworte AUSSCHLIESSLICH mit gültigem JSON.
 Schema:
@@ -141,6 +145,9 @@ Schema:
   "mealType": "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK",
   "suggestedServingGrams": number,
   "servingSizeLabel": string,
+  "portionConfidence": number,
+  "needsPortionInput": boolean,
+  "confidence": number,
   "ingredients": [
     { "name": string, "portionSize": string, "grams": number | null }
   ],

@@ -6,16 +6,20 @@ import { Camera, ChartColumn } from "lucide-react";
 import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import { MacroChart } from "@/components/dashboard/macro-chart";
+import { CoachTipCard } from "@/components/dashboard/coach-tip-card";
+import { PatternInsightsCard } from "@/components/dashboard/pattern-insights-card";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { MealList } from "@/components/meals/meal-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
+import { getDailyCoachTip } from "@/lib/coach-tip";
 import {
   APP_DATE_FORMAT,
   APP_TIMEZONE,
   getRangeBoundsInAppTz,
 } from "@/lib/datetime";
+import { detectMealPatterns } from "@/lib/insights";
 import { formatNumber } from "@/lib/utils";
 import { getStatsForUser } from "@/lib/stats";
 import { prisma } from "@/lib/prisma";
@@ -29,7 +33,8 @@ export default async function DashboardPage() {
 
   const today = new Date();
   const { from, to } = getRangeBoundsInAppTz("day", today);
-  const [stats, meals, profile] = await Promise.all([
+  const weekBounds = getRangeBoundsInAppTz("week", today);
+  const [stats, meals, weekMeals, profile] = await Promise.all([
     getStatsForUser(session.user.id, "day"),
     prisma.meal.findMany({
       where: {
@@ -38,6 +43,23 @@ export default async function DashboardPage() {
       },
       orderBy: { consumedAt: "desc" },
       take: 12,
+    }),
+    prisma.meal.findMany({
+      where: {
+        userId: session.user.id,
+        consumedAt: { gte: weekBounds.from, lte: weekBounds.to },
+      },
+      orderBy: { consumedAt: "desc" },
+      select: {
+        name: true,
+        mealType: true,
+        calories: true,
+        protein: true,
+        fiber: true,
+        sugar: true,
+        sodium: true,
+        consumedAt: true,
+      },
     }),
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -58,6 +80,17 @@ export default async function DashboardPage() {
       profile.weightKg &&
       profile.birthYear,
   );
+  const coachTip = getDailyCoachTip({
+    totals: stats.totals,
+    goals: stats.goals,
+    meals: meals.map((meal) => ({
+      mealType: meal.mealType,
+      calories: meal.calories,
+      protein: meal.protein,
+      name: meal.name,
+    })),
+  });
+  const patterns = detectMealPatterns(weekMeals);
 
   return (
     <div className="space-y-6">
@@ -84,11 +117,13 @@ export default async function DashboardPage() {
         ) : null}
       </section>
 
+      <CoachTipCard tip={coachTip} />
+
       <section className="grid gap-3 sm:grid-cols-2 animate-rise-delay">
         <Button asChild size="lg" className="h-14 justify-start px-5">
           <Link href="/meals/new">
             <Camera className="h-5 w-5" />
-            Mahlzeit per Foto erfassen
+            Mahlzeit erfassen
           </Link>
         </Button>
         <Button asChild size="lg" variant="outline" className="h-14 justify-start px-5">
@@ -98,6 +133,8 @@ export default async function DashboardPage() {
           </Link>
         </Button>
       </section>
+
+      <PatternInsightsCard insights={patterns} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="animate-rise">

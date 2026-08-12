@@ -30,6 +30,9 @@ export type FoodLookupItem = {
   nutrientsPer100g: NutrientValues;
   quantityLabel?: string;
   ingredients?: MealIngredient[];
+  portionConfidence?: number;
+  needsPortionInput?: boolean;
+  confidence?: number;
 };
 
 export type PortionAwareAnalysis = {
