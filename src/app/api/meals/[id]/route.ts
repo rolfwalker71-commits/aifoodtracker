@@ -1,0 +1,103 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/session";
+
+const mealSchema = z.object({
+  name: z.string().min(1),
+  portionSize: z.string().optional().nullable(),
+  imagePath: z.string().optional().nullable(),
+  mealType: z.enum(["BREAKFAST", "LUNCH", "DINNER", "SNACK"]),
+  consumedAt: z.string().datetime().or(z.string().min(1)),
+  calories: z.coerce.number().nonnegative(),
+  protein: z.coerce.number().nonnegative(),
+  carbs: z.coerce.number().nonnegative(),
+  fat: z.coerce.number().nonnegative(),
+  fiber: z.coerce.number().nonnegative().default(0),
+  sugar: z.coerce.number().nonnegative().default(0),
+  saturatedFat: z.coerce.number().nonnegative().default(0),
+  sodium: z.coerce.number().nonnegative().default(0),
+  potassium: z.coerce.number().nonnegative().default(0),
+  vitaminA: z.coerce.number().nonnegative().default(0),
+  vitaminC: z.coerce.number().nonnegative().default(0),
+  vitaminD: z.coerce.number().nonnegative().default(0),
+  calcium: z.coerce.number().nonnegative().default(0),
+  iron: z.coerce.number().nonnegative().default(0),
+  notes: z.string().optional().nullable(),
+});
+
+type Params = { params: Promise<{ id: string }> };
+
+async function getOwnedMeal(userId: string, id: string) {
+  return prisma.meal.findFirst({ where: { id, userId } });
+}
+
+export async function GET(_request: Request, { params }: Params) {
+  const user = await requireUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const meal = await getOwnedMeal(user.id, id);
+  if (!meal) {
+    return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 });
+  }
+  return NextResponse.json({ meal });
+}
+
+export async function PUT(request: Request, { params }: Params) {
+  try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const existing = await getOwnedMeal(user.id, id);
+    if (!existing) {
+      return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const parsed = mealSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Ungültige Mahlzeitendaten" },
+        { status: 400 },
+      );
+    }
+
+    const meal = await prisma.meal.update({
+      where: { id },
+      data: {
+        ...parsed.data,
+        consumedAt: new Date(parsed.data.consumedAt),
+      },
+    });
+
+    return NextResponse.json({ meal });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Aktualisierung fehlgeschlagen" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(_request: Request, { params }: Params) {
+  const user = await requireUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const existing = await getOwnedMeal(user.id, id);
+  if (!existing) {
+    return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 });
+  }
+
+  await prisma.meal.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}
