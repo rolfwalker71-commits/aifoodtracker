@@ -3,6 +3,7 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { OfflineQueueSync } from "@/components/meals/offline-queue-sync";
+import { MissingImageBackfill } from "@/components/meals/missing-image-backfill";
 import { ReminderScheduler } from "@/components/reminders/reminder-scheduler";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -27,6 +28,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 px-4 py-5 pb-28 md:px-6 md:pb-8">{children}</main>
         <BottomNav />
         <OfflineQueueSync />
+        <MissingImageBackfill />
         <ReminderScheduler />
       </div>
     </div>

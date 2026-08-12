@@ -50,4 +50,4 @@ ENV PORT=3333
 ENV HOSTNAME=0.0.0.0
 ENV UPLOAD_DIR=/app/uploads
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "mkdir -p \"$UPLOAD_DIR\" && echo \"Uploads: $UPLOAD_DIR ($(ls -1 \"$UPLOAD_DIR\" 2>/dev/null | wc -l) Dateien)\" && npx prisma migrate deploy && node server.js"]

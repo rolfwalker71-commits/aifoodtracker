@@ -1,4 +1,4 @@
-import { saveMealImage } from "@/lib/uploads";
+import { saveMealImage, fileExists, resolveLocalUploadPath } from "@/lib/uploads";
 import { generateMealSymbolImage } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
 import { revalidateMealViews } from "@/lib/meal-cache";
@@ -31,7 +31,26 @@ export async function persistRemoteImage(
   }
 }
 
-/** Generate a cheap symbol and attach it if the meal still has no image. */
+/** True when there is no usable local image file (null path or deleted upload). */
+export async function isLocalMealImageMissing(
+  imagePath: string | null | undefined,
+): Promise<boolean> {
+  if (!imagePath?.trim()) return true;
+
+  const trimmed = imagePath.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return false;
+  }
+
+  const local = resolveLocalUploadPath(trimmed);
+  if (!local) return true;
+  return !(await fileExists(local));
+}
+
+/**
+ * Generate a cheap symbol and attach it when the meal has no image
+ * or the stored local file is missing (e.g. after Docker redeploy).
+ */
 export async function attachMealSymbolIfMissing(params: {
   mealId: string;
   userId: string;
@@ -41,7 +60,9 @@ export async function attachMealSymbolIfMissing(params: {
     select: { id: true, name: true, imagePath: true },
   });
   if (!meal) return null;
-  if (meal.imagePath) return meal.imagePath;
+
+  const missing = await isLocalMealImageMissing(meal.imagePath);
+  if (!missing && meal.imagePath) return meal.imagePath;
 
   const user = await prisma.user.findUnique({
     where: { id: params.userId },
@@ -54,18 +75,60 @@ export async function attachMealSymbolIfMissing(params: {
   });
   const imagePath = await saveMealImage(buffer, params.userId);
 
-  const updated = await prisma.meal.updateMany({
-    where: { id: meal.id, userId: params.userId, imagePath: null },
+  await prisma.meal.update({
+    where: { id: meal.id },
     data: { imagePath },
   });
-  if (updated.count > 0) {
-    revalidateMealViews(meal.id);
-    return imagePath;
+  revalidateMealViews(meal.id);
+  return imagePath;
+}
+
+/** Backfill AI symbols for meals with empty or deleted image files. */
+export async function backfillMissingMealSymbols(
+  userId: string,
+  options?: { limit?: number; checkTake?: number },
+) {
+  const limit = options?.limit ?? 40;
+  const checkTake = options?.checkTake ?? 200;
+
+  const meals = await prisma.meal.findMany({
+    where: { userId },
+    orderBy: { consumedAt: "desc" },
+    take: checkTake,
+    select: { id: true, imagePath: true },
+  });
+
+  const targets: string[] = [];
+  for (const meal of meals) {
+    if (await isLocalMealImageMissing(meal.imagePath)) {
+      targets.push(meal.id);
+      if (targets.length >= limit) break;
+    }
   }
 
-  const current = await prisma.meal.findFirst({
-    where: { id: meal.id, userId: params.userId },
-    select: { imagePath: true },
-  });
-  return current?.imagePath ?? imagePath;
+  let done = 0;
+  const failed: string[] = [];
+
+  for (const mealId of targets) {
+    try {
+      const path = await attachMealSymbolIfMissing({ mealId, userId });
+      if (path) done += 1;
+      else failed.push(mealId);
+    } catch (error) {
+      console.error(`Symbol-Backfill fehlgeschlagen (${mealId}):`, error);
+      failed.push(mealId);
+    }
+  }
+
+  if (done > 0) {
+    revalidateMealViews();
+  }
+
+  return {
+    checked: meals.length,
+    needed: targets.length,
+    done,
+    failed: failed.length,
+    remaining: Math.max(0, targets.length - done),
+  };
 }

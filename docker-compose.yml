@@ -32,6 +32,7 @@ services:
     environment:
       PORT: 3333
       HOSTNAME: 0.0.0.0
+      # Muss mit dem Volume-Mount übereinstimmen – sonst gehen Bilder bei jedem Redeploy verloren.
       UPLOAD_DIR: /app/uploads
       DATABASE_URL: postgresql://aifood:aifood@db:5432/aifoodtracker?schema=public
       AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-me-in-production-aifoodtracker-32}
@@ -40,11 +41,12 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-aifoodtracker-dev-encryption-key-32b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - uploads_data:/app/uploads
+      # Bind-Mount auf dem Host – überlebt Image-Pulls und Container-Recreates.
+      # Niemals `docker compose down -v` nutzen (löscht DB + Uploads).
+      - ./data/uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   postgres_data:
-  uploads_data:

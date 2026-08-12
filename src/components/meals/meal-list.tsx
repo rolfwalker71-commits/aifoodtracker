@@ -35,29 +35,13 @@ export type MealListItem = {
 const ACTION_WIDTH = 222;
 const OPEN_X = -ACTION_WIDTH;
 
-function MealThumb({
-  src,
+function ImagePlaceholder({
   pending,
+  missingFile,
 }: {
-  src: string;
   pending: boolean;
+  missingFile?: boolean;
 }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return <ImagePlaceholder pending={pending} />;
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      className="h-full w-full object-cover"
-      onError={() => setFailed(true)}
-    />
-  );
-}
-
-function ImagePlaceholder({ pending }: { pending: boolean }) {
   return (
     <div className="flex h-full items-center justify-center text-lg font-semibold tracking-widest text-muted-foreground">
       {pending ? (
@@ -65,9 +49,38 @@ function ImagePlaceholder({ pending }: { pending: boolean }) {
           …
         </span>
       ) : (
-        <span className="text-xs font-normal tracking-normal">Manuell</span>
+        <span className="text-xs font-normal tracking-normal">
+          {missingFile ? "Bild fehlt" : "Manuell"}
+        </span>
       )}
     </div>
+  );
+}
+
+function MealThumb({
+  src,
+  mealId,
+  pending,
+}: {
+  src: string;
+  mealId: string;
+  pending: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <ImagePlaceholder pending={false} missingFile />;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      className="h-full w-full object-cover"
+      onError={() => {
+        setFailed(true);
+        requestMealSymbol(mealId);
+      }}
+    />
   );
 }
 
@@ -199,7 +212,11 @@ function SwipeMealCard({
                 onClick={onClose}
               >
                 {meal.imagePath ? (
-                  <MealThumb src={meal.imagePath} pending={pendingSymbol} />
+                  <MealThumb
+                    src={meal.imagePath}
+                    mealId={meal.id}
+                    pending={pendingSymbol}
+                  />
                 ) : (
                   <ImagePlaceholder pending={pendingSymbol} />
                 )}

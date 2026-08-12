@@ -34,9 +34,12 @@ yarn-error.log*
 .env
 .env*.local
 
-# uploads
+# uploads (local + Docker bind mount)
 /public/uploads/*
 !/public/uploads/.gitkeep
+/data/uploads/*
+!/data/uploads/.gitkeep
+!/data/uploads/.gitignore
 
 # vercel
 .vercel
