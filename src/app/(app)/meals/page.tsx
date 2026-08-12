@@ -1,9 +1,13 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import { MealList } from "@/components/meals/meal-list";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function MealsPage() {
+  noStore();
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 

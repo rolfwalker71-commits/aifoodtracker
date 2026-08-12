@@ -1,36 +1,18 @@
 import {
   eachDayOfInterval,
   endOfDay,
-  endOfMonth,
-  endOfWeek,
   format,
   startOfDay,
-  startOfMonth,
-  startOfWeek,
   subDays,
 } from "date-fns";
 import { de } from "date-fns/locale";
+import { getRangeBoundsInAppTz } from "@/lib/datetime";
 import { prisma } from "@/lib/prisma";
 import { sumNutrients } from "@/lib/nutrition";
 import type { StatsRange } from "@/types/meals";
 
 export function getRangeBounds(range: StatsRange, reference = new Date()) {
-  if (range === "day") {
-    return {
-      from: startOfDay(reference),
-      to: endOfDay(reference),
-    };
-  }
-  if (range === "week") {
-    return {
-      from: startOfWeek(reference, { weekStartsOn: 1 }),
-      to: endOfWeek(reference, { weekStartsOn: 1 }),
-    };
-  }
-  return {
-    from: startOfMonth(reference),
-    to: endOfMonth(reference),
-  };
+  return getRangeBoundsInAppTz(range, reference);
 }
 
 export async function getStatsForUser(userId: string, range: StatsRange) {

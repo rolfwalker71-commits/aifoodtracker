@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
   images: {
     unoptimized: true,
+    remotePatterns: [
+      { protocol: "https", hostname: "**.openfoodfacts.org" },
+      { protocol: "https", hostname: "images.openfoodfacts.org" },
+      { protocol: "https", hostname: "static.openfoodfacts.org" },
+    ],
   },
   experimental: {
     serverActions: {

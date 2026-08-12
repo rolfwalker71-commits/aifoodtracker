@@ -18,7 +18,9 @@ Mobile-first Progressive Web App zum Erfassen und Auswerten von Mahlzeiten mit G
 - Profil mit Tageszielen (Kalorien, Makros, Mikros)
 - Persönlicher OpenAI API Key (verschlüsselt gespeichert)
 - Foto-Analyse inkl. Live-Korrektur vor dem Speichern
-- Manuelle Mahlzeitenerfassung
+- Portionsabfrage, wenn die KI die Menge nicht sicher erkennt (Werte werden umgerechnet)
+- Lebensmittelsuche über [Open Food Facts](https://world.openfoodfacts.org) (Markenprodukte wie „Findus Lasagne“)
+- KI-Schätzung für freie Gerichte + automatisches Ausfüllen nach Portionsangabe
 - Dashboard + Statistiken (Tag / Woche / Monat)
 - Dark / Light Mode
 - Offline-Caching der UI-Shell (PWA)

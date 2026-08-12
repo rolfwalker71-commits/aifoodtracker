@@ -1,5 +1,8 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { parseAppDateTime } from "@/lib/datetime";
+import { persistRemoteImage } from "@/lib/images";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -70,13 +73,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const imagePath = parsed.data.imagePath
+      ? await persistRemoteImage(parsed.data.imagePath, user.id)
+      : null;
+
     const meal = await prisma.meal.create({
       data: {
         ...parsed.data,
+        imagePath,
         userId: user.id,
-        consumedAt: new Date(parsed.data.consumedAt),
+        consumedAt: parseAppDateTime(parsed.data.consumedAt),
       },
     });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/meals");
+    revalidatePath("/stats");
 
     return NextResponse.json({ meal }, { status: 201 });
   } catch (error) {

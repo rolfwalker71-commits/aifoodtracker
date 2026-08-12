@@ -1,5 +1,8 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { parseAppDateTime } from "@/lib/datetime";
+import { persistRemoteImage } from "@/lib/images";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -68,13 +71,23 @@ export async function PUT(request: Request, { params }: Params) {
       );
     }
 
+    const imagePath = parsed.data.imagePath
+      ? await persistRemoteImage(parsed.data.imagePath, user.id)
+      : parsed.data.imagePath;
+
     const meal = await prisma.meal.update({
       where: { id },
       data: {
         ...parsed.data,
-        consumedAt: new Date(parsed.data.consumedAt),
+        imagePath,
+        consumedAt: parseAppDateTime(parsed.data.consumedAt),
       },
     });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/meals");
+    revalidatePath("/stats");
+    revalidatePath(`/meals/${id}`);
 
     return NextResponse.json({ meal });
   } catch (error) {
@@ -99,5 +112,8 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   await prisma.meal.delete({ where: { id } });
+  revalidatePath("/dashboard");
+  revalidatePath("/meals");
+  revalidatePath("/stats");
   return NextResponse.json({ ok: true });
 }

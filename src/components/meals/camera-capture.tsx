@@ -6,10 +6,10 @@ import { Camera, ImagePlus, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { MealAnalysisResult } from "@/lib/openai";
+import type { PortionAwareAnalysis } from "@/types/nutrition";
 
 type Props = {
-  onAnalyzed: (result: MealAnalysisResult, imagePath: string) => void;
+  onAnalyzed: (result: PortionAwareAnalysis, imagePath: string) => void;
 };
 
 export function CameraCapture({ onAnalyzed }: Props) {
@@ -42,8 +42,7 @@ export function CameraCapture({ onAnalyzed }: Props) {
       if (!response.ok) {
         throw new Error(data.error || "Analyse fehlgeschlagen");
       }
-      onAnalyzed(data.analysis as MealAnalysisResult, data.imagePath as string);
-      toast.success("KI-Analyse abgeschlossen – bitte prüfen und speichern.");
+      onAnalyzed(data.analysis as PortionAwareAnalysis, data.imagePath as string);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Analyse fehlgeschlagen",
@@ -80,7 +79,7 @@ export function CameraCapture({ onAnalyzed }: Props) {
               <ImagePlus className="mb-3 h-8 w-8 text-muted-foreground transition group-hover:text-primary" />
               <p className="text-sm font-medium">Kamera oder Galerie öffnen</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Touch-optimiert für unterwegs
+                Bei unsicherer Portionsgröße wirst du danach gefragt
               </p>
             </>
           )}

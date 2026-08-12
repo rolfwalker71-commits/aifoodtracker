@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
@@ -24,6 +23,14 @@ export type MealListItem = {
   consumedAt: string;
   imagePath?: string | null;
 };
+
+function MealThumb({ src, alt }: { src: string; alt: string }) {
+  // Support both local /uploads and remote Open Food Facts URLs
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className="h-full w-full object-cover" />
+  );
+}
 
 export function MealList({ meals }: { meals: MealListItem[] }) {
   const router = useRouter();
@@ -56,15 +63,12 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
       {meals.map((meal) => (
         <Card key={meal.id} className="overflow-hidden transition hover:shadow-md">
           <CardContent className="flex gap-3 p-3">
-            <Link href={`/meals/${meal.id}`} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
+            <Link
+              href={`/meals/${meal.id}`}
+              className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted"
+            >
               {meal.imagePath ? (
-                <Image
-                  src={meal.imagePath}
-                  alt={meal.name}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
+                <MealThumb src={meal.imagePath} alt={meal.name} />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                   Manuell

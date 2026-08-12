@@ -1,15 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/meals/camera-capture";
+import { FoodLookup } from "@/components/meals/food-lookup";
 import { MealForm } from "@/components/meals/meal-form";
+import { PortionPrompt } from "@/components/meals/portion-prompt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MealAnalysisResult } from "@/lib/openai";
+import { formatPortionLabel, nutrientsFromPortion, scaleNutrients } from "@/lib/portion";
 import type { MealFormValues } from "@/types/meals";
+import type {
+  FoodLookupItem,
+  NutrientValues,
+  PortionAwareAnalysis,
+} from "@/types/nutrition";
+import type { MealType } from "@/generated/prisma/client";
 
 function emptyForm(): MealFormValues {
   return {
@@ -36,40 +43,159 @@ function emptyForm(): MealFormValues {
   };
 }
 
+function withNutrients(
+  base: MealFormValues,
+  nutrients: NutrientValues,
+): MealFormValues {
+  return { ...base, ...nutrients };
+}
+
+type PendingFood = {
+  name: string;
+  brand?: string;
+  mealType?: MealType;
+  notes?: string;
+  imagePath?: string | null;
+  nutrientsPer100g: NutrientValues;
+  estimatedPortionGrams?: number | null;
+  currentNutrients?: NutrientValues;
+  suggestedGrams?: number | null;
+  helperText?: string;
+  allowSkip?: boolean;
+};
+
 export default function NewMealPage() {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [formValues, setFormValues] = useState<MealFormValues>(emptyForm);
   const [tab, setTab] = useState("photo");
+  const [pendingFood, setPendingFood] = useState<PendingFood | null>(null);
+
   const formKey = useMemo(
-    () => `${formValues.name}-${formValues.imagePath ?? "manual"}-${tab}`,
-    [formValues.name, formValues.imagePath, tab],
+    () =>
+      `${formValues.name}-${formValues.portionSize}-${formValues.calories}-${tab}`,
+    [formValues.name, formValues.portionSize, formValues.calories, tab],
   );
 
-  function applyAnalysis(analysis: MealAnalysisResult, imagePath: string) {
-    setFormValues({
-      ...emptyForm(),
-      name: analysis.name,
-      portionSize: analysis.portionSize,
-      mealType: analysis.mealType,
-      calories: analysis.calories,
-      protein: analysis.protein,
-      carbs: analysis.carbs,
-      fat: analysis.fat,
-      fiber: analysis.fiber,
-      sugar: analysis.sugar,
-      saturatedFat: analysis.saturatedFat,
-      sodium: analysis.sodium,
-      potassium: analysis.potassium,
-      vitaminA: analysis.vitaminA,
-      vitaminC: analysis.vitaminC,
-      vitaminD: analysis.vitaminD,
-      calcium: analysis.calcium,
-      iron: analysis.iron,
-      notes: analysis.notes ?? "",
-      imagePath,
-    });
+  function applyFilledMeal(values: MealFormValues) {
+    setFormValues(values);
+    setPendingFood(null);
     setTab("review");
+  }
+
+  function askForPortion(pending: PendingFood) {
+    setPendingFood(pending);
+  }
+
+  function onFoodSelected(
+    item: FoodLookupItem,
+    mealType?: MealType,
+    notes?: string,
+  ) {
+    const suggested =
+      item.servingGrams && item.servingGrams > 0 ? item.servingGrams : 200;
+
+    askForPortion({
+      name: item.brand ? `${item.brand} ${item.name}` : item.name,
+      brand: item.brand,
+      mealType,
+      notes,
+      imagePath: item.imageUrl ?? null,
+      nutrientsPer100g: item.nutrientsPer100g,
+      suggestedGrams: suggested,
+      helperText:
+        item.source === "openfoodfacts"
+          ? "Produkt gefunden. Gib nur noch die gegessene Menge an – die Nährwerte werden berechnet."
+          : "KI-Schätzung geladen. Gib die Portionsgröße an, dann werden die Felder ausgefüllt.",
+    });
+  }
+
+  function onCameraAnalyzed(analysis: PortionAwareAnalysis, imagePath: string) {
+    if (analysis.needsPortionInput) {
+      askForPortion({
+        name: analysis.name,
+        mealType: analysis.mealType,
+        notes: analysis.notes,
+        imagePath,
+        nutrientsPer100g: analysis.nutrientsPer100g,
+        estimatedPortionGrams: analysis.estimatedPortionGrams,
+        currentNutrients: analysis.nutrients,
+        suggestedGrams: analysis.estimatedPortionGrams,
+        allowSkip: Boolean(analysis.estimatedPortionGrams),
+        helperText: `Die Portionsgröße von „${analysis.name}“ ist unsicher. Wie viel hast du gegessen? Die Nährwerte werden entsprechend umgerechnet.`,
+      });
+      toast.message("Portionsgröße benötigt", {
+        description: "Bitte Menge angeben, dann werden die Werte berechnet.",
+      });
+      return;
+    }
+
+    applyFilledMeal(
+      withNutrients(
+        {
+          ...emptyForm(),
+          name: analysis.name,
+          portionSize:
+            analysis.portionSize ||
+            (analysis.estimatedPortionGrams
+              ? formatPortionLabel(analysis.estimatedPortionGrams)
+              : ""),
+          mealType: analysis.mealType,
+          notes: analysis.notes ?? "",
+          imagePath,
+        },
+        analysis.nutrients,
+      ),
+    );
+    toast.success("KI-Analyse abgeschlossen – bitte prüfen und speichern.");
+  }
+
+  function confirmPortion(grams: number, label: string) {
+    if (!pendingFood) return;
+
+    const nutrients = nutrientsFromPortion(
+      pendingFood.nutrientsPer100g,
+      pendingFood.currentNutrients || scaleNutrients(pendingFood.nutrientsPer100g, grams),
+      pendingFood.estimatedPortionGrams,
+      grams,
+    );
+
+    applyFilledMeal(
+      withNutrients(
+        {
+          ...emptyForm(),
+          name: pendingFood.name,
+          portionSize: label,
+          mealType: pendingFood.mealType || "SNACK",
+          notes: pendingFood.notes ?? "",
+          imagePath: pendingFood.imagePath ?? null,
+        },
+        nutrients,
+      ),
+    );
+    toast.success("Nährwerte für deine Portion ausgefüllt.");
+  }
+
+  function skipPortionPrompt() {
+    if (!pendingFood?.currentNutrients) {
+      setPendingFood(null);
+      return;
+    }
+
+    applyFilledMeal(
+      withNutrients(
+        {
+          ...emptyForm(),
+          name: pendingFood.name,
+          portionSize: pendingFood.estimatedPortionGrams
+            ? formatPortionLabel(pendingFood.estimatedPortionGrams)
+            : "",
+          mealType: pendingFood.mealType || "SNACK",
+          notes: pendingFood.notes ?? "",
+          imagePath: pendingFood.imagePath ?? null,
+        },
+        pendingFood.currentNutrients,
+      ),
+    );
   }
 
   async function saveMeal(values: MealFormValues) {
@@ -88,8 +214,8 @@ export default function NewMealPage() {
         throw new Error(data.error || "Speichern fehlgeschlagen");
       }
       toast.success("Mahlzeit gespeichert");
-      router.push("/dashboard");
-      router.refresh();
+      // Hard navigation avoids stale RSC/router cache on the dashboard
+      window.location.assign("/dashboard");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Speichern fehlgeschlagen",
@@ -106,26 +232,37 @@ export default function NewMealPage() {
           Mahlzeit erfassen
         </h1>
         <p className="text-sm text-muted-foreground">
-          Foto analysieren oder manuell eingeben – Ergebnisse vor dem Speichern
-          korrigieren.
+          Markenprodukt suchen, KI schätzen oder Foto analysieren – Portionsgröße
+          angeben, Rest wird ausgefüllt.
         </p>
       </div>
+
+      {pendingFood && (
+        <PortionPrompt
+          foodName={pendingFood.name}
+          suggestedGrams={pendingFood.suggestedGrams}
+          helperText={pendingFood.helperText}
+          onConfirm={confirmPortion}
+          onSkip={pendingFood.allowSkip ? skipPortionPrompt : undefined}
+        />
+      )}
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="photo">Foto</TabsTrigger>
-          <TabsTrigger value="manual">Manuell</TabsTrigger>
+          <TabsTrigger value="manual">Suche / Manuell</TabsTrigger>
           <TabsTrigger value="review">Korrektur</TabsTrigger>
         </TabsList>
 
         <TabsContent value="photo" className="space-y-4">
-          <CameraCapture onAnalyzed={applyAnalysis} />
+          <CameraCapture onAnalyzed={onCameraAnalyzed} />
         </TabsContent>
 
-        <TabsContent value="manual">
+        <TabsContent value="manual" className="space-y-4">
+          <FoodLookup onSelect={onFoodSelected} />
           <Card>
             <CardHeader>
-              <CardTitle>Manuelle Eingabe</CardTitle>
+              <CardTitle>Oder komplett manuell</CardTitle>
             </CardHeader>
             <CardContent>
               <MealForm

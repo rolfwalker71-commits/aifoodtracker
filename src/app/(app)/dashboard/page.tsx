@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { toZonedTime } from "date-fns-tz";
 import { Camera, ChartColumn } from "lucide-react";
+import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import { MacroChart } from "@/components/dashboard/macro-chart";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
@@ -9,33 +11,38 @@ import { MealList } from "@/components/meals/meal-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
+import { APP_TIMEZONE, getRangeBoundsInAppTz } from "@/lib/datetime";
 import { formatNumber } from "@/lib/utils";
 import { getStatsForUser } from "@/lib/stats";
 import { prisma } from "@/lib/prisma";
-import { endOfDay, startOfDay } from "date-fns";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  noStore();
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
   const today = new Date();
+  const { from, to } = getRangeBoundsInAppTz("day", today);
   const [stats, meals] = await Promise.all([
     getStatsForUser(session.user.id, "day"),
     prisma.meal.findMany({
       where: {
         userId: session.user.id,
-        consumedAt: { gte: startOfDay(today), lte: endOfDay(today) },
+        consumedAt: { gte: from, lte: to },
       },
       orderBy: { consumedAt: "desc" },
-      take: 6,
+      take: 12,
     }),
   ]);
+  const todayLabel = toZonedTime(today, APP_TIMEZONE);
 
   return (
     <div className="space-y-6">
       <section className="animate-rise">
         <p className="text-sm text-muted-foreground">
-          {format(today, "EEEE, d. MMMM", { locale: de })}
+          {format(todayLabel, "EEEE, d. MMMM", { locale: de })}
         </p>
         <h1 className="font-display text-3xl font-semibold tracking-tight">
           Hallo {session.user.name?.split(" ")[0] || "du"}
