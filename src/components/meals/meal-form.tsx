@@ -26,22 +26,21 @@ type Props = {
 const numberFields: Array<{
   key: keyof MealFormValues;
   label: string;
-  step?: string;
 }> = [
   { key: "calories", label: "Kalorien (kcal)" },
-  { key: "protein", label: "Protein (g)", step: "0.1" },
-  { key: "carbs", label: "Kohlenhydrate (g)", step: "0.1" },
-  { key: "fat", label: "Fett (g)", step: "0.1" },
-  { key: "fiber", label: "Ballaststoffe (g)", step: "0.1" },
-  { key: "sugar", label: "Zucker (g)", step: "0.1" },
-  { key: "saturatedFat", label: "Gesättigte Fette (g)", step: "0.1" },
+  { key: "protein", label: "Protein (g)" },
+  { key: "carbs", label: "Kohlenhydrate (g)" },
+  { key: "fat", label: "Fett (g)" },
+  { key: "fiber", label: "Ballaststoffe (g)" },
+  { key: "sugar", label: "Zucker (g)" },
+  { key: "saturatedFat", label: "Gesättigte Fette (g)" },
   { key: "sodium", label: "Natrium (mg)" },
   { key: "potassium", label: "Kalium (mg)" },
   { key: "vitaminA", label: "Vitamin A (µg)" },
-  { key: "vitaminC", label: "Vitamin C (mg)", step: "0.1" },
-  { key: "vitaminD", label: "Vitamin D (mg)", step: "0.1" },
+  { key: "vitaminC", label: "Vitamin C (mg)" },
+  { key: "vitaminD", label: "Vitamin D (mg)" },
   { key: "calcium", label: "Calcium (mg)" },
-  { key: "iron", label: "Eisen (mg)", step: "0.1" },
+  { key: "iron", label: "Eisen (mg)" },
 ];
 
 export function MealForm({
@@ -125,7 +124,8 @@ export function MealForm({
               id={field.key}
               type="number"
               min={0}
-              step={field.step ?? "1"}
+              step="any"
+              inputMode="decimal"
               value={Number(values[field.key] ?? 0)}
               onChange={(e) =>
                 update(field.key, Number(e.target.value || 0) as never)
