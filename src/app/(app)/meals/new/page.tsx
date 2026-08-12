@@ -343,10 +343,14 @@ export default function NewMealPage() {
       if (!response.ok) {
         throw new Error(data.error || "Speichern fehlgeschlagen");
       }
+      if (data.symbolPending && data.meal?.id) {
+        const { requestMealSymbol } = await import("@/lib/pending-symbols");
+        requestMealSymbol(data.meal.id as string);
+      }
       toast.success("Mahlzeit gespeichert", {
-        description: values.imagePath
-          ? undefined
-          : "Symbolbild wurde bei Bedarf automatisch erzeugt.",
+        description: data.symbolPending
+          ? "Symbolbild wird im Hintergrund erzeugt…"
+          : undefined,
       });
       navigateFresh(router, "/dashboard");
     } catch (error) {

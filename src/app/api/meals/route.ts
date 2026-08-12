@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { parseAppDateTime } from "@/lib/datetime";
-import { resolveMealImagePath } from "@/lib/images";
+import {
+  attachMealSymbolIfMissing,
+  persistRemoteImage,
+} from "@/lib/images";
 import { mealIngredientsField } from "@/lib/meal-ingredients";
 import { NO_STORE_HEADERS, revalidateMealViews } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
@@ -82,11 +85,10 @@ export async function POST(request: Request) {
       ...mealFields
     } = parsed.data;
 
-    const imagePath = await resolveMealImagePath({
-      userId: user.id,
-      foodName: mealFields.name,
-      imagePath: rawImagePath,
-    });
+    const imagePath = rawImagePath?.trim()
+      ? await persistRemoteImage(rawImagePath.trim(), user.id)
+      : null;
+    const symbolPending = !imagePath;
 
     const meal = await prisma.meal.create({
       data: {
@@ -100,8 +102,19 @@ export async function POST(request: Request) {
 
     revalidateMealViews(meal.id);
 
+    if (symbolPending) {
+      after(() => {
+        void attachMealSymbolIfMissing({
+          mealId: meal.id,
+          userId: user.id,
+        }).catch((error) => {
+          console.error("Hintergrund-Symbolbild fehlgeschlagen:", error);
+        });
+      });
+    }
+
     return NextResponse.json(
-      { meal },
+      { meal, symbolPending },
       { status: 201, headers: NO_STORE_HEADERS },
     );
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, type PanInfo } from "framer-motion";
@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatAppDateTime } from "@/lib/datetime";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
+import {
+  clearPendingSymbol,
+  readPendingSymbols,
+  requestMealSymbol,
+} from "@/lib/pending-symbols";
 import { formatNumber } from "@/lib/utils";
 import type { MealType } from "@/generated/prisma/client";
 
@@ -36,10 +41,25 @@ function MealThumb({ src, alt }: { src: string; alt: string }) {
   );
 }
 
+function ImagePlaceholder({ pending }: { pending: boolean }) {
+  return (
+    <div className="flex h-full items-center justify-center text-lg font-semibold tracking-widest text-muted-foreground">
+      {pending ? (
+        <span className="animate-pulse" aria-label="Bild wird erzeugt">
+          …
+        </span>
+      ) : (
+        <span className="text-xs font-normal tracking-normal">Manuell</span>
+      )}
+    </div>
+  );
+}
+
 function SwipeMealCard({
   meal,
   open,
   deleting,
+  pendingSymbol,
   onOpen,
   onClose,
   onDelete,
@@ -47,6 +67,7 @@ function SwipeMealCard({
   meal: MealListItem;
   open: boolean;
   deleting: boolean;
+  pendingSymbol: boolean;
   onOpen: () => void;
   onClose: () => void;
   onDelete: () => void;
@@ -136,9 +157,7 @@ function SwipeMealCard({
                 {meal.imagePath ? (
                   <MealThumb src={meal.imagePath} alt={meal.name} />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                    Manuell
-                  </div>
+                  <ImagePlaceholder pending={pendingSymbol} />
                 )}
               </Link>
             </div>
@@ -154,11 +173,50 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [pendingIds, setPendingIds] = useState<string[]>([]);
 
   const items = useMemo(
     () => meals.filter((meal) => !removedIds.includes(meal.id)),
     [meals, removedIds],
   );
+
+  useEffect(() => {
+    const pending = readPendingSymbols();
+    for (const meal of meals) {
+      if (meal.imagePath && pending.includes(meal.id)) {
+        clearPendingSymbol(meal.id);
+      }
+    }
+    setPendingIds(readPendingSymbols());
+  }, [meals]);
+
+  useEffect(() => {
+    const waiting = items.filter(
+      (meal) => !meal.imagePath && pendingIds.includes(meal.id),
+    );
+    if (!waiting.length) return;
+
+    for (const meal of waiting) {
+      requestMealSymbol(meal.id);
+    }
+
+    const timer = window.setInterval(() => {
+      router.refresh();
+    }, 2500);
+
+    const stop = window.setTimeout(() => {
+      window.clearInterval(timer);
+      for (const meal of waiting) {
+        clearPendingSymbol(meal.id);
+      }
+      setPendingIds(readPendingSymbols());
+    }, 90000);
+
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(stop);
+    };
+  }, [items, pendingIds, router]);
 
   async function removeMeal(id: string) {
     const confirmed = window.confirm("Mahlzeit wirklich löschen?");
@@ -173,6 +231,7 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
         cache: "no-store",
       });
       if (response.ok || response.status === 404) {
+        clearPendingSymbol(id);
         toast.success("Mahlzeit gelöscht");
         router.refresh();
         return;
@@ -205,6 +264,7 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
           meal={meal}
           open={openId === meal.id}
           deleting={deletingId === meal.id}
+          pendingSymbol={!meal.imagePath && pendingIds.includes(meal.id)}
           onOpen={() => setOpenId(meal.id)}
           onClose={() =>
             setOpenId((current) => (current === meal.id ? null : current))
