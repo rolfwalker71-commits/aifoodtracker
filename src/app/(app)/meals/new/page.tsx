@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/meals/camera-capture";
@@ -65,6 +66,7 @@ type PendingFood = {
 };
 
 export default function NewMealPage() {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [formValues, setFormValues] = useState<MealFormValues>(emptyForm);
   const [tab, setTab] = useState("photo");
@@ -214,8 +216,8 @@ export default function NewMealPage() {
         throw new Error(data.error || "Speichern fehlgeschlagen");
       }
       toast.success("Mahlzeit gespeichert");
-      // Hard navigation avoids stale RSC/router cache on the dashboard
-      window.location.assign("/dashboard");
+      router.push("/dashboard");
+      router.refresh();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Speichern fehlgeschlagen",

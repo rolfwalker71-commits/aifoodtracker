@@ -22,45 +22,53 @@ export function FoodLookup({ onSelect }: Props) {
   const [searching, setSearching] = useState(false);
   const [estimating, setEstimating] = useState(false);
 
-  useEffect(() => {
-    if (query.trim().length < 2) {
-      setItems([]);
-      setHint(undefined);
-      return;
-    }
+  const trimmed = query.trim();
+  const canSearch = trimmed.length >= 2;
+  const visibleItems = canSearch ? items : [];
+  const visibleHint = canSearch ? hint : undefined;
 
+  useEffect(() => {
+    if (!canSearch) return;
+
+    let cancelled = false;
     const handle = setTimeout(async () => {
       setSearching(true);
       try {
         const response = await fetch(
-          `/api/foods/search?q=${encodeURIComponent(query.trim())}`,
+          `/api/foods/search?q=${encodeURIComponent(trimmed)}`,
         );
         const data = await response.json();
         if (!response.ok) {
           throw new Error(data.error || "Suche fehlgeschlagen");
         }
+        if (cancelled) return;
         setItems(data.items || []);
         setHint(data.hint);
       } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Suche fehlgeschlagen",
-        );
+        if (!cancelled) {
+          toast.error(
+            error instanceof Error ? error.message : "Suche fehlgeschlagen",
+          );
+        }
       } finally {
-        setSearching(false);
+        if (!cancelled) setSearching(false);
       }
     }, 350);
 
-    return () => clearTimeout(handle);
-  }, [query]);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [trimmed, canSearch]);
 
   async function estimateWithAi() {
-    if (query.trim().length < 2) return;
+    if (!canSearch) return;
     setEstimating(true);
     try {
       const response = await fetch("/api/foods/estimate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim() }),
+        body: JSON.stringify({ query: trimmed }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -112,7 +120,7 @@ export function FoodLookup({ onSelect }: Props) {
           type="button"
           variant="outline"
           className="w-full"
-          disabled={query.trim().length < 2 || estimating}
+          disabled={!canSearch || estimating}
           onClick={estimateWithAi}
         >
           {estimating ? (
@@ -128,19 +136,19 @@ export function FoodLookup({ onSelect }: Props) {
           )}
         </Button>
 
-        {searching && (
+        {canSearch && searching && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Suche in Open Food Facts…
           </p>
         )}
 
-        {!searching && hint && (
-          <p className="text-sm text-muted-foreground">{hint}</p>
+        {!searching && visibleHint && (
+          <p className="text-sm text-muted-foreground">{visibleHint}</p>
         )}
 
         <div className="space-y-2">
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <button
               key={item.id}
               type="button"
