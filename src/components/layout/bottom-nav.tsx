@@ -10,7 +10,7 @@ const links = [
   { href: "/meals", label: "Mahlzeiten", icon: Utensils },
   { href: "/meals/new", label: "Erfassen", icon: Camera, primary: true },
   { href: "/stats", label: "Stats", icon: ChartColumn },
-  { href: "/settings", label: "Profil", icon: Settings },
+  { href: "/settings", label: "Benutzer", icon: Settings },
 ];
 
 export function BottomNav() {

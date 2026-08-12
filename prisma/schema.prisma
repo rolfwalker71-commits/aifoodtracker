@@ -14,23 +14,42 @@ enum MealType {
   SNACK
 }
 
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
 model User {
-  id                 String   @id @default(cuid())
-  email              String   @unique
+  id                 String         @id @default(cuid())
+  email              String         @unique
   name               String?
   passwordHash       String
   openAiApiKey       String?
-  dailyCaloriesGoal  Float    @default(2000)
-  dailyProteinGoal   Float    @default(150)
-  dailyCarbsGoal     Float    @default(200)
-  dailyFatGoal       Float    @default(65)
-  dailyFiberGoal     Float    @default(30)
-  dailySugarGoal     Float    @default(50)
-  dailySodiumGoal    Float    @default(2300)
-  dailyPotassiumGoal Float    @default(3400)
-  themePreference    String   @default("system")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  sex                Sex?
+  heightCm           Float?
+  weightKg           Float?
+  birthYear          Int?
+  activityLevel      ActivityLevel  @default(MODERATE)
+  autoCalculateGoals Boolean        @default(true)
+  dailyCaloriesGoal  Float          @default(2000)
+  dailyProteinGoal   Float          @default(150)
+  dailyCarbsGoal     Float          @default(200)
+  dailyFatGoal       Float          @default(65)
+  dailyFiberGoal     Float          @default(30)
+  dailySugarGoal     Float          @default(50)
+  dailySodiumGoal    Float          @default(2300)
+  dailyPotassiumGoal Float          @default(3400)
+  themePreference    String         @default("system")
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
   meals              Meal[]
   accounts           Account[]
   sessions           Session[]

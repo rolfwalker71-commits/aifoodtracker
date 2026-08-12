@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   const today = new Date();
   const { from, to } = getRangeBoundsInAppTz("day", today);
-  const [stats, meals] = await Promise.all([
+  const [stats, meals, profile] = await Promise.all([
     getStatsForUser(session.user.id, "day"),
     prisma.meal.findMany({
       where: {
@@ -35,8 +35,24 @@ export default async function DashboardPage() {
       orderBy: { consumedAt: "desc" },
       take: 12,
     }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        sex: true,
+        heightCm: true,
+        weightKg: true,
+        birthYear: true,
+        autoCalculateGoals: true,
+      },
+    }),
   ]);
   const todayLabel = toZonedTime(today, APP_TIMEZONE);
+  const profileComplete = Boolean(
+    profile?.sex &&
+      profile.heightCm &&
+      profile.weightKg &&
+      profile.birthYear,
+  );
 
   return (
     <div className="space-y-6">
@@ -71,9 +87,18 @@ export default async function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="animate-rise">
           <CardHeader>
-            <CardTitle>Tagesziele</CardTitle>
+            <CardTitle>Tagesbedarf</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!profileComplete && (
+              <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                Für eine persönliche Kalorienberechnung bitte unter{" "}
+                <Link href="/settings" className="font-semibold underline">
+                  Benutzer
+                </Link>{" "}
+                Geschlecht, Grösse, Gewicht und Geburtsjahr hinterlegen.
+              </p>
+            )}
             <NutrientProgress
               label="Kalorien"
               current={stats.totals.calories}

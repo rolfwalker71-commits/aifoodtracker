@@ -17,7 +17,7 @@ const links = [
   { href: "/meals", label: "Mahlzeiten", icon: Utensils },
   { href: "/meals/new", label: "Erfassen", icon: Camera },
   { href: "/stats", label: "Statistiken", icon: ChartColumn },
-  { href: "/settings", label: "Einstellungen", icon: Settings },
+  { href: "/settings", label: "Benutzer", icon: Settings },
 ];
 
 export function Sidebar() {

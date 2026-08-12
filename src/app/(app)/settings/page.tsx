@@ -1,16 +1,38 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { formatNumber } from "@/lib/utils";
+import {
+  ACTIVITY_LABELS,
+  calculateDailyGoals,
+  canCalculateGoals,
+  type ActivityLevel,
+  type Sex,
+} from "@/lib/tdee";
 
 type Profile = {
   name: string;
   email: string;
+  sex: Sex | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  birthYear: number | null;
+  activityLevel: ActivityLevel;
+  autoCalculateGoals: boolean;
   dailyCaloriesGoal: number;
   dailyProteinGoal: number;
   dailyCarbsGoal: number;
@@ -21,21 +43,52 @@ type Profile = {
   dailyPotassiumGoal: number;
   hasOpenAiApiKey: boolean;
   openAiApiKeyMasked?: string;
+  profileComplete?: boolean;
+  bmr?: number | null;
+  tdee?: number | null;
 };
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
-      const response = await fetch("/api/profile");
+      const response = await fetch("/api/profile", { cache: "no-store" });
       const data = await response.json();
-      if (response.ok) setProfile(data.profile);
+      if (!cancelled && response.ok) setProfile(data.profile);
     }
     load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const previewGoals = useMemo(() => {
+    if (!profile) return null;
+    if (
+      !canCalculateGoals({
+        sex: profile.sex ?? undefined,
+        heightCm: profile.heightCm ?? undefined,
+        weightKg: profile.weightKg ?? undefined,
+        birthYear: profile.birthYear ?? undefined,
+        activityLevel: profile.activityLevel,
+      })
+    ) {
+      return null;
+    }
+    return calculateDailyGoals({
+      sex: profile.sex as Sex,
+      heightCm: profile.heightCm as number,
+      weightKg: profile.weightKg as number,
+      birthYear: profile.birthYear as number,
+      activityLevel: profile.activityLevel,
+    });
+  }, [profile]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,8 +98,15 @@ export default function SettingsPage() {
     const response = await fetch("/api/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
       body: JSON.stringify({
         name: profile.name,
+        sex: profile.sex,
+        heightCm: profile.heightCm,
+        weightKg: profile.weightKg,
+        birthYear: profile.birthYear,
+        activityLevel: profile.activityLevel,
+        autoCalculateGoals: profile.autoCalculateGoals,
         dailyCaloriesGoal: profile.dailyCaloriesGoal,
         dailyProteinGoal: profile.dailyProteinGoal,
         dailyCarbsGoal: profile.dailyCarbsGoal,
@@ -78,7 +138,34 @@ export default function SettingsPage() {
         : prev,
     );
     setApiKey("");
-    toast.success("Einstellungen gespeichert");
+    toast.success(
+      profile.autoCalculateGoals
+        ? "Profil gespeichert – Tagesziele neu berechnet"
+        : "Einstellungen gespeichert",
+    );
+  }
+
+  async function changePassword(event: FormEvent) {
+    event.preventDefault();
+    if (!currentPassword || !newPassword) {
+      toast.error("Bitte aktuelles und neues Passwort eingeben");
+      return;
+    }
+    setBusy(true);
+    const response = await fetch("/api/profile/password", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await response.json();
+    setBusy(false);
+    if (!response.ok) {
+      toast.error(data.error || "Passwortänderung fehlgeschlagen");
+      return;
+    }
+    setCurrentPassword("");
+    setNewPassword("");
+    toast.success("Passwort geändert");
   }
 
   async function clearKey() {
@@ -109,17 +196,17 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">
-          Einstellungen
+          Benutzer & Tagesbedarf
         </h1>
         <p className="text-sm text-muted-foreground">
-          Tagesziele und persönlicher OpenAI API Key
+          Körperdaten für die Kalorienberechnung, Passwort und API-Key
         </p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Profil</CardTitle>
+            <CardTitle>Benutzer</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
@@ -141,9 +228,149 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Körperdaten</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Geschlecht</Label>
+              <Select
+                value={profile.sex ?? undefined}
+                onValueChange={(value) =>
+                  setProfile({ ...profile, sex: value as Sex })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MALE">Mann</SelectItem>
+                  <SelectItem value="FEMALE">Frau</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birthYear">Geburtsjahr</Label>
+              <Input
+                id="birthYear"
+                type="number"
+                min={1920}
+                max={2015}
+                value={profile.birthYear ?? ""}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    birthYear: e.target.value
+                      ? Number(e.target.value)
+                      : null,
+                  })
+                }
+                placeholder="z. B. 1990"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="heightCm">Körpergrösse (cm)</Label>
+              <Input
+                id="heightCm"
+                type="number"
+                min={100}
+                max={250}
+                step="any"
+                value={profile.heightCm ?? ""}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    heightCm: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                placeholder="z. B. 178"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="weightKg">Gewicht (kg)</Label>
+              <Input
+                id="weightKg"
+                type="number"
+                min={30}
+                max={400}
+                step="any"
+                value={profile.weightKg ?? ""}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    weightKg: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                placeholder="z. B. 75"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Aktivitätslevel</Label>
+              <Select
+                value={profile.activityLevel}
+                onValueChange={(value) =>
+                  setProfile({
+                    ...profile,
+                    activityLevel: value as ActivityLevel,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map(
+                    (level) => (
+                      <SelectItem key={level} value={level}>
+                        {ACTIVITY_LABELS[level]}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3 sm:col-span-2">
+              <div>
+                <p className="text-sm font-medium">Ziele automatisch berechnen</p>
+                <p className="text-xs text-muted-foreground">
+                  Mifflin-St Jeor + Aktivitätsfaktor → Kalorien & Makros
+                </p>
+              </div>
+              <Switch
+                checked={profile.autoCalculateGoals}
+                onCheckedChange={(checked) =>
+                  setProfile({ ...profile, autoCalculateGoals: checked })
+                }
+              />
+            </div>
+            {previewGoals && (
+              <div className="rounded-xl bg-muted/50 p-3 text-sm sm:col-span-2">
+                <p className="font-medium">Vorschau Tagesbedarf</p>
+                <p className="mt-1 text-muted-foreground">
+                  ca. {formatNumber(previewGoals.dailyCaloriesGoal)} kcal · P{" "}
+                  {formatNumber(previewGoals.dailyProteinGoal, 0)} g · K{" "}
+                  {formatNumber(previewGoals.dailyCarbsGoal, 0)} g · F{" "}
+                  {formatNumber(previewGoals.dailyFatGoal, 0)} g
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Tagesziele</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
+            {!profile.autoCalculateGoals && (
+              <p className="text-sm text-muted-foreground sm:col-span-2">
+                Automatik aus – Werte manuell anpassen.
+              </p>
+            )}
+            {profile.autoCalculateGoals && (
+              <p className="text-sm text-muted-foreground sm:col-span-2">
+                Werden beim Speichern aus den Körperdaten neu gesetzt.
+              </p>
+            )}
             {(
               [
                 ["dailyCaloriesGoal", "Kalorien (kcal)"],
@@ -162,7 +389,13 @@ export default function SettingsPage() {
                   id={key}
                   type="number"
                   min={1}
-                  value={profile[key]}
+                  step="any"
+                  disabled={profile.autoCalculateGoals}
+                  value={
+                    profile.autoCalculateGoals && previewGoals
+                      ? previewGoals[key]
+                      : profile[key]
+                  }
                   onChange={(e) =>
                     setProfile({
                       ...profile,
@@ -211,8 +444,42 @@ export default function SettingsPage() {
         </Card>
 
         <Button type="submit" className="w-full" size="lg" disabled={busy}>
-          {busy ? "Speichern…" : "Einstellungen speichern"}
+          {busy ? "Speichern…" : "Profil & Ziele speichern"}
         </Button>
+      </form>
+
+      <form onSubmit={changePassword}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Passwort ändern</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Aktuelles Passwort</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Neues Passwort</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                minLength={6}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+            <Button type="submit" variant="outline" disabled={busy}>
+              Passwort speichern
+            </Button>
+          </CardContent>
+        </Card>
       </form>
 
       <Button
