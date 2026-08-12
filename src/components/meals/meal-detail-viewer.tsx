@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, CopyPlus, Pencil, Star } from "lucide-react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { createPortal } from "react-dom";
+import { animate, motion, useMotionValue } from "framer-motion";
+import { ChevronDown, CopyPlus, Pencil, Star, X } from "lucide-react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { Button } from "@/components/ui/button";
 import { formatAppDateTime } from "@/lib/datetime";
@@ -26,6 +34,7 @@ type Props = {
   mealIsToday: boolean;
   isFavorite: boolean;
   busy?: boolean;
+  onClose: () => void;
   onEdit: () => void;
   onToggleFavorite: () => void;
   onDuplicate: () => void;
@@ -33,6 +42,8 @@ type Props = {
 
 const PAGE_COUNT = 3;
 const PAGE_LABELS = ["Überblick", "Zutaten & Coach", "Heute & Ziele"] as const;
+const AXIS_LOCK_PX = 10;
+const SWIPE_RATIO = 0.18;
 
 export function MealDetailViewer({
   values,
@@ -41,119 +52,255 @@ export function MealDetailViewer({
   mealIsToday,
   isFavorite,
   busy,
+  onClose,
   onEdit,
   onToggleFavorite,
   onDuplicate,
 }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [page, setPage] = useState(0);
-  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Array<HTMLElement | null>>([]);
-
-  useLayoutEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-
-    const onScroll = () => {
-      const w = el.clientWidth || 1;
-      const idx = Math.round(el.scrollLeft / w);
-      setPage(Math.min(PAGE_COUNT - 1, Math.max(0, idx)));
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+  const x = useMotionValue(0);
+  const dragOffset = useRef(0);
+  const gesture = useRef<{
+    id: number;
+    x0: number;
+    y0: number;
+    axis: "x" | "y" | null;
+  } | null>(null);
+  const pageRef = useRef(page);
+  pageRef.current = page;
 
   useEffect(() => {
-    const node = pageRefs.current[page];
-    if (node) node.scrollTop = 0;
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth;
+      setWidth(w);
+      if (!gesture.current || gesture.current.axis !== "x") {
+        x.set(-pageRef.current * w);
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [x, mounted]);
+
+  useEffect(() => {
+    if (!width) return;
+    if (gesture.current?.axis === "x") return;
+    const controls = animate(x, -page * width, {
+      type: "spring",
+      stiffness: 420,
+      damping: 38,
+      mass: 0.7,
+    });
+    return () => controls.stop();
+  }, [page, width, x]);
+
+  useEffect(() => {
+    pageRefs.current[page]?.scrollTo({ top: 0 });
   }, [page]);
 
   function goTo(index: number) {
-    const el = scrollerRef.current;
-    if (!el) return;
-    el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
-    setPage(index);
+    setPage(Math.min(PAGE_COUNT - 1, Math.max(0, index)));
   }
 
-  return (
+  function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select, label")) return;
+    gesture.current = {
+      id: e.pointerId,
+      x0: e.clientX,
+      y0: e.clientY,
+      axis: null,
+    };
+    dragOffset.current = 0;
+  }
+
+  function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const g = gesture.current;
+    if (!g || g.id !== e.pointerId) return;
+    const dx = e.clientX - g.x0;
+    const dy = e.clientY - g.y0;
+    const current = pageRef.current;
+    const w = width || viewportRef.current?.clientWidth || 1;
+
+    if (!g.axis) {
+      if (Math.hypot(dx, dy) < AXIS_LOCK_PX) return;
+      g.axis = Math.abs(dx) > Math.abs(dy) * 1.05 ? "x" : "y";
+      if (g.axis === "y") {
+        gesture.current = null;
+        return;
+      }
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+
+    if (g.axis !== "x") return;
+    e.preventDefault();
+    let next = dx;
+    if (current === 0 && next > 0) next *= 0.35;
+    if (current >= PAGE_COUNT - 1 && next < 0) next *= 0.35;
+    dragOffset.current = next;
+    x.set(-current * w + next);
+  }
+
+  function endGesture(e: ReactPointerEvent<HTMLDivElement>) {
+    const g = gesture.current;
+    if (!g || g.id !== e.pointerId) return;
+    const current = pageRef.current;
+    const w = width || viewportRef.current?.clientWidth || 320;
+    const threshold = Math.min(64, w * SWIPE_RATIO);
+
+    if (g.axis === "x") {
+      const dx = dragOffset.current;
+      if (dx < -threshold) goTo(current + 1);
+      else if (dx > threshold) goTo(current - 1);
+      else {
+        animate(x, -current * w, {
+          type: "spring",
+          stiffness: 420,
+          damping: 38,
+        });
+      }
+    }
+
+    dragOffset.current = 0;
+    gesture.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }
+
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden bg-background",
-        // Mobile/PWA: fill remaining viewport (parent sets height)
-        "h-full",
-        // Desktop card look when parent gives fixed taller height
-        "md:rounded-2xl md:border md:border-border",
+        "fixed inset-x-0 z-40 flex flex-col",
+        "top-14 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]",
+        "md:inset-0 md:z-50 md:items-center md:justify-center md:bg-black/45 md:p-6 md:backdrop-blur-[2px]",
       )}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mahlzeit-Details"
     >
       <div
-        ref={scrollerRef}
         className={cn(
-          "flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden",
-          "overscroll-x-contain touch-pan-x",
-          "[-webkit-overflow-scrolling:touch] [scrollbar-width:none]",
-          "[&::-webkit-scrollbar]:hidden",
+          "flex h-full min-h-0 w-full flex-col overflow-hidden bg-background",
+          "md:h-[min(88vh,52rem)] md:max-w-2xl md:rounded-2xl md:border md:border-border md:shadow-2xl",
         )}
       >
-        <section
-          ref={(node) => {
-            pageRefs.current[0] = node;
-          }}
-          className="h-full min-h-0 w-full min-w-full shrink-0 snap-center snap-always overflow-y-auto overscroll-y-contain px-4 py-3 pb-4 touch-pan-y"
-        >
-          <OverviewPage
-            values={values}
-            isFavorite={isFavorite}
-            busy={busy}
-            onEdit={onEdit}
-            onToggleFavorite={onToggleFavorite}
-            onDuplicate={onDuplicate}
-          />
-        </section>
-        <section
-          ref={(node) => {
-            pageRefs.current[1] = node;
-          }}
-          className="h-full min-h-0 w-full min-w-full shrink-0 snap-center snap-always overflow-y-auto overscroll-y-contain px-4 py-3 pb-4 touch-pan-y"
-        >
-          <InsightPage values={values} goals={goals} onEdit={onEdit} />
-        </section>
-        <section
-          ref={(node) => {
-            pageRefs.current[2] = node;
-          }}
-          className="h-full min-h-0 w-full min-w-full shrink-0 snap-center snap-always overflow-y-auto overscroll-y-contain px-4 py-3 pb-4 touch-pan-y"
-        >
-          <GoalsPage
-            values={values}
-            goals={goals}
-            dayTotals={dayTotals}
-            mealIsToday={mealIsToday}
-          />
-        </section>
-      </div>
-
-      <div className="flex shrink-0 flex-col items-center gap-1 border-t border-border/60 bg-background px-4 py-2.5">
-        <div className="flex items-center justify-center gap-2">
-          {PAGE_LABELS.map((label, index) => (
-            <button
-              key={label}
-              type="button"
-              aria-label={label}
-              className={cn(
-                "h-2.5 rounded-full transition-all",
-                index === page
-                  ? "w-6 bg-primary"
-                  : "w-2.5 bg-muted-foreground/35",
-              )}
-              onClick={() => goTo(index)}
-            />
-          ))}
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/70 px-4 py-3">
+          <div className="min-w-0">
+            <h1 className="font-display text-lg font-bold tracking-tight md:text-xl">
+              Mahlzeit
+            </h1>
+            <p className="truncate text-xs text-muted-foreground">
+              {PAGE_LABELS[page]} · wischen
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            aria-label="Schliessen"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          {PAGE_LABELS[page]} · wischen
-        </p>
+
+        <div
+          ref={viewportRef}
+          className="relative min-h-0 flex-1 overflow-hidden touch-pan-y"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endGesture}
+          onPointerCancel={endGesture}
+        >
+          <motion.div
+            className="flex h-full min-h-0 will-change-transform"
+            style={{
+              x,
+              width: width > 0 ? width * PAGE_COUNT : "300%",
+            }}
+          >
+            <section
+              ref={(node) => {
+                pageRefs.current[0] = node;
+              }}
+              className="h-full min-h-0 shrink-0 overflow-y-auto overscroll-y-contain px-4 py-3"
+              style={{ width: width > 0 ? width : "33.333%" }}
+            >
+              <OverviewPage
+                values={values}
+                isFavorite={isFavorite}
+                busy={busy}
+                onEdit={onEdit}
+                onToggleFavorite={onToggleFavorite}
+                onDuplicate={onDuplicate}
+              />
+            </section>
+            <section
+              ref={(node) => {
+                pageRefs.current[1] = node;
+              }}
+              className="h-full min-h-0 shrink-0 overflow-y-auto overscroll-y-contain px-4 py-3"
+              style={{ width: width > 0 ? width : "33.333%" }}
+            >
+              <InsightPage values={values} goals={goals} onEdit={onEdit} />
+            </section>
+            <section
+              ref={(node) => {
+                pageRefs.current[2] = node;
+              }}
+              className="h-full min-h-0 shrink-0 overflow-y-auto overscroll-y-contain px-4 py-3"
+              style={{ width: width > 0 ? width : "33.333%" }}
+            >
+              <GoalsPage
+                values={values}
+                goals={goals}
+                dayTotals={dayTotals}
+                mealIsToday={mealIsToday}
+              />
+            </section>
+          </motion.div>
+        </div>
+
+        <div className="flex shrink-0 flex-col items-center gap-1 border-t border-border/70 px-4 py-2.5">
+          <div className="flex items-center justify-center gap-2">
+            {PAGE_LABELS.map((label, index) => (
+              <button
+                key={label}
+                type="button"
+                aria-label={label}
+                className={cn(
+                  "h-2.5 rounded-full transition-all",
+                  index === page
+                    ? "w-6 bg-primary"
+                    : "w-2.5 bg-muted-foreground/35",
+                )}
+                onClick={() => goTo(index)}
+              />
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {PAGE_LABELS[page]}
+          </p>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -173,8 +320,8 @@ function OverviewPage({
   onDuplicate: () => void;
 }) {
   return (
-    <div className="flex min-h-full w-full flex-col justify-center gap-4 py-1">
-      <div className="mx-auto h-32 w-32 overflow-hidden rounded-2xl bg-muted sm:h-40 sm:w-40">
+    <div className="mx-auto flex w-full max-w-md flex-col justify-center gap-3 py-1">
+      <div className="mx-auto h-28 w-28 overflow-hidden rounded-2xl bg-muted sm:h-36 sm:w-36">
         {values.imagePath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -190,7 +337,7 @@ function OverviewPage({
         )}
       </div>
 
-      <div className="space-y-1.5 text-center">
+      <div className="space-y-1 text-center">
         <h2 className="font-display text-xl font-bold leading-snug break-words sm:text-2xl">
           {values.name}
         </h2>
@@ -204,18 +351,20 @@ function OverviewPage({
         <p className="text-sm text-muted-foreground">
           {values.portionSize?.trim() || "Menge unbekannt"}
         </p>
-        <p className="text-base font-medium">
+        <p className="text-sm font-medium sm:text-base">
           {formatNumber(values.calories, 0)} kcal · P{" "}
           {formatNumber(values.protein, 0)}g · K {formatNumber(values.carbs, 0)}
           g · F {formatNumber(values.fat, 0)}g
         </p>
         {values.notes?.trim() ? (
-          <p className="text-sm text-muted-foreground">{values.notes.trim()}</p>
+          <p className="line-clamp-3 text-sm text-muted-foreground">
+            {values.notes.trim()}
+          </p>
         ) : null}
       </div>
 
-      <div className="grid gap-2">
-        <Button type="button" size="lg" className="h-12 w-full" onClick={onEdit}>
+      <div className="grid gap-2 pt-1">
+        <Button type="button" size="lg" className="h-11 w-full" onClick={onEdit}>
           <Pencil className="h-4 w-4" />
           Bearbeiten
         </Button>
@@ -224,7 +373,7 @@ function OverviewPage({
             type="button"
             size="lg"
             variant="outline"
-            className="h-12"
+            className="h-11"
             disabled={busy}
             onClick={onDuplicate}
           >
@@ -235,7 +384,7 @@ function OverviewPage({
             type="button"
             size="lg"
             variant="outline"
-            className="h-12"
+            className="h-11"
             disabled={busy}
             onClick={onToggleFavorite}
           >
@@ -266,25 +415,27 @@ function InsightPage({
   const ingredients = values.ingredients ?? [];
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-4">
-      <section className="flex min-h-0 flex-1 flex-col gap-2">
-        <h2 className="shrink-0 font-display text-lg font-bold sm:text-xl">
-          Zutaten & Menge
-        </h2>
-        <p className="shrink-0 text-sm text-muted-foreground">
-          Portion:{" "}
-          <span className="font-medium text-foreground">
-            {values.portionSize?.trim() || "unbekannt"}
-          </span>
-        </p>
+    <div className="mx-auto flex w-full max-w-md flex-col gap-3">
+      <section className="space-y-2">
+        <div>
+          <h2 className="font-display text-lg font-bold">Zutaten & Menge</h2>
+          <p className="text-sm text-muted-foreground">
+            Portion:{" "}
+            <span className="font-medium text-foreground">
+              {values.portionSize?.trim() || "unbekannt"}
+            </span>
+          </p>
+        </div>
         {ingredients.length ? (
-          <ul className="min-h-0 flex-1 divide-y divide-border/70 overflow-y-auto rounded-2xl border border-border">
+          <ul className="max-h-[38vh] divide-y divide-border/70 overflow-y-auto rounded-2xl border border-border sm:max-h-[42vh]">
             {ingredients.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
-                className="flex items-start justify-between gap-3 px-4 py-3.5 text-sm"
+                className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm"
               >
-                <span className="font-medium leading-snug">{item.name}</span>
+                <span className="min-w-0 break-words font-medium leading-snug">
+                  {item.name}
+                </span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">
                   {item.portionSize ||
                     (item.grams ? `${formatNumber(item.grams, 0)} g` : "–")}
@@ -293,7 +444,7 @@ function InsightPage({
             ))}
           </ul>
         ) : (
-          <p className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+          <p className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
             Keine Zutaten hinterlegt.
           </p>
         )}
@@ -301,18 +452,18 @@ function InsightPage({
           type="button"
           variant="outline"
           size="sm"
-          className="h-11 w-full shrink-0"
+          className="h-10 w-full"
           onClick={onEdit}
         >
           Menge anpassen
         </Button>
       </section>
 
-      <section className="shrink-0 space-y-2">
-        <h2 className="font-display text-lg font-bold sm:text-xl">Coach</h2>
+      <section className="space-y-2">
+        <h2 className="font-display text-lg font-bold">Coach</h2>
         <div
           className={cn(
-            "rounded-2xl border p-4",
+            "rounded-2xl border p-3.5",
             tip.tone === "positive" &&
               "border-emerald-600/30 bg-emerald-500/10",
             tip.tone === "attention" && "border-amber-600/30 bg-amber-500/10",
@@ -320,9 +471,11 @@ function InsightPage({
           )}
         >
           <p className="text-sm font-semibold">{tip.title}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{tip.body}</p>
+          <p className="mt-1 text-sm leading-snug text-muted-foreground">
+            {tip.body}
+          </p>
           {tip.alternatives?.length ? (
-            <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-sm text-muted-foreground">
               {tip.alternatives.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -362,10 +515,10 @@ function TodaySummary({
     : todayProtein;
 
   return (
-    <div className="grid gap-2 rounded-2xl border border-border bg-background p-3 text-sm sm:grid-cols-3 sm:gap-3 sm:p-4">
+    <div className="grid gap-2 rounded-2xl border border-border bg-background p-2.5 text-sm sm:grid-cols-3 sm:p-3">
       {mealIsToday ? (
         <>
-          <div className="space-y-1 rounded-xl bg-muted/40 px-3 py-3">
+          <div className="space-y-0.5 rounded-xl bg-muted/40 px-3 py-2.5">
             <p className="text-xs text-muted-foreground">Ohne diese Mahlzeit</p>
             <p className="font-semibold tabular-nums">
               {formatNumber(withoutMealKcal, 0)} kcal
@@ -374,7 +527,7 @@ function TodaySummary({
               {formatNumber(withoutMealProtein, 0)} g Protein
             </p>
           </div>
-          <div className="space-y-1 rounded-xl bg-muted/40 px-3 py-3">
+          <div className="space-y-0.5 rounded-xl bg-muted/40 px-3 py-2.5">
             <p className="text-xs text-muted-foreground">Inkl. dieser Mahlzeit</p>
             <p className="font-semibold tabular-nums">
               {formatNumber(todayKcal, 0)} / {formatNumber(kcalGoal, 0)} kcal
@@ -384,7 +537,7 @@ function TodaySummary({
               Protein
             </p>
           </div>
-          <div className="space-y-1 rounded-xl bg-primary/10 px-3 py-3">
+          <div className="space-y-0.5 rounded-xl bg-primary/10 px-3 py-2.5">
             <p className="text-xs text-muted-foreground">Noch übrig heute</p>
             <p className="font-semibold tabular-nums">
               {formatNumber(kcalLeft, 0)} kcal
@@ -396,9 +549,9 @@ function TodaySummary({
         </>
       ) : (
         <>
-          <div className="space-y-1 rounded-xl bg-muted/40 px-3 py-3 sm:col-span-2">
+          <div className="space-y-0.5 rounded-xl bg-muted/40 px-3 py-2.5 sm:col-span-2">
             <p className="text-xs text-muted-foreground">
-              Diese Mahlzeit ist von einem anderen Tag · Heute bisher
+              Anderer Tag · Heute bisher
             </p>
             <p className="font-semibold tabular-nums">
               {formatNumber(todayKcal, 0)} / {formatNumber(kcalGoal, 0)} kcal
@@ -407,7 +560,7 @@ function TodaySummary({
               {formatNumber(todayProtein, 0)} g Protein
             </p>
           </div>
-          <div className="space-y-1 rounded-xl bg-primary/10 px-3 py-3">
+          <div className="space-y-0.5 rounded-xl bg-primary/10 px-3 py-2.5">
             <p className="text-xs text-muted-foreground">Noch übrig heute</p>
             <p className="font-semibold tabular-nums">
               {formatNumber(kcalLeft, 0)} kcal
@@ -440,19 +593,17 @@ function GoalsPage({
 
   if (!goals) {
     return (
-      <div className="flex min-h-full w-full flex-col gap-3">
-        <h2 className="font-display text-lg font-bold sm:text-xl">
-          Heute & Ziele
-        </h2>
+      <div className="mx-auto flex w-full max-w-md flex-col gap-3">
+        <h2 className="font-display text-lg font-bold">Heute & Ziele</h2>
         <p className="text-sm text-muted-foreground">Ziele werden geladen…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-4">
-      <section className="shrink-0 space-y-2">
-        <h2 className="font-display text-lg font-bold sm:text-xl">Heute</h2>
+    <div className="mx-auto flex w-full max-w-md flex-col gap-3">
+      <section className="space-y-2">
+        <h2 className="font-display text-lg font-bold">Heute</h2>
         {dayTotals ? (
           <TodaySummary
             values={values}
@@ -467,16 +618,14 @@ function GoalsPage({
         )}
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col gap-3">
-        <div className="shrink-0">
-          <h2 className="font-display text-lg font-bold sm:text-xl">
-            Anteil am Tagesziel
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+      <section className="space-y-2">
+        <div>
+          <h2 className="font-display text-lg font-bold">Anteil am Tagesziel</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Beitrag dieser Mahlzeit zu deinen heutigen Zielen.
           </p>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col justify-evenly gap-3 rounded-2xl border border-border bg-background p-4">
+        <div className="space-y-3 rounded-2xl border border-border bg-background p-3.5">
           <NutrientProgress
             label="Kalorien"
             current={values.calories}
@@ -512,7 +661,7 @@ function GoalsPage({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-11 w-full shrink-0 justify-between px-1"
+            className="h-10 w-full justify-between px-1"
             onClick={() => setMore((value) => !value)}
             aria-expanded={more}
           >
@@ -526,7 +675,7 @@ function GoalsPage({
           </Button>
 
           {more ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <NutrientProgress
                 label="Zucker"
                 current={values.sugar}
