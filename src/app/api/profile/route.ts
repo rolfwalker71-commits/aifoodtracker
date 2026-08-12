@@ -4,6 +4,7 @@ import { z } from "zod";
 import { decryptSecret, encryptSecret, maskApiKey } from "@/lib/crypto";
 import { NO_STORE_HEADERS } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
+import { normalizeReminders } from "@/lib/reminders";
 import { requireUser } from "@/lib/session";
 import {
   calculateBmr,
@@ -13,6 +14,13 @@ import {
   type ActivityLevel,
   type Sex,
 } from "@/lib/tdee";
+
+const reminderItemSchema = z.object({
+  id: z.string().min(1),
+  mealType: z.enum(["BREAKFAST", "LUNCH", "DINNER", "SNACK"]),
+  timeLocal: z.string().regex(/^\d{2}:\d{2}$/),
+  enabled: z.boolean(),
+});
 
 const profileSchema = z.object({
   name: z.string().min(1).max(80).optional(),
@@ -32,6 +40,12 @@ const profileSchema = z.object({
   dailySugarGoal: z.coerce.number().positive().optional(),
   dailySodiumGoal: z.coerce.number().positive().optional(),
   dailyPotassiumGoal: z.coerce.number().positive().optional(),
+  dailyVitaminAGoal: z.coerce.number().positive().optional(),
+  dailyVitaminCGoal: z.coerce.number().positive().optional(),
+  dailyVitaminDGoal: z.coerce.number().positive().optional(),
+  dailyCalciumGoal: z.coerce.number().positive().optional(),
+  dailyIronGoal: z.coerce.number().positive().optional(),
+  reminders: z.array(reminderItemSchema).optional(),
   openAiApiKey: z.string().optional().nullable(),
   clearOpenAiApiKey: z.boolean().optional(),
 });
@@ -55,6 +69,12 @@ const profileSelect = {
   dailySugarGoal: true,
   dailySodiumGoal: true,
   dailyPotassiumGoal: true,
+  dailyVitaminAGoal: true,
+  dailyVitaminCGoal: true,
+  dailyVitaminDGoal: true,
+  dailyCalciumGoal: true,
+  dailyIronGoal: true,
+  reminders: true,
   openAiApiKey: true,
   createdAt: true,
 } as const;
@@ -123,6 +143,7 @@ export async function GET() {
     {
       profile: {
         ...profile,
+        reminders: normalizeReminders(profile.reminders),
         openAiApiKey: undefined,
         hasOpenAiApiKey: Boolean(profile.openAiApiKey),
         openAiApiKeyMasked: maskedKey,
@@ -217,6 +238,7 @@ export async function PUT(request: Request) {
       {
         profile: {
           ...profile,
+          reminders: normalizeReminders(profile.reminders),
           openAiApiKey: undefined,
           hasOpenAiApiKey: Boolean(profile.openAiApiKey),
           ...meta,

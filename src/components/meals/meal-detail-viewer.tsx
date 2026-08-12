@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion, type PanInfo } from "framer-motion";
-import { Pencil } from "lucide-react";
+import { CopyPlus, Pencil, Star } from "lucide-react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { Button } from "@/components/ui/button";
 import { formatAppDateTime } from "@/lib/datetime";
@@ -14,22 +14,16 @@ import {
 import { cn, formatNumber } from "@/lib/utils";
 import type { MealFormValues } from "@/types/meals";
 
-type Goals = Pick<
-  NutritionGoals,
-  | "dailyCaloriesGoal"
-  | "dailyProteinGoal"
-  | "dailyCarbsGoal"
-  | "dailyFatGoal"
-  | "dailyFiberGoal"
-  | "dailySugarGoal"
-  | "dailySodiumGoal"
-  | "dailyPotassiumGoal"
->;
+type Goals = NutritionGoals;
 
 type Props = {
   values: MealFormValues;
   goals: Goals | null;
+  isFavorite: boolean;
+  busy?: boolean;
   onEdit: () => void;
+  onToggleFavorite: () => void;
+  onDuplicate: () => void;
 };
 
 const PAGE_COUNT = 3;
@@ -50,12 +44,20 @@ const DETAIL_ROWS: Array<{
   { key: "potassium", digits: 0, unit: "mg" },
   { key: "vitaminA", digits: 0, unit: "µg" },
   { key: "vitaminC", digits: 1, unit: "mg" },
-  { key: "vitaminD", digits: 2, unit: "mg" },
+  { key: "vitaminD", digits: 2, unit: "µg" },
   { key: "calcium", digits: 0, unit: "mg" },
   { key: "iron", digits: 2, unit: "mg" },
 ];
 
-export function MealDetailViewer({ values, goals, onEdit }: Props) {
+export function MealDetailViewer({
+  values,
+  goals,
+  isFavorite,
+  busy,
+  onEdit,
+  onToggleFavorite,
+  onDuplicate,
+}: Props) {
   const [page, setPage] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -95,7 +97,11 @@ export function MealDetailViewer({ values, goals, onEdit }: Props) {
             <OverviewPage
               values={values}
               ingredients={ingredients}
+              isFavorite={isFavorite}
+              busy={busy}
               onEdit={onEdit}
+              onToggleFavorite={onToggleFavorite}
+              onDuplicate={onDuplicate}
             />
           </section>
           <section className="box-border w-full min-w-full shrink-0 touch-pan-y px-4 py-5">
@@ -138,11 +144,19 @@ export function MealDetailViewer({ values, goals, onEdit }: Props) {
 function OverviewPage({
   values,
   ingredients,
+  isFavorite,
+  busy,
   onEdit,
+  onToggleFavorite,
+  onDuplicate,
 }: {
   values: MealFormValues;
   ingredients: string;
+  isFavorite: boolean;
+  busy?: boolean;
   onEdit: () => void;
+  onToggleFavorite: () => void;
+  onDuplicate: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -188,10 +202,39 @@ function OverviewPage({
         ) : null}
       </div>
 
-      <Button type="button" size="lg" className="w-full" onClick={onEdit}>
-        <Pencil className="h-4 w-4" />
-        Bearbeiten
-      </Button>
+      <div className="grid gap-2">
+        <Button type="button" size="lg" className="w-full" onClick={onEdit}>
+          <Pencil className="h-4 w-4" />
+          Bearbeiten
+        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            disabled={busy}
+            onClick={onDuplicate}
+          >
+            <CopyPlus className="h-4 w-4" />
+            Nochmal
+          </Button>
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            disabled={busy}
+            onClick={onToggleFavorite}
+          >
+            <Star
+              className={cn(
+                "h-4 w-4",
+                isFavorite && "fill-amber-500 text-amber-500",
+              )}
+            />
+            {isFavorite ? "Favorit" : "Merken"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -295,6 +338,41 @@ function GoalsPage({
           goal={goals.dailyPotassiumGoal}
           unit="mg"
           colorClass="bg-violet-600"
+        />
+        <NutrientProgress
+          label="Vitamin A"
+          current={values.vitaminA}
+          goal={goals.dailyVitaminAGoal}
+          unit="µg"
+          colorClass="bg-amber-600"
+        />
+        <NutrientProgress
+          label="Vitamin C"
+          current={values.vitaminC}
+          goal={goals.dailyVitaminCGoal}
+          unit="mg"
+          colorClass="bg-lime-600"
+        />
+        <NutrientProgress
+          label="Vitamin D"
+          current={values.vitaminD}
+          goal={goals.dailyVitaminDGoal}
+          unit="µg"
+          colorClass="bg-yellow-600"
+        />
+        <NutrientProgress
+          label="Kalzium"
+          current={values.calcium}
+          goal={goals.dailyCalciumGoal}
+          unit="mg"
+          colorClass="bg-stone-600"
+        />
+        <NutrientProgress
+          label="Eisen"
+          current={values.iron}
+          goal={goals.dailyIronGoal}
+          unit="mg"
+          colorClass="bg-red-700"
         />
       </div>
     </div>

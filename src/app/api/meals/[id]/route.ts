@@ -29,6 +29,11 @@ const mealSchema = z.object({
   iron: z.coerce.number().nonnegative().default(0),
   notes: z.string().optional().nullable(),
   ingredients: mealIngredientsField,
+  isFavorite: z.boolean().optional(),
+});
+
+const favoriteSchema = z.object({
+  isFavorite: z.boolean(),
 });
 
 type Params = { params: Promise<{ id: string }> };
@@ -49,6 +54,41 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 });
   }
   return NextResponse.json({ meal }, { headers: NO_STORE_HEADERS });
+}
+
+export async function PATCH(request: Request, { params }: Params) {
+  try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const existing = await getOwnedMeal(user.id, id);
+    if (!existing) {
+      return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const parsed = favoriteSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Ungültige Daten" }, { status: 400 });
+    }
+
+    const meal = await prisma.meal.update({
+      where: { id },
+      data: { isFavorite: parsed.data.isFavorite },
+    });
+
+    revalidateMealViews(id);
+    return NextResponse.json({ meal }, { headers: NO_STORE_HEADERS });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Favorit konnte nicht aktualisiert werden" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function PUT(request: Request, { params }: Params) {

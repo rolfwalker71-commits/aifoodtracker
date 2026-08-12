@@ -19,6 +19,10 @@ import { toFormDateTime } from "@/lib/datetime";
 import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
 import { scaleIngredients } from "@/lib/meal-ingredients";
+import { suggestMealTypeNow } from "@/lib/nutrition";
+import {
+  enqueueOfflineMeal,
+} from "@/lib/offline-meal-queue";
 import {
   formatPortionLabel,
   nutrientsFromPortion,
@@ -36,7 +40,7 @@ function emptyForm(): MealFormValues {
   return {
     name: "",
     portionSize: "",
-    mealType: "SNACK",
+    mealType: suggestMealTypeNow(),
     consumedAt: toFormDateTime(),
     calories: 0,
     protein: 0,
@@ -126,7 +130,7 @@ export default function NewMealPage() {
         ...emptyForm(),
         name: pending.name,
         portionSize: formatPortionLabel(grams),
-        mealType: pending.mealType || "SNACK",
+        mealType: pending.mealType || suggestMealTypeNow(),
         notes: pending.notes ?? "",
         imagePath: pending.imagePath ?? null,
         ingredients: scaleIngredients(
@@ -339,7 +343,7 @@ export default function NewMealPage() {
           consumedAt: new Date(values.consumedAt).toISOString(),
         }),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(data.error || "Speichern fehlgeschlagen");
       }
@@ -354,6 +358,18 @@ export default function NewMealPage() {
       });
       navigateFresh(router, "/dashboard");
     } catch (error) {
+      const offline =
+        (typeof navigator !== "undefined" && !navigator.onLine) ||
+        (error instanceof TypeError &&
+          /fetch|network|failed/i.test(error.message));
+      if (offline) {
+        enqueueOfflineMeal(values);
+        toast.success("Offline gespeichert", {
+          description: "Wird synchronisiert, sobald du wieder online bist.",
+        });
+        navigateFresh(router, "/dashboard");
+        return;
+      }
       toast.error(
         error instanceof Error ? error.message : "Speichern fehlgeschlagen",
       );

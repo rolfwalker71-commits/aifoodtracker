@@ -15,56 +15,30 @@ import {
 } from "@/components/ui/select";
 import { formatNumber } from "@/lib/utils";
 import type { StatsRange } from "@/types/meals";
+import type { NutrientTotals, NutritionGoals } from "@/lib/nutrition";
 
 type StatsResponse = {
   mealCount: number;
-  totals: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-    sugar: number;
-    sodium: number;
-    potassium: number;
-  };
-  averages: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-    sugar: number;
-    sodium: number;
-    potassium: number;
-  };
-  goals: {
-    dailyCaloriesGoal: number;
-    dailyProteinGoal: number;
-    dailyCarbsGoal: number;
-    dailyFatGoal: number;
-    dailyFiberGoal: number;
-    dailySugarGoal: number;
-    dailySodiumGoal: number;
-    dailyPotassiumGoal: number;
-  };
-  series: Array<{
-    label: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-    sugar: number;
-    sodium: number;
-  }>;
+  totals: NutrientTotals;
+  averages: NutrientTotals;
+  goals: NutritionGoals;
+  series: Array<{ label: string } & Partial<NutrientTotals>>;
 };
+
+type MetricKey =
+  | "calories"
+  | "protein"
+  | "fiber"
+  | "sugar"
+  | "sodium"
+  | "potassium"
+  | "vitaminC"
+  | "calcium"
+  | "iron";
 
 export default function StatsPage() {
   const [range, setRange] = useState<StatsRange>("week");
-  const [metric, setMetric] = useState<
-    "calories" | "protein" | "fiber" | "sugar" | "sodium"
-  >("calories");
+  const [metric, setMetric] = useState<MetricKey>("calories");
   const [stats, setStats] = useState<StatsResponse | null>(null);
 
   useEffect(() => {
@@ -143,16 +117,7 @@ export default function StatsPage() {
                   <CardTitle>Verlauf</CardTitle>
                   <Select
                     value={metric}
-                    onValueChange={(value) =>
-                      setMetric(
-                        value as
-                          | "calories"
-                          | "protein"
-                          | "fiber"
-                          | "sugar"
-                          | "sodium",
-                      )
-                    }
+                    onValueChange={(value) => setMetric(value as MetricKey)}
                   >
                     <SelectTrigger className="w-44">
                       <SelectValue />
@@ -163,6 +128,10 @@ export default function StatsPage() {
                       <SelectItem value="fiber">Ballaststoffe</SelectItem>
                       <SelectItem value="sugar">Zucker</SelectItem>
                       <SelectItem value="sodium">Natrium</SelectItem>
+                      <SelectItem value="potassium">Kalium</SelectItem>
+                      <SelectItem value="vitaminC">Vitamin C</SelectItem>
+                      <SelectItem value="calcium">Kalzium</SelectItem>
+                      <SelectItem value="iron">Eisen</SelectItem>
                     </SelectContent>
                   </Select>
                 </CardHeader>
@@ -173,9 +142,14 @@ export default function StatsPage() {
                     unit={
                       metric === "calories"
                         ? " kcal"
-                        : metric === "sodium"
+                        : metric === "sodium" ||
+                            metric === "potassium" ||
+                            metric === "calcium" ||
+                            metric === "vitaminC"
                           ? " mg"
-                          : " g"
+                          : metric === "iron"
+                            ? " mg"
+                            : " g"
                     }
                     color={
                       metric === "calories"
@@ -239,6 +213,48 @@ export default function StatsPage() {
                       goal={stats.goals.dailySodiumGoal}
                       unit="mg"
                       colorClass="bg-sky-700"
+                    />
+                    <NutrientProgress
+                      label="Kalium (Ø/Tag)"
+                      current={stats.averages.potassium}
+                      goal={stats.goals.dailyPotassiumGoal}
+                      unit="mg"
+                      colorClass="bg-violet-600"
+                    />
+                    <NutrientProgress
+                      label="Vitamin A (Ø/Tag)"
+                      current={stats.averages.vitaminA}
+                      goal={stats.goals.dailyVitaminAGoal}
+                      unit="µg"
+                      colorClass="bg-amber-600"
+                    />
+                    <NutrientProgress
+                      label="Vitamin C (Ø/Tag)"
+                      current={stats.averages.vitaminC}
+                      goal={stats.goals.dailyVitaminCGoal}
+                      unit="mg"
+                      colorClass="bg-lime-600"
+                    />
+                    <NutrientProgress
+                      label="Vitamin D (Ø/Tag)"
+                      current={stats.averages.vitaminD}
+                      goal={stats.goals.dailyVitaminDGoal}
+                      unit="µg"
+                      colorClass="bg-yellow-600"
+                    />
+                    <NutrientProgress
+                      label="Kalzium (Ø/Tag)"
+                      current={stats.averages.calcium}
+                      goal={stats.goals.dailyCalciumGoal}
+                      unit="mg"
+                      colorClass="bg-stone-600"
+                    />
+                    <NutrientProgress
+                      label="Eisen (Ø/Tag)"
+                      current={stats.averages.iron}
+                      goal={stats.goals.dailyIronGoal}
+                      unit="mg"
+                      colorClass="bg-red-700"
                     />
                   </CardContent>
                 </Card>

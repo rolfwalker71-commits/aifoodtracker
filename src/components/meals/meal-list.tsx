@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, type PanInfo } from "framer-motion";
-import { Pencil, Trash2 } from "lucide-react";
+import { CopyPlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatAppDateTime } from "@/lib/datetime";
@@ -29,9 +29,10 @@ export type MealListItem = {
   imagePath?: string | null;
   portionSize?: string | null;
   ingredients?: unknown;
+  isFavorite?: boolean;
 };
 
-const ACTION_WIDTH = 148;
+const ACTION_WIDTH = 222;
 const OPEN_X = -ACTION_WIDTH;
 
 function MealThumb({
@@ -74,18 +75,22 @@ function SwipeMealCard({
   meal,
   open,
   deleting,
+  duplicating,
   pendingSymbol,
   onOpen,
   onClose,
   onDelete,
+  onDuplicate,
 }: {
   meal: MealListItem;
   open: boolean;
   deleting: boolean;
+  duplicating: boolean;
   pendingSymbol: boolean;
   onOpen: () => void;
   onClose: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
   function onDragEnd(_: unknown, info: PanInfo) {
     const shouldOpen = info.offset.x + info.velocity.x * 0.2 < -48;
@@ -96,9 +101,23 @@ function SwipeMealCard({
   return (
     <div className="relative overflow-hidden rounded-2xl">
       <div
-        className="absolute inset-y-0 right-0 z-0 flex w-[148px]"
+        className="absolute inset-y-0 right-0 z-0 flex w-[222px]"
         aria-hidden={!open}
       >
+        <button
+          type="button"
+          tabIndex={open ? 0 : -1}
+          className="flex w-[74px] flex-col items-center justify-center gap-1 bg-sky-700 text-white disabled:opacity-60"
+          aria-label="Nochmal speichern"
+          disabled={duplicating}
+          onClick={() => {
+            onClose();
+            onDuplicate();
+          }}
+        >
+          <CopyPlus className="h-5 w-5" />
+          <span className="text-[11px] font-medium">Nochmal</span>
+        </button>
         <Link
           href={`/meals/${meal.id}`}
           tabIndex={open ? 0 : -1}
@@ -146,6 +165,11 @@ function SwipeMealCard({
                 >
                   <h3 className="font-semibold leading-snug break-words hover:underline">
                     {meal.name}
+                    {meal.isFavorite ? (
+                      <span className="ml-1 text-amber-500" aria-label="Favorit">
+                        ★
+                      </span>
+                    ) : null}
                   </h3>
                 </Link>
                 <p className="text-sm leading-snug">
@@ -192,6 +216,7 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
   const router = useRouter();
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
 
@@ -266,6 +291,28 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
     }
   }
 
+  async function duplicateMeal(id: string) {
+    setDuplicatingId(id);
+    try {
+      const response = await fetch(`/api/meals/${id}/duplicate`, {
+        method: "POST",
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Kopie fehlgeschlagen");
+      }
+      toast.success("Nochmal gespeichert");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Kopie fehlgeschlagen",
+      );
+    } finally {
+      setDuplicatingId(null);
+    }
+  }
+
   if (!items.length) {
     return (
       <Card>
@@ -284,12 +331,14 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
           meal={meal}
           open={openId === meal.id}
           deleting={deletingId === meal.id}
+          duplicating={duplicatingId === meal.id}
           pendingSymbol={!meal.imagePath && pendingIds.includes(meal.id)}
           onOpen={() => setOpenId(meal.id)}
           onClose={() =>
             setOpenId((current) => (current === meal.id ? null : current))
           }
           onDelete={() => void removeMeal(meal.id)}
+          onDuplicate={() => void duplicateMeal(meal.id)}
         />
       ))}
     </div>

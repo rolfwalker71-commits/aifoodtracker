@@ -14,13 +14,17 @@ import { formatNumber } from "@/lib/utils";
 
 type Point = {
   label: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  sugar: number;
-  sodium: number;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  potassium?: number;
+  vitaminC?: number;
+  calcium?: number;
+  iron?: number;
 };
 
 type Props = {

@@ -22,18 +22,6 @@ import {
 } from "@/lib/portion";
 import type { MealFormValues } from "@/types/meals";
 
-type DayGoals = Pick<
-  NutritionGoals,
-  | "dailyCaloriesGoal"
-  | "dailyProteinGoal"
-  | "dailyCarbsGoal"
-  | "dailyFatGoal"
-  | "dailyFiberGoal"
-  | "dailySugarGoal"
-  | "dailySodiumGoal"
-  | "dailyPotassiumGoal"
->;
-
 function resolveCurrentGrams(values: MealFormValues): number | null {
   const fromLabel = parsePortionGrams(values.portionSize || "");
   if (fromLabel && fromLabel > 0) return fromLabel;
@@ -49,7 +37,8 @@ export default function MealDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [values, setValues] = useState<MealFormValues | null>(null);
-  const [goals, setGoals] = useState<DayGoals | null>(null);
+  const [goals, setGoals] = useState<NutritionGoals | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<"view" | "simple" | "details">("view");
 
@@ -71,6 +60,7 @@ export default function MealDetailPage() {
 
       if (!cancelled) {
         const meal = mealData.meal;
+        setIsFavorite(Boolean(meal.isFavorite));
         setValues({
           name: localizeGermanLabel(meal.name),
           portionSize: meal.portionSize ?? "",
@@ -99,7 +89,7 @@ export default function MealDetailPage() {
       if (statsResponse.ok) {
         const stats = await statsResponse.json();
         if (!cancelled && stats.goals) {
-          setGoals(stats.goals as DayGoals);
+          setGoals(stats.goals as NutritionGoals);
         }
       }
     }
@@ -189,6 +179,53 @@ export default function MealDetailPage() {
     }
   }
 
+  async function toggleFavorite() {
+    setBusy(true);
+    try {
+      const next = !isFavorite;
+      const response = await fetch(`/api/meals/${params.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ isFavorite: next }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Favorit fehlgeschlagen");
+      }
+      setIsFavorite(next);
+      toast.success(next ? "Als Favorit gespeichert" : "Favorit entfernt");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Favorit fehlgeschlagen",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function duplicateMeal() {
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/meals/${params.id}/duplicate`, {
+        method: "POST",
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Kopie fehlgeschlagen");
+      }
+      toast.success("Nochmal gespeichert");
+      navigateFresh(router, "/dashboard");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Kopie fehlgeschlagen",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!values) {
     return <p className="text-sm text-muted-foreground">Lade Mahlzeit…</p>;
   }
@@ -210,7 +247,11 @@ export default function MealDetailPage() {
         <MealDetailViewer
           values={values}
           goals={goals}
+          isFavorite={isFavorite}
+          busy={busy}
           onEdit={() => setMode("simple")}
+          onToggleFavorite={() => void toggleFavorite()}
+          onDuplicate={() => void duplicateMeal()}
         />
       ) : null}
 

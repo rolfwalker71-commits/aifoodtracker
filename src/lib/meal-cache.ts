@@ -5,6 +5,7 @@ export function revalidateMealViews(mealId?: string) {
   revalidatePath("/dashboard", "layout");
   revalidatePath("/meals", "layout");
   revalidatePath("/stats", "layout");
+  revalidatePath("/coach", "layout");
   if (mealId) {
     revalidatePath(`/meals/${mealId}`, "page");
   }

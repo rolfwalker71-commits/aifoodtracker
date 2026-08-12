@@ -48,6 +48,13 @@ model User {
   dailySugarGoal     Float          @default(50)
   dailySodiumGoal    Float          @default(2300)
   dailyPotassiumGoal Float          @default(3400)
+  dailyVitaminAGoal  Float          @default(900)
+  dailyVitaminCGoal  Float          @default(90)
+  dailyVitaminDGoal  Float          @default(20)
+  dailyCalciumGoal   Float          @default(1000)
+  dailyIronGoal      Float          @default(8)
+  /// [{ id, mealType, timeLocal "HH:mm", enabled }]
+  reminders          Json?
   themePreference    String         @default("system")
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -113,6 +120,7 @@ model Meal {
   calcium      Float    @default(0)
   iron         Float    @default(0)
   mealType     MealType @default(SNACK)
+  isFavorite   Boolean  @default(false)
   notes        String?
   consumedAt   DateTime @default(now())
   createdAt    DateTime @default(now())
@@ -121,4 +129,5 @@ model Meal {
 
   @@index([userId, consumedAt])
   @@index([userId, mealType])
+  @@index([userId, isFavorite])
 }

@@ -26,6 +26,11 @@ export type NutritionGoals = {
   dailySugarGoal: number;
   dailySodiumGoal: number;
   dailyPotassiumGoal: number;
+  dailyVitaminAGoal: number;
+  dailyVitaminCGoal: number;
+  dailyVitaminDGoal: number;
+  dailyCalciumGoal: number;
+  dailyIronGoal: number;
 };
 
 export const EMPTY_TOTALS: NutrientTotals = {
@@ -114,4 +119,30 @@ export function toMealType(value: string): MealType {
     ([, label]) => label.toLowerCase() === value.toLowerCase(),
   );
   return (byLabel?.[0] as MealType) ?? "SNACK";
+}
+
+/** Lokalzeit: <10 Frühstück, <13 Mittag, <18 Snack, sonst Abendessen. */
+export function mealTypeFromLocalHour(hour: number): MealType {
+  if (hour < 10) return "BREAKFAST";
+  if (hour < 13) return "LUNCH";
+  if (hour < 18) return "SNACK";
+  return "DINNER";
+}
+
+export function suggestMealTypeNow(now = new Date()): MealType {
+  // Lazy import avoided: datetime uses nutrition-free path; use Intl for Zurich hour.
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: process.env.APP_TIMEZONE || "Europe/Zurich",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(now),
+  );
+  return mealTypeFromLocalHour(hour);
+}
+
+export function mealTypeFromFormDateTime(value: string): MealType {
+  const match = value.match(/T(\d{2}):/);
+  if (!match) return suggestMealTypeNow();
+  return mealTypeFromLocalHour(Number(match[1]));
 }

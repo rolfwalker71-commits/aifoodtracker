@@ -7,6 +7,7 @@ import {
   ChartColumn,
   Home,
   Settings,
+  Sparkles,
   Utensils,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand/brand-mark";
@@ -16,6 +17,7 @@ const links = [
   { href: "/dashboard", label: "Start", icon: Home },
   { href: "/meals", label: "Mahlzeiten", icon: Utensils },
   { href: "/meals/new", label: "Erfassen", icon: Camera },
+  { href: "/coach", label: "Coach", icon: Sparkles },
   { href: "/stats", label: "Statistiken", icon: ChartColumn },
   { href: "/settings", label: "Benutzer", icon: Settings },
 ];
@@ -44,13 +46,13 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-3.5 py-3 text-[17px] font-bold transition-colors",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-[19px] w-[19px] stroke-[2.5]" />
               {label}
             </Link>
           );

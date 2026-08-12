@@ -24,6 +24,11 @@ export type DailyGoals = {
   dailySugarGoal: number;
   dailySodiumGoal: number;
   dailyPotassiumGoal: number;
+  dailyVitaminAGoal: number;
+  dailyVitaminCGoal: number;
+  dailyVitaminDGoal: number;
+  dailyCalciumGoal: number;
+  dailyIronGoal: number;
 };
 
 export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
@@ -75,6 +80,11 @@ export function calculateDailyGoals(input: BodyProfileInput): DailyGoals {
   const sugar = Math.round((calories * 0.1) / 4);
   const sodium = 2300;
   const potassium = input.sex === "MALE" ? 3400 : 2600;
+  const vitaminA = input.sex === "MALE" ? 900 : 700;
+  const vitaminC = input.sex === "MALE" ? 90 : 75;
+  const vitaminD = 20;
+  const calcium = 1000;
+  const iron = input.sex === "MALE" ? 8 : 18;
 
   return {
     dailyCaloriesGoal: Math.max(1200, calories),
@@ -85,6 +95,11 @@ export function calculateDailyGoals(input: BodyProfileInput): DailyGoals {
     dailySugarGoal: Math.max(20, sugar),
     dailySodiumGoal: sodium,
     dailyPotassiumGoal: potassium,
+    dailyVitaminAGoal: vitaminA,
+    dailyVitaminCGoal: vitaminC,
+    dailyVitaminDGoal: vitaminD,
+    dailyCalciumGoal: calcium,
+    dailyIronGoal: iron,
   };
 }
 

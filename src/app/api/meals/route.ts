@@ -32,6 +32,7 @@ const mealSchema = z.object({
   iron: z.coerce.number().nonnegative().default(0),
   notes: z.string().optional().nullable(),
   ingredients: mealIngredientsField,
+  isFavorite: z.boolean().optional(),
 });
 
 export async function GET(request: Request) {
@@ -43,10 +44,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const favoritesOnly = searchParams.get("favorites") === "1";
 
   const meals = await prisma.meal.findMany({
     where: {
       userId: user.id,
+      ...(favoritesOnly ? { isFavorite: true } : {}),
       ...(from || to
         ? {
             consumedAt: {
@@ -56,7 +59,10 @@ export async function GET(request: Request) {
           }
         : {}),
     },
-    orderBy: { consumedAt: "desc" },
+    orderBy: favoritesOnly
+      ? [{ updatedAt: "desc" }, { consumedAt: "desc" }]
+      : { consumedAt: "desc" },
+    ...(favoritesOnly ? { take: 40 } : {}),
   });
 
   return NextResponse.json({ meals }, { headers: NO_STORE_HEADERS });

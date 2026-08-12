@@ -2,13 +2,12 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
-import { Camera, ChartColumn } from "lucide-react";
+import { Camera, ChartColumn, Sparkles } from "lucide-react";
 import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import { MacroChart } from "@/components/dashboard/macro-chart";
-import { CoachTipCard } from "@/components/dashboard/coach-tip-card";
-import { PatternInsightsCard } from "@/components/dashboard/pattern-insights-card";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
+import { FavoriteMealsStrip } from "@/components/meals/favorite-meals-strip";
 import { MealList } from "@/components/meals/meal-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +18,6 @@ import {
   APP_TIMEZONE,
   getRangeBoundsInAppTz,
 } from "@/lib/datetime";
-import { detectMealPatterns } from "@/lib/insights";
 import { formatNumber } from "@/lib/utils";
 import { getStatsForUser } from "@/lib/stats";
 import { prisma } from "@/lib/prisma";
@@ -33,8 +31,7 @@ export default async function DashboardPage() {
 
   const today = new Date();
   const { from, to } = getRangeBoundsInAppTz("day", today);
-  const weekBounds = getRangeBoundsInAppTz("week", today);
-  const [stats, meals, weekMeals, profile] = await Promise.all([
+  const [stats, meals, favorites, profile] = await Promise.all([
     getStatsForUser(session.user.id, "day"),
     prisma.meal.findMany({
       where: {
@@ -47,19 +44,10 @@ export default async function DashboardPage() {
     prisma.meal.findMany({
       where: {
         userId: session.user.id,
-        consumedAt: { gte: weekBounds.from, lte: weekBounds.to },
+        isFavorite: true,
       },
-      orderBy: { consumedAt: "desc" },
-      select: {
-        name: true,
-        mealType: true,
-        calories: true,
-        protein: true,
-        fiber: true,
-        sugar: true,
-        sodium: true,
-        consumedAt: true,
-      },
+      orderBy: [{ updatedAt: "desc" }, { consumedAt: "desc" }],
+      take: 12,
     }),
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -90,7 +78,6 @@ export default async function DashboardPage() {
       name: meal.name,
     })),
   });
-  const patterns = detectMealPatterns(weekMeals);
 
   return (
     <div className="space-y-6">
@@ -117,7 +104,20 @@ export default async function DashboardPage() {
         ) : null}
       </section>
 
-      <CoachTipCard tip={coachTip} />
+      <Card className="animate-rise">
+        <CardContent className="flex items-start justify-between gap-3 pt-5">
+          <div>
+            <p className="text-sm font-semibold text-primary">Coach</p>
+            <p className="mt-1 text-sm text-muted-foreground">{coachTip.body}</p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/coach">
+              <Sparkles className="h-4 w-4" />
+              Öffnen
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <section className="grid gap-3 sm:grid-cols-2 animate-rise-delay">
         <Button asChild size="lg" className="h-14 justify-start px-5">
@@ -134,7 +134,11 @@ export default async function DashboardPage() {
         </Button>
       </section>
 
-      <PatternInsightsCard insights={patterns} />
+      <FavoriteMealsStrip
+        meals={favorites.map((meal) => ({
+          ...meal,
+        }))}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="animate-rise">
@@ -182,11 +186,59 @@ export default async function DashboardPage() {
               colorClass="bg-emerald-700"
             />
             <NutrientProgress
+              label="Zucker"
+              current={stats.totals.sugar}
+              goal={stats.goals.dailySugarGoal}
+              colorClass="bg-rose-600"
+            />
+            <NutrientProgress
               label="Natrium"
               current={stats.totals.sodium}
               goal={stats.goals.dailySodiumGoal}
               unit="mg"
               colorClass="bg-sky-700"
+            />
+            <NutrientProgress
+              label="Kalium"
+              current={stats.totals.potassium}
+              goal={stats.goals.dailyPotassiumGoal}
+              unit="mg"
+              colorClass="bg-violet-600"
+            />
+            <NutrientProgress
+              label="Vitamin A"
+              current={stats.totals.vitaminA}
+              goal={stats.goals.dailyVitaminAGoal}
+              unit="µg"
+              colorClass="bg-amber-600"
+            />
+            <NutrientProgress
+              label="Vitamin C"
+              current={stats.totals.vitaminC}
+              goal={stats.goals.dailyVitaminCGoal}
+              unit="mg"
+              colorClass="bg-lime-600"
+            />
+            <NutrientProgress
+              label="Vitamin D"
+              current={stats.totals.vitaminD}
+              goal={stats.goals.dailyVitaminDGoal}
+              unit="µg"
+              colorClass="bg-yellow-600"
+            />
+            <NutrientProgress
+              label="Kalzium"
+              current={stats.totals.calcium}
+              goal={stats.goals.dailyCalciumGoal}
+              unit="mg"
+              colorClass="bg-stone-600"
+            />
+            <NutrientProgress
+              label="Eisen"
+              current={stats.totals.iron}
+              goal={stats.goals.dailyIronGoal}
+              unit="mg"
+              colorClass="bg-red-700"
             />
           </CardContent>
         </Card>
