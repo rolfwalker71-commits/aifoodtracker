@@ -10,6 +10,7 @@ import { MealForm } from "@/components/meals/meal-form";
 import { PortionPrompt } from "@/components/meals/portion-prompt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { navigateFresh } from "@/lib/fresh-navigate";
 import { formatPortionLabel, nutrientsFromPortion, scaleNutrients } from "@/lib/portion";
 import type { MealFormValues } from "@/types/meals";
 import type {
@@ -206,6 +207,7 @@ export default function NewMealPage() {
       const response = await fetch("/api/meals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify({
           ...values,
           consumedAt: new Date(values.consumedAt).toISOString(),
@@ -216,8 +218,7 @@ export default function NewMealPage() {
         throw new Error(data.error || "Speichern fehlgeschlagen");
       }
       toast.success("Mahlzeit gespeichert");
-      router.push("/dashboard");
-      router.refresh();
+      navigateFresh(router, "/dashboard");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Speichern fehlgeschlagen",

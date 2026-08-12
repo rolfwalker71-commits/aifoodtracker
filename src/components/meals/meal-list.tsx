@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
@@ -25,7 +26,6 @@ export type MealListItem = {
 };
 
 function MealThumb({ src, alt }: { src: string; alt: string }) {
-  // Support both local /uploads and remote Open Food Facts URLs
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} className="h-full w-full object-cover" />
@@ -34,21 +34,42 @@ function MealThumb({ src, alt }: { src: string; alt: string }) {
 
 export function MealList({ meals }: { meals: MealListItem[] }) {
   const router = useRouter();
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const items = useMemo(
+    () => meals.filter((meal) => !removedIds.includes(meal.id)),
+    [meals, removedIds],
+  );
 
   async function removeMeal(id: string) {
     const confirmed = window.confirm("Mahlzeit wirklich löschen?");
     if (!confirmed) return;
 
-    const response = await fetch(`/api/meals/${id}`, { method: "DELETE" });
-    if (!response.ok) {
+    setDeletingId(id);
+    setRemovedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+
+    try {
+      const response = await fetch(`/api/meals/${id}`, {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      if (response.ok || response.status === 404) {
+        toast.success("Mahlzeit gelöscht");
+        router.refresh();
+        return;
+      }
+      setRemovedIds((prev) => prev.filter((value) => value !== id));
       toast.error("Löschen fehlgeschlagen");
-      return;
+    } catch {
+      setRemovedIds((prev) => prev.filter((value) => value !== id));
+      toast.error("Löschen fehlgeschlagen");
+    } finally {
+      setDeletingId(null);
     }
-    toast.success("Mahlzeit gelöscht");
-    router.refresh();
   }
 
-  if (!meals.length) {
+  if (!items.length) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -60,8 +81,11 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
 
   return (
     <div className="space-y-3">
-      {meals.map((meal) => (
-        <Card key={meal.id} className="overflow-hidden transition hover:shadow-md">
+      {items.map((meal) => (
+        <Card
+          key={meal.id}
+          className="overflow-hidden transition hover:shadow-md"
+        >
           <CardContent className="flex gap-3 p-3">
             <Link
               href={`/meals/${meal.id}`}
@@ -96,14 +120,16 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
                   size="icon"
                   variant="ghost"
                   aria-label="Löschen"
+                  disabled={deletingId === meal.id}
                   onClick={() => removeMeal(meal.id)}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                {formatNumber(meal.calories)} kcal · P {formatNumber(meal.protein, 0)}g ·
-                K {formatNumber(meal.carbs, 0)}g · F {formatNumber(meal.fat, 0)}g
+                {formatNumber(meal.calories)} kcal · P{" "}
+                {formatNumber(meal.protein, 0)}g · K{" "}
+                {formatNumber(meal.carbs, 0)}g · F {formatNumber(meal.fat, 0)}g
               </p>
             </div>
           </CardContent>

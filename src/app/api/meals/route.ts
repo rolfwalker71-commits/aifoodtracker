@@ -1,8 +1,8 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseAppDateTime } from "@/lib/datetime";
 import { persistRemoteImage } from "@/lib/images";
+import { NO_STORE_HEADERS, revalidateMealViews } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     orderBy: { consumedAt: "desc" },
   });
 
-  return NextResponse.json({ meals });
+  return NextResponse.json({ meals }, { headers: NO_STORE_HEADERS });
 }
 
 export async function POST(request: Request) {
@@ -86,11 +86,12 @@ export async function POST(request: Request) {
       },
     });
 
-    revalidatePath("/dashboard");
-    revalidatePath("/meals");
-    revalidatePath("/stats");
+    revalidateMealViews(meal.id);
 
-    return NextResponse.json({ meal }, { status: 201 });
+    return NextResponse.json(
+      { meal },
+      { status: 201, headers: NO_STORE_HEADERS },
+    );
   } catch (error) {
     console.error(error);
     return NextResponse.json(

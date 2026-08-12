@@ -1,8 +1,8 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseAppDateTime } from "@/lib/datetime";
 import { persistRemoteImage } from "@/lib/images";
+import { NO_STORE_HEADERS, revalidateMealViews } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -46,7 +46,7 @@ export async function GET(_request: Request, { params }: Params) {
   if (!meal) {
     return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 });
   }
-  return NextResponse.json({ meal });
+  return NextResponse.json({ meal }, { headers: NO_STORE_HEADERS });
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -84,12 +84,9 @@ export async function PUT(request: Request, { params }: Params) {
       },
     });
 
-    revalidatePath("/dashboard");
-    revalidatePath("/meals");
-    revalidatePath("/stats");
-    revalidatePath(`/meals/${id}`);
+    revalidateMealViews(id);
 
-    return NextResponse.json({ meal });
+    return NextResponse.json({ meal }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
@@ -112,8 +109,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   await prisma.meal.delete({ where: { id } });
-  revalidatePath("/dashboard");
-  revalidatePath("/meals");
-  revalidatePath("/stats");
-  return NextResponse.json({ ok: true });
+  revalidateMealViews(id);
+
+  return NextResponse.json({ ok: true }, { headers: NO_STORE_HEADERS });
 }

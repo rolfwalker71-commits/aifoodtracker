@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { MealForm } from "@/components/meals/meal-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { navigateFresh } from "@/lib/fresh-navigate";
 import type { MealFormValues } from "@/types/meals";
 
 export default function EditMealPage() {
@@ -15,14 +16,19 @@ export default function EditMealPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      const response = await fetch(`/api/meals/${params.id}`);
+      const response = await fetch(`/api/meals/${params.id}`, {
+        cache: "no-store",
+      });
       const data = await response.json();
       if (!response.ok) {
         toast.error(data.error || "Mahlzeit nicht gefunden");
-        router.push("/meals");
+        navigateFresh(router, "/meals");
         return;
       }
+      if (cancelled) return;
       const meal = data.meal;
       setValues({
         name: meal.name,
@@ -47,7 +53,11 @@ export default function EditMealPage() {
         imagePath: meal.imagePath,
       });
     }
+
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [params.id, router]);
 
   async function onSubmit(next: MealFormValues) {
@@ -56,6 +66,7 @@ export default function EditMealPage() {
       const response = await fetch(`/api/meals/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify({
           ...next,
           consumedAt: new Date(next.consumedAt).toISOString(),
@@ -66,8 +77,7 @@ export default function EditMealPage() {
         throw new Error(data.error || "Aktualisierung fehlgeschlagen");
       }
       toast.success("Mahlzeit aktualisiert");
-      router.push("/meals");
-      router.refresh();
+      navigateFresh(router, "/meals");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Aktualisierung fehlgeschlagen",

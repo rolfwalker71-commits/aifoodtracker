@@ -68,12 +68,20 @@ export default function StatsPage() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      const response = await fetch(`/api/stats?range=${range}`);
+      const response = await fetch(`/api/stats?range=${range}`, {
+        cache: "no-store",
+      });
       const data = await response.json();
-      if (response.ok) setStats(data);
+      if (!cancelled && response.ok) setStats(data);
     }
+
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [range]);
 
   return (

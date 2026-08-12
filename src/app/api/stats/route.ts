@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { NO_STORE_HEADERS } from "@/lib/meal-cache";
 import { requireUser } from "@/lib/session";
 import { getStatsForUser } from "@/lib/stats";
 import type { StatsRange } from "@/types/meals";
@@ -16,5 +17,5 @@ export async function GET(request: Request) {
   ) as StatsRange;
 
   const stats = await getStatsForUser(user.id, range);
-  return NextResponse.json(stats);
+  return NextResponse.json(stats, { headers: NO_STORE_HEADERS });
 }

@@ -47,6 +47,24 @@ const nextConfig: NextConfig = {
         },
       ],
     },
+    {
+      source: "/dashboard",
+      headers: [
+        { key: "Cache-Control", value: "no-store, must-revalidate" },
+      ],
+    },
+    {
+      source: "/meals/:path*",
+      headers: [
+        { key: "Cache-Control", value: "no-store, must-revalidate" },
+      ],
+    },
+    {
+      source: "/stats",
+      headers: [
+        { key: "Cache-Control", value: "no-store, must-revalidate" },
+      ],
+    },
   ],
 };
 
