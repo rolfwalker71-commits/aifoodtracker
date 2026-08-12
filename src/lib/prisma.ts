@@ -15,8 +15,17 @@ function createPrismaClient() {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+export const prisma =
+  globalForPrisma.prisma ??
+  new Proxy({} as PrismaClient, {
+    get(_target, prop, receiver) {
+      const client = (globalForPrisma.prisma ??= createPrismaClient());
+      const value = Reflect.get(client, prop, receiver);
+      return typeof value === "function" ? value.bind(client) : value;
+    },
+  });
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  // Keep the same singleton behavior in development after first use.
+  void globalForPrisma;
 }

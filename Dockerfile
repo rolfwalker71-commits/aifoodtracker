@@ -15,6 +15,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Dummy values only for Next.js build-time page collection (runtime overrides these)
+ENV DATABASE_URL="postgresql://aifood:aifood@localhost:5432/aifoodtracker?schema=public"
+ENV AUTH_SECRET="build-time-auth-secret-aifoodtracker-32"
+ENV AUTH_URL="http://localhost:3333"
+ENV NEXTAUTH_URL="http://localhost:3333"
+ENV ENCRYPTION_KEY="build-time-encryption-key-aifoodtracker"
 RUN npx prisma generate
 RUN npm run build
 
