@@ -64,7 +64,7 @@ export default async function DashboardPage() {
         <p className="text-sm text-muted-foreground">
           {format(todayLabel, `EEEE, ${APP_DATE_FORMAT}`, { locale: de })}
         </p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-bold tracking-tight">
           Hallo {session.user.name?.split(" ")[0] || "du"}
         </h1>
         <p className="mt-1 text-muted-foreground">
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold">Heute</h2>
+          <h2 className="font-display text-xl font-bold">Heute</h2>
           <Button asChild variant="ghost" size="sm">
             <Link href="/meals">Alle anzeigen</Link>
           </Button>

@@ -60,7 +60,7 @@ export default function RegisterPage() {
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
           <Leaf className="h-7 w-7" />
         </div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-bold tracking-tight">
           Konto erstellen
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">

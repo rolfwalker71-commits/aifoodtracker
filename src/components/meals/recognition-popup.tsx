@@ -55,7 +55,7 @@ export function RecognitionPopup({
               {name}
             </h2>
             {amountLabel ? (
-              <p className="mt-5 text-2xl font-semibold text-primary sm:text-3xl">
+              <p className="mt-5 text-2xl font-bold text-primary sm:text-3xl">
                 {amountLabel}
               </p>
             ) : null}

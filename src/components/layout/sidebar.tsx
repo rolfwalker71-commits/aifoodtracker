@@ -30,7 +30,7 @@ export function Sidebar() {
           <Leaf className="h-5 w-5" />
         </span>
         <div>
-          <p className="font-display text-lg font-semibold leading-none">
+          <p className="font-display text-lg font-bold leading-none">
             NutriSight
           </p>
           <p className="text-xs text-muted-foreground">KI Nährwert-Tracker</p>

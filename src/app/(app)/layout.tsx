@@ -9,7 +9,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl md:px-6">
           <div>
-            <p className="font-display text-lg font-semibold md:hidden">
+            <p className="font-display text-lg font-bold md:hidden">
               NutriSight
             </p>
             <p className="hidden text-sm text-muted-foreground md:block">

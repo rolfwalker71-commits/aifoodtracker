@@ -295,7 +295,7 @@ export default function NewMealPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-bold tracking-tight">
           Mahlzeit erfassen
         </h1>
         <p className="text-sm text-muted-foreground">

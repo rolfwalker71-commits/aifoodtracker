@@ -87,7 +87,7 @@ export default function StatsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-bold tracking-tight">
           Statistiken
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -111,7 +111,7 @@ export default function StatsPage() {
                 <Card>
                   <CardContent className="pt-5">
                     <p className="text-xs text-muted-foreground">Mahlzeiten</p>
-                    <p className="font-display text-2xl font-semibold">
+                    <p className="font-display text-2xl font-bold">
                       {stats.mealCount}
                     </p>
                   </CardContent>
@@ -121,7 +121,7 @@ export default function StatsPage() {
                     <p className="text-xs text-muted-foreground">
                       Ø Kalorien / Tag
                     </p>
-                    <p className="font-display text-2xl font-semibold">
+                    <p className="font-display text-2xl font-bold">
                       {formatNumber(stats.averages.calories)}
                     </p>
                   </CardContent>
@@ -131,7 +131,7 @@ export default function StatsPage() {
                     <p className="text-xs text-muted-foreground">
                       Ø Protein / Tag
                     </p>
-                    <p className="font-display text-2xl font-semibold">
+                    <p className="font-display text-2xl font-bold">
                       {formatNumber(stats.averages.protein, 0)} g
                     </p>
                   </CardContent>
