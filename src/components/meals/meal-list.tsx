@@ -96,68 +96,71 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
           key={meal.id}
           className="overflow-hidden transition hover:shadow-md"
         >
-          <CardContent className="flex gap-3 p-3">
+          <CardContent className="space-y-3 p-3">
             <Link
               href={`/meals/${meal.id}`}
-              className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted"
-              aria-label={`${meal.name} bearbeiten`}
+              className="block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             >
-              {meal.imagePath ? (
-                <MealThumb src={meal.imagePath} alt={meal.name} />
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                  Manuell
-                </div>
-              )}
+              <h3 className="font-semibold leading-snug break-words hover:underline">
+                {meal.name}
+              </h3>
             </Link>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <Link
-                  href={`/meals/${meal.id}`}
-                  className="min-w-0 flex-1 rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+
+            <div className="flex items-start gap-3">
+              <Link
+                href={`/meals/${meal.id}`}
+                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted"
+                aria-label={`${meal.name} bearbeiten`}
+              >
+                {meal.imagePath ? (
+                  <MealThumb src={meal.imagePath} alt={meal.name} />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    Manuell
+                  </div>
+                )}
+              </Link>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">
+                  {MEAL_TYPE_LABELS[meal.mealType]} ·{" "}
+                  {formatAppDateTime(meal.consumedAt)}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {formatNumber(meal.calories)} kcal · P{" "}
+                  {formatNumber(meal.protein, 0)}g · K{" "}
+                  {formatNumber(meal.carbs, 0)}g · F{" "}
+                  {formatNumber(meal.fat, 0)}g
+                </p>
+                {ingredientSummary ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {ingredientSummary}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-0.5 self-center">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Bearbeiten"
+                  asChild
                 >
-                  <span className="line-clamp-1 font-semibold hover:underline">
-                    {meal.name}
-                  </span>
-                  <p className="text-xs text-muted-foreground">
-                    {MEAL_TYPE_LABELS[meal.mealType]} ·{" "}
-                    {formatAppDateTime(meal.consumedAt)}
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {formatNumber(meal.calories)} kcal · P{" "}
-                    {formatNumber(meal.protein, 0)}g · K{" "}
-                    {formatNumber(meal.carbs, 0)}g · F{" "}
-                    {formatNumber(meal.fat, 0)}g
-                  </p>
-                  {ingredientSummary ? (
-                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                      {ingredientSummary}
-                    </p>
-                  ) : null}
-                </Link>
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Bearbeiten"
-                    asChild
-                  >
-                    <Link href={`/meals/${meal.id}`}>
-                      <Pencil className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Löschen"
-                    disabled={deletingId === meal.id}
-                    onClick={() => removeMeal(meal.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
+                  <Link href={`/meals/${meal.id}`}>
+                    <Pencil className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Löschen"
+                  disabled={deletingId === meal.id}
+                  onClick={() => removeMeal(meal.id)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
               </div>
             </div>
           </CardContent>
