@@ -34,10 +34,25 @@ export type MealListItem = {
 const ACTION_WIDTH = 148;
 const OPEN_X = -ACTION_WIDTH;
 
-function MealThumb({ src, alt }: { src: string; alt: string }) {
+function MealThumb({
+  src,
+  pending,
+}: {
+  src: string;
+  pending: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <ImagePlaceholder pending={pending} />;
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className="h-full w-full object-cover" />
+    <img
+      src={src}
+      alt=""
+      className="h-full w-full object-cover"
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -80,9 +95,13 @@ function SwipeMealCard({
 
   return (
     <div className="relative overflow-hidden rounded-2xl">
-      <div className="absolute inset-y-0 right-0 flex w-[148px]">
+      <div
+        className="absolute inset-y-0 right-0 z-0 flex w-[148px]"
+        aria-hidden={!open}
+      >
         <Link
           href={`/meals/${meal.id}`}
+          tabIndex={open ? 0 : -1}
           className="flex w-[74px] flex-col items-center justify-center gap-1 bg-emerald-600 text-white"
           aria-label="Bearbeiten"
           onClick={onClose}
@@ -92,6 +111,7 @@ function SwipeMealCard({
         </Link>
         <button
           type="button"
+          tabIndex={open ? 0 : -1}
           className="flex w-[74px] flex-col items-center justify-center gap-1 bg-red-600 text-white disabled:opacity-60"
           aria-label="Löschen"
           disabled={deleting}
@@ -113,10 +133,10 @@ function SwipeMealCard({
         animate={{ x: open ? OPEN_X : 0 }}
         transition={{ type: "spring", stiffness: 420, damping: 36 }}
         onDragEnd={onDragEnd}
-        className="relative z-10 touch-pan-y"
+        className="relative z-10 touch-pan-y rounded-2xl bg-background"
       >
-        <Card className="overflow-hidden rounded-2xl border bg-card shadow-none">
-          <CardContent className="p-3">
+        <div className="overflow-hidden rounded-2xl border border-border bg-background text-card-foreground shadow-sm">
+          <div className="p-3">
             <div className="flex gap-3">
               <div className="min-w-0 flex-1 space-y-1.5">
                 <Link
@@ -155,14 +175,14 @@ function SwipeMealCard({
                 onClick={onClose}
               >
                 {meal.imagePath ? (
-                  <MealThumb src={meal.imagePath} alt={meal.name} />
+                  <MealThumb src={meal.imagePath} pending={pendingSymbol} />
                 ) : (
                   <ImagePlaceholder pending={pendingSymbol} />
                 )}
               </Link>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </motion.div>
     </div>
   );
