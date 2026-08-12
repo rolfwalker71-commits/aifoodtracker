@@ -23,7 +23,7 @@ export function PortionPrompt({
   foodName,
   suggestedGrams,
   helperText,
-  confirmLabel = "Nährwerte berechnen",
+  confirmLabel = "Berechnen",
   onConfirm,
   onSkip,
 }: Props) {

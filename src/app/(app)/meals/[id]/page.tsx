@@ -5,16 +5,35 @@ import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { MealForm } from "@/components/meals/meal-form";
+import { MealSaveConfirm } from "@/components/meals/meal-save-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { navigateFresh } from "@/lib/fresh-navigate";
+import { scaleIngredients } from "@/lib/meal-ingredients";
 import { parseStoredIngredients } from "@/lib/meal-ingredients";
+import {
+  formatPortionLabel,
+  parsePortionGrams,
+  rescaleNutrientTotals,
+} from "@/lib/portion";
 import type { MealFormValues } from "@/types/meals";
+
+function resolveCurrentGrams(values: MealFormValues): number | null {
+  const fromLabel = parsePortionGrams(values.portionSize || "");
+  if (fromLabel && fromLabel > 0) return fromLabel;
+
+  const ingredientTotal = (values.ingredients ?? []).reduce(
+    (sum, item) => sum + (item.grams && item.grams > 0 ? item.grams : 0),
+    0,
+  );
+  return ingredientTotal > 0 ? ingredientTotal : null;
+}
 
 export default function EditMealPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [values, setValues] = useState<MealFormValues | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"simple" | "details">("simple");
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +81,54 @@ export default function EditMealPage() {
     };
   }, [params.id, router]);
 
+  function recalculatePortion(grams: number) {
+    if (!values) return;
+    const previous = resolveCurrentGrams(values);
+    if (!previous || previous <= 0) {
+      toast.error("Aktuelle Menge in Gramm nicht erkennbar. Bitte zuerst z. B. „250 g“ setzen.");
+      setValues({
+        ...values,
+        portionSize: formatPortionLabel(grams),
+      });
+      return;
+    }
+
+    const nutrients = rescaleNutrientTotals(
+      {
+        calories: values.calories,
+        protein: values.protein,
+        carbs: values.carbs,
+        fat: values.fat,
+        fiber: values.fiber,
+        sugar: values.sugar,
+        saturatedFat: values.saturatedFat,
+        sodium: values.sodium,
+        potassium: values.potassium,
+        vitaminA: values.vitaminA,
+        vitaminC: values.vitaminC,
+        vitaminD: values.vitaminD,
+        calcium: values.calcium,
+        iron: values.iron,
+      },
+      previous,
+      grams,
+    );
+
+    setValues({
+      ...values,
+      ...nutrients,
+      portionSize: formatPortionLabel(grams),
+      ingredients: scaleIngredients(
+        values.ingredients ?? [],
+        previous,
+        grams,
+      ),
+    });
+    toast.success("Nährwerte neu berechnet", {
+      description: `Umgerechnet von ${formatPortionLabel(previous)} auf ${formatPortionLabel(grams)}.`,
+    });
+  }
+
   async function onSubmit(next: MealFormValues) {
     setBusy(true);
     try {
@@ -100,22 +167,43 @@ export default function EditMealPage() {
           Mahlzeit bearbeiten
         </h1>
         <p className="text-sm text-muted-foreground">
-          Werte anpassen und speichern
+          Menge ändern → neu berechnen → speichern
         </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>{values.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MealForm
-            initialValues={values}
-            onSubmit={onSubmit}
-            busy={busy}
-            submitLabel="Änderungen speichern"
-          />
-        </CardContent>
-      </Card>
+
+      {mode === "simple" ? (
+        <MealSaveConfirm
+          values={values}
+          busy={busy}
+          onChange={setValues}
+          onRecalculatePortion={recalculatePortion}
+          onSave={() => onSubmit(values)}
+          onEditDetails={() => setMode("details")}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{values.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <MealForm
+              key={`${values.portionSize}-${values.calories}`}
+              initialValues={values}
+              onSubmit={onSubmit}
+              busy={busy}
+              submitLabel="Änderungen speichern"
+              onPortionGramsChange={recalculatePortion}
+            />
+            <button
+              type="button"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              onClick={() => setMode("simple")}
+            >
+              Zurück zur einfachen Ansicht
+            </button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

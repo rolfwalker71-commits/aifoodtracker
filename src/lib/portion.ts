@@ -77,6 +77,18 @@ export function formatPortionLabel(grams: number, foodName?: string) {
   return `${Math.round(grams)} g`;
 }
 
+/** Scale absolute nutrient totals from one portion weight to another. */
+export function rescaleNutrientTotals(
+  current: NutrientValues,
+  fromGrams: number,
+  toGrams: number,
+): NutrientValues {
+  if (!fromGrams || fromGrams <= 0 || !toGrams || toGrams <= 0) {
+    return { ...current };
+  }
+  return nutrientsFromPortion(null, current, fromGrams, toGrams);
+}
+
 export function nutrientsFromPortion(
   per100g: NutrientValues | null | undefined,
   current: NutrientValues,

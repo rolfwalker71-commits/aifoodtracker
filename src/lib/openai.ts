@@ -84,10 +84,12 @@ const LANGUAGE_RULES = `SPRACHE (verbindlich):
 - Beispiele: name="Apfel", portionSize="1 mittelgroßer Apfel (ca. 180 g)"; name="Toblerone", portionSize="1 Riegel (35 g)".`;
 
 const ANALYSIS_PROMPT = `Du bist ein deutschsprachiger Ernährungsexperte. Analysiere das Essen auf dem Foto.
-Liefere Nährwerte möglichst als Werte pro 100g UND eine Schätzung der Portionsgröße in Gramm.
+Liefere Nährwerte möglichst als Werte pro 100g UND IMMER eine Schätzung der Portionsgröße in Gramm.
+Bei Tellergerichten / Mittagessen ohne Packungsangabe die sichtbare Menge bestmöglich schätzen
+(estimatedPortionGrams + lesbare portionSize, z. B. "ca. 350 g" oder "1 Teller (ca. 400 g)").
 Zerlege zusammengesetzte Gerichte in sichtbare/typische Hauptbestandteile mit geschätzter Portionsgröße
 (z. B. Spaghetti Bolognese → Spaghetti, Rindfleisch, Tomatensauce, Reibkäse – nur was erkennbar oder sehr wahrscheinlich ist).
-Wenn die Portionsgröße unsicher ist (z. B. Nudeln, Reis, unklarer Teller), setze needsPortionInput=true und portionConfidence niedrig (<0.55).
+Wenn die Portionsgröße unsicher ist (z. B. Nudeln, Reis, unklarer Teller), setze needsPortionInput=true und portionConfidence niedrig (<0.55) – schätze trotzdem estimatedPortionGrams.
 ${LANGUAGE_RULES}
 Antworte AUSSCHLIESSLICH mit gültigem JSON ohne Markdown.
 Schema:

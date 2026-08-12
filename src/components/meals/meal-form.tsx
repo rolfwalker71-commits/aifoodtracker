@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { MealType } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
+import { parsePortionGrams } from "@/lib/portion";
 import type { MealFormValues, MealIngredient } from "@/types/meals";
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
   submitLabel?: string;
   onSubmit: (values: MealFormValues) => Promise<void>;
   busy?: boolean;
+  /** When set, changing Menge and confirming rescales nutrients via parent. */
+  onPortionGramsChange?: (grams: number) => void;
 };
 
 const numberFields: Array<{
@@ -49,19 +52,41 @@ export function MealForm({
   submitLabel = "Speichern",
   onSubmit,
   busy,
+  onPortionGramsChange,
 }: Props) {
   const [values, setValues] = useState<MealFormValues>({
     ...initialValues,
     ingredients: initialValues.ingredients ?? [],
   });
+  const baselineGrams =
+    parsePortionGrams(initialValues.portionSize || "") ?? null;
+  const [gramsInput, setGramsInput] = useState(
+    baselineGrams ? String(Math.round(baselineGrams)) : "",
+  );
 
   const ingredients = values.ingredients ?? [];
+  const inputGrams = useMemo(() => {
+    const grams = Number(String(gramsInput).replace(",", "."));
+    return Number.isFinite(grams) && grams > 0 ? grams : null;
+  }, [gramsInput]);
+  const currentGrams = parsePortionGrams(values.portionSize || "");
+  const needsRecalculate = Boolean(
+    onPortionGramsChange &&
+      inputGrams &&
+      currentGrams &&
+      Math.round(inputGrams) !== Math.round(currentGrams),
+  );
 
   function update<K extends keyof MealFormValues>(
     key: K,
     value: MealFormValues[K],
   ) {
     setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function applyPortionRecalculate() {
+    if (!onPortionGramsChange || !inputGrams) return;
+    onPortionGramsChange(inputGrams);
   }
 
   function updateIngredient(
@@ -124,7 +149,7 @@ export function MealForm({
             placeholder="z. B. Avocado Toast"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="portionSize">Portionsgröße gesamt</Label>
           <Input
             id="portionSize"
@@ -133,6 +158,51 @@ export function MealForm({
             placeholder="z. B. 1 Teller / 250 g"
           />
         </div>
+        {onPortionGramsChange ? (
+          <div
+            className={`space-y-3 rounded-2xl border p-4 sm:col-span-2 ${
+              needsRecalculate
+                ? "border-amber-500/50 bg-amber-500/10"
+                : "border-border bg-muted/30"
+            }`}
+          >
+            <div>
+              <Label htmlFor="portion-grams-edit">Menge (g)</Label>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Nach dem Ändern auf{" "}
+                <span className="font-semibold text-foreground">
+                  Neuberechnen
+                </span>{" "}
+                tippen, damit Kalorien und Nährwerte angepasst werden.
+              </p>
+            </div>
+            <Input
+              id="portion-grams-edit"
+              inputMode="decimal"
+              value={gramsInput}
+              onChange={(e) => setGramsInput(e.target.value)}
+              placeholder="z. B. 180"
+            />
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              variant={needsRecalculate ? "default" : "outline"}
+              disabled={!inputGrams}
+              onClick={applyPortionRecalculate}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Neuberechnen
+            </Button>
+            {needsRecalculate ? (
+              <p className="flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                Menge geändert – bitte „Neuberechnen“ drücken, bevor du
+                speicherst.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className="space-y-2">
           <Label>Kategorie</Label>
           <Select
@@ -261,8 +331,17 @@ export function MealForm({
         />
       </div>
 
-      <Button type="submit" className="w-full" disabled={busy} size="lg">
-        {busy ? "Speichern…" : submitLabel}
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={busy || needsRecalculate}
+        size="lg"
+      >
+        {busy
+          ? "Speichern…"
+          : needsRecalculate
+            ? "Zuerst neuberechnen"
+            : submitLabel}
       </Button>
     </form>
   );
