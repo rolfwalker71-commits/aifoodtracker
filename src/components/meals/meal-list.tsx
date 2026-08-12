@@ -8,6 +8,7 @@ import { CopyPlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatAppDateTime } from "@/lib/datetime";
+import { parseStoredIngredients } from "@/lib/meal-ingredients";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
 import {
   clearPendingSymbol,
@@ -16,6 +17,18 @@ import {
 } from "@/lib/pending-symbols";
 import { formatNumber } from "@/lib/utils";
 import type { MealType } from "@/generated/prisma/client";
+
+function ingredientPipeLine(ingredients: unknown): string | null {
+  const items = parseStoredIngredients(ingredients);
+  if (!items.length) return null;
+  return items
+    .map((item) =>
+      item.portionSize?.trim()
+        ? `${item.name} (${item.portionSize.trim()})`
+        : item.name,
+    )
+    .join(" | ");
+}
 
 export type MealListItem = {
   id: string;
@@ -111,6 +124,9 @@ function SwipeMealCard({
     else onClose();
   }
 
+  const ingredientsLine = ingredientPipeLine(meal.ingredients);
+  const macrosLine = `${formatNumber(meal.calories)} kcal · P ${formatNumber(meal.protein, 0)}g · K ${formatNumber(meal.carbs, 0)}g · F ${formatNumber(meal.fat, 0)}g`;
+
   return (
     <div className="relative overflow-hidden rounded-2xl">
       <div
@@ -197,12 +213,15 @@ function SwipeMealCard({
                 <p className="text-sm text-muted-foreground">
                   {meal.portionSize?.trim() || "Menge unbekannt"}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {formatNumber(meal.calories)} kcal · P{" "}
-                  {formatNumber(meal.protein, 0)}g · K{" "}
-                  {formatNumber(meal.carbs, 0)}g · F{" "}
-                  {formatNumber(meal.fat, 0)}g
-                </p>
+                {ingredientsLine ? (
+                  <p
+                    className="hidden text-sm text-muted-foreground md:block md:truncate"
+                    title={ingredientsLine}
+                  >
+                    {ingredientsLine}
+                  </p>
+                ) : null}
+                <p className="text-sm text-muted-foreground">{macrosLine}</p>
               </div>
 
               <Link
