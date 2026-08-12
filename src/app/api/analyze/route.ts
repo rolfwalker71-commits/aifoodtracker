@@ -1,10 +1,8 @@
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { analyzeMealImage } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { saveMealImage } from "@/lib/uploads";
 
 export const runtime = "nodejs";
 
@@ -34,16 +32,11 @@ export async function POST(request: Request) {
     });
 
     const buffer = Buffer.from(await image.arrayBuffer());
-    const extension = image.type.split("/")[1] || "jpg";
-    const filename = `${user.id}-${Date.now()}-${randomUUID()}.${extension}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, filename), buffer);
+    const imagePath = await saveMealImage(buffer, user.id);
 
-    const imagePath = `/uploads/${filename}`;
     const analysis = await analyzeMealImage({
       imageBase64: buffer.toString("base64"),
-      mimeType: image.type,
+      mimeType: image.type || "image/jpeg",
       encryptedUserKey: dbUser.openAiApiKey,
     });
 

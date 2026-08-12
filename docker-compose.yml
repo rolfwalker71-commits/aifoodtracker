@@ -32,6 +32,7 @@ services:
     environment:
       PORT: 3333
       HOSTNAME: 0.0.0.0
+      UPLOAD_DIR: /app/uploads
       DATABASE_URL: postgresql://aifood:aifood@db:5432/aifoodtracker?schema=public
       AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-me-in-production-aifoodtracker-32}
       AUTH_URL: ${AUTH_URL:-http://localhost:3333}
@@ -39,7 +40,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-aifoodtracker-dev-encryption-key-32b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - uploads_data:/app/public/uploads
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy

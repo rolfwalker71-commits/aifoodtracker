@@ -15,6 +15,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "8mb",
     },
   },
+  // Legacy meal image paths stored as /uploads/... 
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: "/api/media/:path*",
+      },
+    ];
+  },
   headers: async () => [
     {
       source: "/sw.js",
