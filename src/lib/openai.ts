@@ -364,3 +364,39 @@ export async function estimateFoodByName(params: {
     })),
   };
 }
+
+/**
+ * Cheap flat icon for meals without a photo (manual / freitext).
+ * Uses gpt-image-1-mini @ low quality to keep cost low.
+ */
+export async function generateMealSymbolImage(params: {
+  foodName: string;
+  encryptedUserKey?: string | null;
+}): Promise<Buffer> {
+  const apiKey = resolveApiKey(params.encryptedUserKey);
+  const client = new OpenAI({ apiKey });
+  const name = params.foodName.trim().slice(0, 80) || "food";
+  const model =
+    process.env.OPENAI_MEAL_IMAGE_MODEL?.trim() || "gpt-image-1-mini";
+
+  const prompt = [
+    "Flat vector app icon of this food dish:",
+    `"${name}".`,
+    "Style: simple geometric shapes, 2-3 solid colors, soft mint background,",
+    "centered, no text, no letters, no watermark, no photorealism,",
+    "no 3D render, cute minimal food illustration like a modern emoji/icon.",
+  ].join(" ");
+
+  const result = await client.images.generate({
+    model,
+    prompt,
+    size: "1024x1024",
+    quality: "low",
+  });
+
+  const b64 = result.data?.[0]?.b64_json;
+  if (!b64) {
+    throw new Error("Kein Bild von OpenAI erhalten.");
+  }
+  return Buffer.from(b64, "base64");
+}

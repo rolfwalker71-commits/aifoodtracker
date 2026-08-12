@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseAppDateTime } from "@/lib/datetime";
-import { persistRemoteImage } from "@/lib/images";
+import { resolveMealImagePath } from "@/lib/images";
 import { mealIngredientsField } from "@/lib/meal-ingredients";
 import { NO_STORE_HEADERS, revalidateMealViews } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
@@ -82,9 +82,11 @@ export async function POST(request: Request) {
       ...mealFields
     } = parsed.data;
 
-    const imagePath = rawImagePath
-      ? await persistRemoteImage(rawImagePath, user.id)
-      : null;
+    const imagePath = await resolveMealImagePath({
+      userId: user.id,
+      foodName: mealFields.name,
+      imagePath: rawImagePath,
+    });
 
     const meal = await prisma.meal.create({
       data: {

@@ -343,7 +343,11 @@ export default function NewMealPage() {
       if (!response.ok) {
         throw new Error(data.error || "Speichern fehlgeschlagen");
       }
-      toast.success("Mahlzeit gespeichert");
+      toast.success("Mahlzeit gespeichert", {
+        description: values.imagePath
+          ? undefined
+          : "Symbolbild wurde bei Bedarf automatisch erzeugt.",
+      });
       navigateFresh(router, "/dashboard");
     } catch (error) {
       toast.error(
