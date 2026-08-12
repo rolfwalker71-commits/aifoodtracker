@@ -2,13 +2,14 @@
 
 import { useRef, useState } from "react";
 import { motion, type PanInfo } from "framer-motion";
-import { CopyPlus, Pencil, Star } from "lucide-react";
+import { ChevronDown, CopyPlus, Pencil, Star } from "lucide-react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { Button } from "@/components/ui/button";
 import { formatAppDateTime } from "@/lib/datetime";
+import { getMealQualityTip } from "@/lib/meal-quality-tip";
 import {
   MEAL_TYPE_LABELS,
-  NUTRIENT_LABELS,
+  type NutrientTotals,
   type NutritionGoals,
 } from "@/lib/nutrition";
 import { cn, formatNumber } from "@/lib/utils";
@@ -19,6 +20,11 @@ type Goals = NutritionGoals;
 type Props = {
   values: MealFormValues;
   goals: Goals | null;
+  dayTotals: Pick<
+    NutrientTotals,
+    "calories" | "protein" | "carbs" | "fat" | "fiber"
+  > | null;
+  mealIsToday: boolean;
   isFavorite: boolean;
   busy?: boolean;
   onEdit: () => void;
@@ -28,30 +34,11 @@ type Props = {
 
 const PAGE_COUNT = 3;
 
-const DETAIL_ROWS: Array<{
-  key: keyof typeof NUTRIENT_LABELS;
-  digits: number;
-  unit: string;
-}> = [
-  { key: "calories", digits: 0, unit: "kcal" },
-  { key: "protein", digits: 1, unit: "g" },
-  { key: "carbs", digits: 1, unit: "g" },
-  { key: "fat", digits: 1, unit: "g" },
-  { key: "fiber", digits: 1, unit: "g" },
-  { key: "sugar", digits: 1, unit: "g" },
-  { key: "saturatedFat", digits: 1, unit: "g" },
-  { key: "sodium", digits: 0, unit: "mg" },
-  { key: "potassium", digits: 0, unit: "mg" },
-  { key: "vitaminA", digits: 0, unit: "µg" },
-  { key: "vitaminC", digits: 1, unit: "mg" },
-  { key: "vitaminD", digits: 2, unit: "µg" },
-  { key: "calcium", digits: 0, unit: "mg" },
-  { key: "iron", digits: 2, unit: "mg" },
-];
-
 export function MealDetailViewer({
   values,
   goals,
+  dayTotals,
+  mealIsToday,
   isFavorite,
   busy,
   onEdit,
@@ -71,11 +58,8 @@ export function MealDetailViewer({
     }
   }
 
-  const ingredients = (values.ingredients ?? [])
-    .map((part) =>
-      part.portionSize ? `${part.name} (${part.portionSize})` : part.name,
-    )
-    .join(" · ");
+  const pageLabel =
+    page === 0 ? "Überblick" : page === 1 ? "Einblick & Coach" : "Tagesanteil";
 
   return (
     <div className="space-y-4">
@@ -96,7 +80,6 @@ export function MealDetailViewer({
           <section className="box-border w-full min-w-full shrink-0 touch-pan-y px-4 py-5">
             <OverviewPage
               values={values}
-              ingredients={ingredients}
               isFavorite={isFavorite}
               busy={busy}
               onEdit={onEdit}
@@ -105,7 +88,13 @@ export function MealDetailViewer({
             />
           </section>
           <section className="box-border w-full min-w-full shrink-0 touch-pan-y px-4 py-5">
-            <NutrientsPage values={values} />
+            <InsightPage
+              values={values}
+              goals={goals}
+              dayTotals={dayTotals}
+              mealIsToday={mealIsToday}
+              onEdit={onEdit}
+            />
           </section>
           <section className="box-border w-full min-w-full shrink-0 touch-pan-y px-4 py-5">
             <GoalsPage values={values} goals={goals} />
@@ -130,12 +119,7 @@ export function MealDetailViewer({
         ))}
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        {page === 0
-          ? "Überblick"
-          : page === 1
-            ? "Alle Nährwerte"
-            : "Anteil am Tagesziel"}{" "}
-        · wischen
+        {pageLabel} · wischen
       </p>
     </div>
   );
@@ -143,7 +127,6 @@ export function MealDetailViewer({
 
 function OverviewPage({
   values,
-  ingredients,
   isFavorite,
   busy,
   onEdit,
@@ -151,7 +134,6 @@ function OverviewPage({
   onDuplicate,
 }: {
   values: MealFormValues;
-  ingredients: string;
   isFavorite: boolean;
   busy?: boolean;
   onEdit: () => void;
@@ -194,9 +176,6 @@ function OverviewPage({
           {formatNumber(values.protein, 0)}g · K {formatNumber(values.carbs, 0)}
           g · F {formatNumber(values.fat, 0)}g
         </p>
-        {ingredients ? (
-          <p className="pt-1 text-sm text-muted-foreground">{ingredients}</p>
-        ) : null}
         {values.notes?.trim() ? (
           <p className="text-sm text-muted-foreground">{values.notes.trim()}</p>
         ) : null}
@@ -239,27 +218,158 @@ function OverviewPage({
   );
 }
 
-function NutrientsPage({ values }: { values: MealFormValues }) {
+function InsightPage({
+  values,
+  goals,
+  dayTotals,
+  mealIsToday,
+  onEdit,
+}: {
+  values: MealFormValues;
+  goals: Goals | null;
+  dayTotals: Pick<
+    NutrientTotals,
+    "calories" | "protein" | "carbs" | "fat" | "fiber"
+  > | null;
+  mealIsToday: boolean;
+  onEdit: () => void;
+}) {
+  const tip = getMealQualityTip(values, goals);
+  const ingredients = values.ingredients ?? [];
+
+  const kcalGoal = goals?.dailyCaloriesGoal ?? 0;
+  const proteinGoal = goals?.dailyProteinGoal ?? 0;
+  const todayKcal = dayTotals?.calories ?? 0;
+  const todayProtein = dayTotals?.protein ?? 0;
+
+  const kcalLeft = Math.max(0, kcalGoal - todayKcal);
+  const proteinLeft = Math.max(0, proteinGoal - todayProtein);
+  const withoutMealKcal = mealIsToday
+    ? Math.max(0, todayKcal - values.calories)
+    : todayKcal;
+  const withoutMealProtein = mealIsToday
+    ? Math.max(0, todayProtein - values.protein)
+    : todayProtein;
+
   return (
-    <div className="space-y-3">
-      <h2 className="font-display text-xl font-bold">Alle Nährwerte</h2>
-      <p className="text-sm text-muted-foreground">
-        Werte für diese Mahlzeit ({values.portionSize?.trim() || "Portion"}).
-      </p>
-      <ul className="divide-y divide-border/70 rounded-2xl border border-border bg-background">
-        {DETAIL_ROWS.map((row) => (
-          <li
-            key={row.key}
-            className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-          >
-            <span className="font-medium">{NUTRIENT_LABELS[row.key]}</span>
-            <span className="tabular-nums text-muted-foreground">
-              {formatNumber(values[row.key], row.digits)}
-              {row.unit === "kcal" ? " kcal" : ` ${row.unit}`}
-            </span>
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-5">
+      <section className="space-y-2">
+        <h2 className="font-display text-xl font-bold">Zutaten & Menge</h2>
+        <p className="text-sm text-muted-foreground">
+          Portion:{" "}
+          <span className="font-medium text-foreground">
+            {values.portionSize?.trim() || "unbekannt"}
+          </span>
+        </p>
+        {ingredients.length ? (
+          <ul className="divide-y divide-border/70 rounded-2xl border border-border">
+            {ingredients.map((item, index) => (
+              <li
+                key={`${item.name}-${index}`}
+                className="flex items-start justify-between gap-3 px-4 py-3 text-sm"
+              >
+                <span className="font-medium leading-snug">{item.name}</span>
+                <span className="shrink-0 tabular-nums text-muted-foreground">
+                  {item.portionSize ||
+                    (item.grams ? `${formatNumber(item.grams, 0)} g` : "–")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+            Keine Zutaten hinterlegt.
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={onEdit}
+        >
+          Menge anpassen
+        </Button>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="font-display text-xl font-bold">Heute</h2>
+        {dayTotals && goals ? (
+          <div className="space-y-2 rounded-2xl border border-border p-4 text-sm">
+            {mealIsToday ? (
+              <>
+                <p>
+                  Ohne diese Mahlzeit:{" "}
+                  <span className="font-medium">
+                    {formatNumber(withoutMealKcal, 0)} kcal
+                  </span>
+                  {" · "}
+                  <span className="font-medium">
+                    {formatNumber(withoutMealProtein, 0)} g Protein
+                  </span>
+                </p>
+                <p>
+                  Inkl. dieser Mahlzeit:{" "}
+                  <span className="font-medium">
+                    {formatNumber(todayKcal, 0)} /{" "}
+                    {formatNumber(kcalGoal, 0)} kcal
+                  </span>
+                </p>
+                <p className="text-muted-foreground">
+                  Noch übrig heute: {formatNumber(kcalLeft, 0)} kcal ·{" "}
+                  {formatNumber(proteinLeft, 0)} g Protein
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground">
+                  Diese Mahlzeit ist von einem anderen Tag.
+                </p>
+                <p>
+                  Heute bisher:{" "}
+                  <span className="font-medium">
+                    {formatNumber(todayKcal, 0)} /{" "}
+                    {formatNumber(kcalGoal, 0)} kcal
+                  </span>
+                  {" · "}
+                  <span className="font-medium">
+                    {formatNumber(todayProtein, 0)} g Protein
+                  </span>
+                </p>
+                <p className="text-muted-foreground">
+                  Noch übrig heute: {formatNumber(kcalLeft, 0)} kcal ·{" "}
+                  {formatNumber(proteinLeft, 0)} g Protein
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Tageswerte werden geladen…</p>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="font-display text-xl font-bold">Coach</h2>
+        <div
+          className={cn(
+            "rounded-2xl border p-4",
+            tip.tone === "positive" &&
+              "border-emerald-600/30 bg-emerald-500/10",
+            tip.tone === "attention" && "border-amber-600/30 bg-amber-500/10",
+            tip.tone === "neutral" && "border-border bg-background",
+          )}
+        >
+          <p className="text-sm font-semibold">{tip.title}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{tip.body}</p>
+          {tip.alternatives?.length ? (
+            <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+              {tip.alternatives.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
@@ -271,6 +381,8 @@ function GoalsPage({
   values: MealFormValues;
   goals: Goals | null;
 }) {
+  const [more, setMore] = useState(false);
+
   if (!goals) {
     return (
       <div className="space-y-3">
@@ -319,61 +431,80 @@ function GoalsPage({
           goal={goals.dailyFiberGoal}
           colorClass="bg-emerald-700"
         />
-        <NutrientProgress
-          label="Zucker"
-          current={values.sugar}
-          goal={goals.dailySugarGoal}
-          colorClass="bg-rose-600"
-        />
-        <NutrientProgress
-          label="Natrium"
-          current={values.sodium}
-          goal={goals.dailySodiumGoal}
-          unit="mg"
-          colorClass="bg-sky-700"
-        />
-        <NutrientProgress
-          label="Kalium"
-          current={values.potassium}
-          goal={goals.dailyPotassiumGoal}
-          unit="mg"
-          colorClass="bg-violet-600"
-        />
-        <NutrientProgress
-          label="Vitamin A"
-          current={values.vitaminA}
-          goal={goals.dailyVitaminAGoal}
-          unit="µg"
-          colorClass="bg-amber-600"
-        />
-        <NutrientProgress
-          label="Vitamin C"
-          current={values.vitaminC}
-          goal={goals.dailyVitaminCGoal}
-          unit="mg"
-          colorClass="bg-lime-600"
-        />
-        <NutrientProgress
-          label="Vitamin D"
-          current={values.vitaminD}
-          goal={goals.dailyVitaminDGoal}
-          unit="µg"
-          colorClass="bg-yellow-600"
-        />
-        <NutrientProgress
-          label="Kalzium"
-          current={values.calcium}
-          goal={goals.dailyCalciumGoal}
-          unit="mg"
-          colorClass="bg-stone-600"
-        />
-        <NutrientProgress
-          label="Eisen"
-          current={values.iron}
-          goal={goals.dailyIronGoal}
-          unit="mg"
-          colorClass="bg-red-700"
-        />
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-full justify-between px-1"
+          onClick={() => setMore((value) => !value)}
+          aria-expanded={more}
+        >
+          <span>Weitere Nährstoffe</span>
+          <ChevronDown
+            className={cn("h-4 w-4 transition-transform", more && "rotate-180")}
+          />
+        </Button>
+
+        {more ? (
+          <div className="space-y-4">
+            <NutrientProgress
+              label="Zucker"
+              current={values.sugar}
+              goal={goals.dailySugarGoal}
+              colorClass="bg-rose-600"
+            />
+            <NutrientProgress
+              label="Natrium"
+              current={values.sodium}
+              goal={goals.dailySodiumGoal}
+              unit="mg"
+              colorClass="bg-sky-700"
+            />
+            <NutrientProgress
+              label="Kalium"
+              current={values.potassium}
+              goal={goals.dailyPotassiumGoal}
+              unit="mg"
+              colorClass="bg-violet-600"
+            />
+            <NutrientProgress
+              label="Vitamin A"
+              current={values.vitaminA}
+              goal={goals.dailyVitaminAGoal}
+              unit="µg"
+              colorClass="bg-amber-600"
+            />
+            <NutrientProgress
+              label="Vitamin C"
+              current={values.vitaminC}
+              goal={goals.dailyVitaminCGoal}
+              unit="mg"
+              colorClass="bg-lime-600"
+            />
+            <NutrientProgress
+              label="Vitamin D"
+              current={values.vitaminD}
+              goal={goals.dailyVitaminDGoal}
+              unit="µg"
+              colorClass="bg-yellow-600"
+            />
+            <NutrientProgress
+              label="Kalzium"
+              current={values.calcium}
+              goal={goals.dailyCalciumGoal}
+              unit="mg"
+              colorClass="bg-stone-600"
+            />
+            <NutrientProgress
+              label="Eisen"
+              current={values.iron}
+              goal={goals.dailyIronGoal}
+              unit="mg"
+              colorClass="bg-red-700"
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -14,13 +14,29 @@ import {
   parseStoredIngredients,
   scaleIngredients,
 } from "@/lib/meal-ingredients";
-import type { NutritionGoals } from "@/lib/nutrition";
+import type { NutritionGoals, NutrientTotals } from "@/lib/nutrition";
 import {
   formatPortionLabel,
   parsePortionGrams,
   rescaleNutrientTotals,
 } from "@/lib/portion";
 import type { MealFormValues } from "@/types/meals";
+
+function isSameAppDay(isoOrForm: string) {
+  const mealDay = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zurich",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(isoOrForm));
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zurich",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return mealDay === today;
+}
 
 function resolveCurrentGrams(values: MealFormValues): number | null {
   const fromLabel = parsePortionGrams(values.portionSize || "");
@@ -38,6 +54,10 @@ export default function MealDetailPage() {
   const router = useRouter();
   const [values, setValues] = useState<MealFormValues | null>(null);
   const [goals, setGoals] = useState<NutritionGoals | null>(null);
+  const [dayTotals, setDayTotals] = useState<Pick<
+    NutrientTotals,
+    "calories" | "protein" | "carbs" | "fat" | "fiber"
+  > | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<"view" | "simple" | "details">("view");
@@ -90,6 +110,15 @@ export default function MealDetailPage() {
         const stats = await statsResponse.json();
         if (!cancelled && stats.goals) {
           setGoals(stats.goals as NutritionGoals);
+        }
+        if (!cancelled && stats.totals) {
+          setDayTotals({
+            calories: stats.totals.calories ?? 0,
+            protein: stats.totals.protein ?? 0,
+            carbs: stats.totals.carbs ?? 0,
+            fat: stats.totals.fat ?? 0,
+            fiber: stats.totals.fiber ?? 0,
+          });
         }
       }
     }
@@ -238,7 +267,7 @@ export default function MealDetailPage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           {mode === "view"
-            ? "Wischen für Nährwerte und Tagesanteil"
+            ? "Wischen: Einblick, Coach, Tagesanteil"
             : "Menge ändern → neu berechnen → speichern"}
         </p>
       </div>
@@ -247,6 +276,8 @@ export default function MealDetailPage() {
         <MealDetailViewer
           values={values}
           goals={goals}
+          dayTotals={dayTotals}
+          mealIsToday={isSameAppDay(values.consumedAt)}
           isFavorite={isFavorite}
           busy={busy}
           onEdit={() => setMode("simple")}
