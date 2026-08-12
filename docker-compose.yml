@@ -43,6 +43,7 @@ services:
     volumes:
       # Bind-Mount auf dem Host – überlebt Image-Pulls und Container-Recreates.
       # Niemals `docker compose down -v` nutzen (löscht DB + Uploads).
+      # Vor dem ersten Start: mkdir -p data/uploads
       - ./data/uploads:/app/uploads
     depends_on:
       db:

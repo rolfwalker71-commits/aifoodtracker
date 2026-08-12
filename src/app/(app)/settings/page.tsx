@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
+import { triggerMissingImageBackfill } from "@/components/meals/missing-image-backfill";
 import { formatNumber } from "@/lib/utils";
 import {
   DEFAULT_REMINDERS,
@@ -508,6 +509,28 @@ export default function SettingsPage() {
                 />
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Fehlende Bilder</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Erzeugt AI-Symbolbilder für Mahlzeiten ohne Datei (z. B. nach
+              Deploy). Braucht einen gültigen OpenAI-Key.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                toast.message("Starte Bild-Backfill…");
+                triggerMissingImageBackfill();
+              }}
+            >
+              Fehlende Bilder jetzt erzeugen
+            </Button>
           </CardContent>
         </Card>
 

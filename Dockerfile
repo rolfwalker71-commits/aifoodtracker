@@ -29,7 +29,7 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update -y && apt-get install -y openssl ca-certificates gosu && rm -rf /var/lib/apt/lists/* \
   && groupadd --system --gid 1001 nodejs \
   && useradd --system --uid 1001 nextjs
 
@@ -44,10 +44,15 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 RUN mkdir -p /app/public/uploads /app/uploads \
   && chown -R nextjs:nodejs /app/public /app/uploads
-USER nextjs
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Entrypoint runs as root to chown the uploads bind-mount, then drops to nextjs.
+USER root
 EXPOSE 3333
 ENV PORT=3333
 ENV HOSTNAME=0.0.0.0
 ENV UPLOAD_DIR=/app/uploads
 
-CMD ["sh", "-c", "mkdir -p \"$UPLOAD_DIR\" && echo \"Uploads: $UPLOAD_DIR ($(ls -1 \"$UPLOAD_DIR\" 2>/dev/null | wc -l) Dateien)\" && npx prisma migrate deploy && node server.js"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]

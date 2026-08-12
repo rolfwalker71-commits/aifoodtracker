@@ -108,6 +108,7 @@ export async function backfillMissingMealSymbols(
 
   let done = 0;
   const failed: string[] = [];
+  let lastError: string | null = null;
 
   for (const mealId of targets) {
     try {
@@ -115,8 +116,11 @@ export async function backfillMissingMealSymbols(
       if (path) done += 1;
       else failed.push(mealId);
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unbekannter Fehler";
       console.error(`Symbol-Backfill fehlgeschlagen (${mealId}):`, error);
       failed.push(mealId);
+      lastError = message;
     }
   }
 
@@ -130,5 +134,6 @@ export async function backfillMissingMealSymbols(
     done,
     failed: failed.length,
     remaining: Math.max(0, targets.length - done),
+    lastError,
   };
 }

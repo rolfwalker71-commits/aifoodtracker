@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-const SESSION_KEY = "nutrisight-symbol-backfill-done";
+const SESSION_KEY = "nutrisight-symbol-backfill-done-v2";
 
 type BackfillResult = {
   checked?: number;
@@ -12,6 +12,7 @@ type BackfillResult = {
   done?: number;
   failed?: number;
   remaining?: number;
+  lastError?: string | null;
   error?: string;
 };
 
@@ -19,7 +20,11 @@ type BackfillResult = {
  * After deploys, upload files may be gone while DB paths remain.
  * Regenerates AI symbols for empty/broken images (batched).
  */
-export function MissingImageBackfill() {
+export function MissingImageBackfill({
+  force = false,
+}: {
+  force?: boolean;
+} = {}) {
   const router = useRouter();
   const started = useRef(false);
 
@@ -29,7 +34,7 @@ export function MissingImageBackfill() {
 
     if (typeof window === "undefined") return;
     try {
-      if (sessionStorage.getItem(SESSION_KEY) === "1") return;
+      if (!force && sessionStorage.getItem(SESSION_KEY) === "1") return;
     } catch {
       // continue
     }
@@ -37,6 +42,8 @@ export function MissingImageBackfill() {
     let cancelled = false;
     let toastId: string | number | undefined;
     let totalDone = 0;
+    let totalFailed = 0;
+    let lastError: string | null = null;
 
     async function runBatch(): Promise<BackfillResult | null> {
       const response = await fetch("/api/meals/symbols/backfill", {
@@ -59,39 +66,36 @@ export function MissingImageBackfill() {
           if (!data) break;
 
           if (!data.needed) {
-            try {
-              sessionStorage.setItem(SESSION_KEY, "1");
-            } catch {
-              // ignore
+            if (totalDone === 0 && totalFailed === 0) {
+              try {
+                sessionStorage.setItem(SESSION_KEY, "1");
+              } catch {
+                // ignore
+              }
             }
             break;
           }
 
-          if (!toastId && data.needed > 0) {
+          if (!toastId) {
             toastId = toast.loading(
               `Erzeuge fehlende Bilder (${data.needed})…`,
             );
           }
 
           totalDone += data.done ?? 0;
+          totalFailed += data.failed ?? 0;
+          if (data.lastError) lastError = data.lastError;
 
           if ((data.done ?? 0) > 0) {
             router.refresh();
           }
 
-          // Nothing more to do or stuck failing
           if ((data.done ?? 0) === 0 && (data.failed ?? 0) > 0) {
             break;
           }
-          if ((data.needed ?? 0) <= (data.done ?? 0)) {
-            // This batch cleared all found targets; check once more
-            continue;
-          }
         }
 
-        if (toastId) {
-          toast.dismiss(toastId);
-        }
+        if (toastId) toast.dismiss(toastId);
 
         if (totalDone > 0) {
           toast.success(
@@ -100,21 +104,27 @@ export function MissingImageBackfill() {
               : `${totalDone} fehlende Bilder neu erzeugt`,
           );
           router.refresh();
-          try {
-            sessionStorage.setItem(SESSION_KEY, "1");
-          } catch {
-            // ignore
+          if (totalFailed === 0) {
+            try {
+              sessionStorage.setItem(SESSION_KEY, "1");
+            } catch {
+              // ignore
+            }
           }
-        } else {
-          // Mark done only if a clean empty scan happened
-          try {
-            sessionStorage.setItem(SESSION_KEY, "1");
-          } catch {
-            // ignore
-          }
+        } else if (totalFailed > 0) {
+          toast.error(
+            lastError
+              ? `Bilder fehlgeschlagen: ${lastError}`
+              : "Fehlende Bilder konnten nicht erzeugt werden (API-Key / Schreibrechte prüfen)",
+          );
         }
       } catch (error) {
         if (toastId) toast.dismiss(toastId);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Bilder-Backfill fehlgeschlagen",
+        );
         console.error(error);
       }
     }
@@ -123,7 +133,17 @@ export function MissingImageBackfill() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [force, router]);
 
   return null;
+}
+
+/** Clear session flag and trigger another backfill pass. */
+export function triggerMissingImageBackfill() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // ignore
+  }
+  window.location.reload();
 }
