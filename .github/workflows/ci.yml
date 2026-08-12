@@ -34,8 +34,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://aifood:aifood@localhost:5432/aifoodtracker?schema=public
       AUTH_SECRET: ci-auth-secret-aifoodtracker-32chars
-      AUTH_URL: http://localhost:3000
-      NEXTAUTH_URL: http://localhost:3000
+      AUTH_URL: http://localhost:3333
+      NEXTAUTH_URL: http://localhost:3333
       ENCRYPTION_KEY: ci-encryption-key-aifoodtracker-32
       OPENAI_API_KEY: ""
       NEXT_TELEMETRY_DISABLED: "1"

@@ -52,7 +52,7 @@ npm run db:migrate
 npm run dev
 ```
 
-Öffnen: [http://localhost:3000](http://localhost:3000)
+Öffnen: [http://localhost:3333](http://localhost:3333)
 
 1. Account registrieren  
 2. Unter **Einstellungen** den OpenAI API Key hinterlegen  
@@ -66,7 +66,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-App: [http://localhost:3000](http://localhost:3000)
+App: [http://localhost:3333](http://localhost:3333)
 
 ## Wichtige Umgebungsvariablen
 

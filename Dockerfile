@@ -38,8 +38,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 RUN mkdir -p /app/public/uploads && chown -R nextjs:nodejs /app/public
 USER nextjs
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 3333
+ENV PORT=3333
 ENV HOSTNAME=0.0.0.0
 
 CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]

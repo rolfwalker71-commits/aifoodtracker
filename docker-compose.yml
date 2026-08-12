@@ -22,12 +22,14 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3333:3333"
     environment:
+      PORT: 3333
+      HOSTNAME: 0.0.0.0
       DATABASE_URL: postgresql://aifood:aifood@db:5432/aifoodtracker?schema=public
       AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-me-in-production-aifoodtracker-32}
-      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3333}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3333}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-aifoodtracker-dev-encryption-key-32b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
