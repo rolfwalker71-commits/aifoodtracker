@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { AvatarUploader } from "@/components/settings/avatar-uploader";
 import { formatNumber } from "@/lib/utils";
 import {
   ACTIVITY_LABELS,
@@ -27,6 +28,7 @@ import {
 type Profile = {
   name: string;
   email: string;
+  avatarPath?: string | null;
   sex: Sex | null;
   heightCm: number | null;
   weightKg: number | null;
@@ -209,6 +211,12 @@ export default function SettingsPage() {
             <CardTitle>Benutzer</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
+            <AvatarUploader
+              avatarPath={profile.avatarPath}
+              onChange={(avatarPath) =>
+                setProfile({ ...profile, avatarPath })
+              }
+            />
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="name">Name</Label>
               <Input

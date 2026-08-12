@@ -66,6 +66,22 @@ export async function saveMealImage(buffer: Buffer, userId: string) {
   return toPublicMediaPath(filename);
 }
 
+/** Square avatar JPEG for profile / start page. */
+export async function saveAvatarImage(buffer: Buffer, userId: string) {
+  const dir = await ensureUploadDir();
+  const filename = `avatar-${userId}-${Date.now()}-${randomUUID()}.jpg`;
+  const filepath = path.join(dir, filename);
+
+  const jpeg = await sharp(buffer, { failOn: "none" })
+    .rotate()
+    .resize(512, 512, { fit: "cover", position: "attention" })
+    .jpeg({ quality: 88, mozjpeg: true })
+    .toBuffer();
+  await writeFile(filepath, jpeg);
+
+  return toPublicMediaPath(filename);
+}
+
 export async function fileExists(filepath: string) {
   try {
     await access(filepath);

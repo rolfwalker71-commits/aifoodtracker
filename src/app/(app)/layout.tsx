@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               NutriSight
             </p>
             <p className="hidden text-sm text-muted-foreground md:block">
-              Dein persönliches Nährwert-Dashboard
+              Dein persönlicher Nährwert-Überblick
             </p>
           </div>
           <ThemeToggle />

@@ -40,6 +40,7 @@ const profileSelect = {
   id: true,
   email: true,
   name: true,
+  avatarPath: true,
   sex: true,
   heightCm: true,
   weightKg: true,

@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatNumber(value: number, digits = 0) {
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat("de-CH", {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
   }).format(value);

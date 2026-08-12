@@ -52,6 +52,30 @@ export const MEAL_TYPE_LABELS: Record<MealType, string> = {
   SNACK: "Snack",
 };
 
+/** Deutsche Anzeigenamen für Nährwert-Keys (Charts, Tooltips, Selects). */
+export const NUTRIENT_LABELS = {
+  calories: "Kalorien",
+  protein: "Protein",
+  carbs: "Kohlenhydrate",
+  fat: "Fett",
+  fiber: "Ballaststoffe",
+  sugar: "Zucker",
+  saturatedFat: "Gesättigte Fette",
+  sodium: "Natrium",
+  potassium: "Kalium",
+  vitaminA: "Vitamin A",
+  vitaminC: "Vitamin C",
+  vitaminD: "Vitamin D",
+  calcium: "Kalzium",
+  iron: "Eisen",
+} as const;
+
+export type NutrientLabelKey = keyof typeof NUTRIENT_LABELS;
+
+export function nutrientLabel(key: string) {
+  return NUTRIENT_LABELS[key as NutrientLabelKey] ?? key;
+}
+
 export function sumNutrients<T extends Partial<NutrientTotals>>(
   items: T[],
 ): NutrientTotals {

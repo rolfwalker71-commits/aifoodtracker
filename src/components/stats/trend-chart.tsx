@@ -9,6 +9,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { nutrientLabel } from "@/lib/nutrition";
+import { formatNumber } from "@/lib/utils";
 
 type Point = {
   label: string;
@@ -42,6 +44,8 @@ export function TrendChart({
     );
   }
 
+  const digits = metric === "calories" || metric === "sodium" ? 0 : 1;
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -54,16 +58,22 @@ export function TrendChart({
           </defs>
           <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
           <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} width={40} />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            width={44}
+            tickFormatter={(value) => formatNumber(Number(value), digits)}
+          />
           <Tooltip
             formatter={(value) => [
-              `${Number(value).toFixed(metric === "calories" || metric === "sodium" ? 0 : 1)}${unit}`,
-              metric,
+              `${formatNumber(Number(value), digits)}${unit}`,
+              nutrientLabel(metric),
             ]}
+            labelFormatter={(label) => String(label)}
           />
           <Area
             type="monotone"
             dataKey={metric}
+            name={nutrientLabel(metric)}
             stroke={color}
             fill="url(#metricFill)"
             strokeWidth={2.5}

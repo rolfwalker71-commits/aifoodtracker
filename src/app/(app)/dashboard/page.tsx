@@ -42,6 +42,7 @@ export default async function DashboardPage() {
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
+        avatarPath: true,
         sex: true,
         heightCm: true,
         weightKg: true,
@@ -60,17 +61,27 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="animate-rise">
-        <p className="text-sm text-muted-foreground">
-          {format(todayLabel, `EEEE, ${APP_DATE_FORMAT}`, { locale: de })}
-        </p>
-        <h1 className="font-display text-3xl font-bold tracking-tight">
-          Hallo {session.user.name?.split(" ")[0] || "du"}
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Heute {formatNumber(stats.totals.calories)} /{" "}
-          {formatNumber(stats.goals.dailyCaloriesGoal)} kcal
-        </p>
+      <section className="flex items-start justify-between gap-4 animate-rise">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {format(todayLabel, `EEEE, ${APP_DATE_FORMAT}`, { locale: de })}
+          </p>
+          <h1 className="font-display text-3xl font-bold tracking-tight">
+            Hallo {session.user.name?.split(" ")[0] || "du"}
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            Heute {formatNumber(stats.totals.calories)} /{" "}
+            {formatNumber(stats.goals.dailyCaloriesGoal)} kcal
+          </p>
+        </div>
+        {profile?.avatarPath ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.avatarPath}
+            alt=""
+            className="h-16 w-16 shrink-0 rounded-full object-cover sm:h-20 sm:w-20"
+          />
+        ) : null}
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 animate-rise-delay">
@@ -154,9 +165,9 @@ export default async function DashboardPage() {
               fat={stats.totals.fat}
             />
             <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
-              <div>Protein {formatNumber(stats.totals.protein, 0)}g</div>
-              <div>Carbs {formatNumber(stats.totals.carbs, 0)}g</div>
-              <div>Fett {formatNumber(stats.totals.fat, 0)}g</div>
+              <div>Protein {formatNumber(stats.totals.protein, 0)} g</div>
+              <div>Kohlenhydrate {formatNumber(stats.totals.carbs, 0)} g</div>
+              <div>Fett {formatNumber(stats.totals.fat, 0)} g</div>
             </div>
           </CardContent>
         </Card>

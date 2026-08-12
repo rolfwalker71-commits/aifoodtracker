@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, Check, Pencil, RefreshCw } from "lucide-react";
 import { MealType } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
@@ -54,12 +54,12 @@ export function MealSaveConfirm({
   const [gramsInput, setGramsInput] = useState(
     storedGrams ? String(Math.round(storedGrams)) : "",
   );
+  const [syncedPortion, setSyncedPortion] = useState(values.portionSize);
+  if (values.portionSize !== syncedPortion) {
+    setSyncedPortion(values.portionSize);
+    setGramsInput(storedGrams ? String(Math.round(storedGrams)) : "");
+  }
   const summary = ingredientLine(values.ingredients);
-
-  useEffect(() => {
-    const next = gramsFromValues(values);
-    setGramsInput(next ? String(Math.round(next)) : "");
-  }, [values.portionSize]);
 
   const inputGrams = useMemo(() => {
     const grams = Number(String(gramsInput).replace(",", "."));

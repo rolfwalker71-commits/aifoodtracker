@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { formatNumber } from "@/lib/utils";
 
 type Props = {
   protein: number;
@@ -49,7 +50,10 @@ export function MacroChart({ protein, carbs, fat }: Props) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value) => [`${Number(value).toFixed(1)} g`, ""]}
+            formatter={(value, name) => [
+              `${formatNumber(Number(value), 1)} g`,
+              String(name),
+            ]}
           />
         </PieChart>
       </ResponsiveContainer>

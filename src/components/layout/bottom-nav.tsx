@@ -6,10 +6,10 @@ import { Camera, ChartColumn, Home, Settings, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/dashboard", label: "Start", icon: Home },
   { href: "/meals", label: "Mahlzeiten", icon: Utensils },
   { href: "/meals/new", label: "Erfassen", icon: Camera, primary: true },
-  { href: "/stats", label: "Stats", icon: ChartColumn },
+  { href: "/stats", label: "Statistiken", icon: ChartColumn },
   { href: "/settings", label: "Benutzer", icon: Settings },
 ];
 

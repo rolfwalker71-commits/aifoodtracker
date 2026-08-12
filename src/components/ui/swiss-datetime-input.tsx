@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,13 +27,14 @@ export function SwissDateTimeInput({
   const [dateText, setDateText] = useState(initial.date);
   const [timeText, setTimeText] = useState(initial.time);
   const [invalid, setInvalid] = useState(false);
-
-  useEffect(() => {
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (value !== syncedValue) {
     const next = toSwissDateTimeParts(value);
+    setSyncedValue(value);
     setDateText(next.date);
     setTimeText(next.time);
     setInvalid(false);
-  }, [value]);
+  }
 
   function commit(nextDate: string, nextTime: string) {
     const combined = fromSwissDateTimeParts(nextDate, nextTime);

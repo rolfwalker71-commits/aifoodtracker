@@ -33,6 +33,7 @@ model User {
   name               String?
   passwordHash       String
   openAiApiKey       String?
+  avatarPath         String?
   sex                Sex?
   heightCm           Float?
   weightKg           Float?
