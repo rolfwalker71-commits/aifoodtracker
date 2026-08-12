@@ -33,7 +33,7 @@ type Props = {
 };
 
 const PAGE_COUNT = 3;
-const PAGE_LABELS = ["Überblick", "Einblick & Coach", "Tagesanteil"] as const;
+const PAGE_LABELS = ["Überblick", "Zutaten & Coach", "Heute & Ziele"] as const;
 
 export function MealDetailViewer({
   values,
@@ -129,13 +129,7 @@ export function MealDetailViewer({
             className="h-full shrink-0 overflow-y-auto overscroll-y-contain px-4 py-4 pb-16 [-webkit-overflow-scrolling:touch]"
             style={{ width: width || "100%" }}
           >
-            <InsightPage
-              values={values}
-              goals={goals}
-              dayTotals={dayTotals}
-              mealIsToday={mealIsToday}
-              onEdit={onEdit}
-            />
+            <InsightPage values={values} goals={goals} onEdit={onEdit} />
           </section>
           <section
             ref={(node) => {
@@ -144,7 +138,12 @@ export function MealDetailViewer({
             className="h-full shrink-0 overflow-y-auto overscroll-y-contain px-4 py-4 pb-16 [-webkit-overflow-scrolling:touch]"
             style={{ width: width || "100%" }}
           >
-            <GoalsPage values={values} goals={goals} />
+            <GoalsPage
+              values={values}
+              goals={goals}
+              dayTotals={dayTotals}
+              mealIsToday={mealIsToday}
+            />
           </section>
         </motion.div>
 
@@ -192,7 +191,7 @@ function OverviewPage({
   onDuplicate: () => void;
 }) {
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center space-y-4">
+    <div className="mx-auto flex min-h-full w-full max-w-lg flex-col justify-center space-y-4 md:max-w-none">
       <div className="mx-auto h-36 w-36 overflow-hidden rounded-2xl bg-muted sm:h-44 sm:w-44">
         {values.imagePath ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -275,39 +274,18 @@ function OverviewPage({
 function InsightPage({
   values,
   goals,
-  dayTotals,
-  mealIsToday,
   onEdit,
 }: {
   values: MealFormValues;
   goals: Goals | null;
-  dayTotals: Pick<
-    NutrientTotals,
-    "calories" | "protein" | "carbs" | "fat" | "fiber"
-  > | null;
-  mealIsToday: boolean;
   onEdit: () => void;
 }) {
   const tip = getMealQualityTip(values, goals);
   const ingredients = values.ingredients ?? [];
 
-  const kcalGoal = goals?.dailyCaloriesGoal ?? 0;
-  const proteinGoal = goals?.dailyProteinGoal ?? 0;
-  const todayKcal = dayTotals?.calories ?? 0;
-  const todayProtein = dayTotals?.protein ?? 0;
-
-  const kcalLeft = Math.max(0, kcalGoal - todayKcal);
-  const proteinLeft = Math.max(0, proteinGoal - todayProtein);
-  const withoutMealKcal = mealIsToday
-    ? Math.max(0, todayKcal - values.calories)
-    : todayKcal;
-  const withoutMealProtein = mealIsToday
-    ? Math.max(0, todayProtein - values.protein)
-    : todayProtein;
-
   return (
-    <div className="mx-auto max-w-lg space-y-5">
-      <section className="space-y-2">
+    <div className="flex min-h-full w-full flex-col gap-5">
+      <section className="flex min-h-0 flex-1 flex-col space-y-2">
         <h2 className="font-display text-lg font-bold sm:text-xl">
           Zutaten & Menge
         </h2>
@@ -318,11 +296,11 @@ function InsightPage({
           </span>
         </p>
         {ingredients.length ? (
-          <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border">
+          <ul className="min-h-0 flex-1 divide-y divide-border/70 overflow-hidden rounded-2xl border border-border">
             {ingredients.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
-                className="flex items-start justify-between gap-3 px-4 py-3 text-sm"
+                className="flex items-start justify-between gap-3 px-4 py-3.5 text-sm"
               >
                 <span className="font-medium leading-snug">{item.name}</span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">
@@ -333,7 +311,7 @@ function InsightPage({
             ))}
           </ul>
         ) : (
-          <p className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
             Keine Zutaten hinterlegt.
           </p>
         )}
@@ -341,72 +319,14 @@ function InsightPage({
           type="button"
           variant="outline"
           size="sm"
-          className="h-11 w-full"
+          className="h-11 w-full shrink-0"
           onClick={onEdit}
         >
           Menge anpassen
         </Button>
       </section>
 
-      <section className="space-y-2">
-        <h2 className="font-display text-lg font-bold sm:text-xl">Heute</h2>
-        {dayTotals && goals ? (
-          <div className="space-y-2 rounded-2xl border border-border p-4 text-sm">
-            {mealIsToday ? (
-              <>
-                <p>
-                  Ohne diese Mahlzeit:{" "}
-                  <span className="font-medium">
-                    {formatNumber(withoutMealKcal, 0)} kcal
-                  </span>
-                  {" · "}
-                  <span className="font-medium">
-                    {formatNumber(withoutMealProtein, 0)} g Protein
-                  </span>
-                </p>
-                <p>
-                  Inkl. dieser Mahlzeit:{" "}
-                  <span className="font-medium">
-                    {formatNumber(todayKcal, 0)} / {formatNumber(kcalGoal, 0)}{" "}
-                    kcal
-                  </span>
-                </p>
-                <p className="text-muted-foreground">
-                  Noch übrig heute: {formatNumber(kcalLeft, 0)} kcal ·{" "}
-                  {formatNumber(proteinLeft, 0)} g Protein
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-muted-foreground">
-                  Diese Mahlzeit ist von einem anderen Tag.
-                </p>
-                <p>
-                  Heute bisher:{" "}
-                  <span className="font-medium">
-                    {formatNumber(todayKcal, 0)} / {formatNumber(kcalGoal, 0)}{" "}
-                    kcal
-                  </span>
-                  {" · "}
-                  <span className="font-medium">
-                    {formatNumber(todayProtein, 0)} g Protein
-                  </span>
-                </p>
-                <p className="text-muted-foreground">
-                  Noch übrig heute: {formatNumber(kcalLeft, 0)} kcal ·{" "}
-                  {formatNumber(proteinLeft, 0)} g Protein
-                </p>
-              </>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Tageswerte werden geladen…
-          </p>
-        )}
-      </section>
-
-      <section className="space-y-2">
+      <section className="shrink-0 space-y-2">
         <h2 className="font-display text-lg font-bold sm:text-xl">Coach</h2>
         <div
           className={cn(
@@ -432,20 +352,115 @@ function InsightPage({
   );
 }
 
+function TodaySummary({
+  values,
+  goals,
+  dayTotals,
+  mealIsToday,
+}: {
+  values: MealFormValues;
+  goals: Goals;
+  dayTotals: Pick<
+    NutrientTotals,
+    "calories" | "protein" | "carbs" | "fat" | "fiber"
+  >;
+  mealIsToday: boolean;
+}) {
+  const kcalGoal = goals.dailyCaloriesGoal;
+  const proteinGoal = goals.dailyProteinGoal;
+  const todayKcal = dayTotals.calories;
+  const todayProtein = dayTotals.protein;
+  const kcalLeft = Math.max(0, kcalGoal - todayKcal);
+  const proteinLeft = Math.max(0, proteinGoal - todayProtein);
+  const withoutMealKcal = mealIsToday
+    ? Math.max(0, todayKcal - values.calories)
+    : todayKcal;
+  const withoutMealProtein = mealIsToday
+    ? Math.max(0, todayProtein - values.protein)
+    : todayProtein;
+
+  return (
+    <div className="grid gap-3 rounded-2xl border border-border bg-background p-4 text-sm sm:grid-cols-3">
+      {mealIsToday ? (
+        <>
+          <div className="space-y-1 rounded-xl bg-muted/40 px-3 py-3">
+            <p className="text-xs text-muted-foreground">Ohne diese Mahlzeit</p>
+            <p className="font-semibold tabular-nums">
+              {formatNumber(withoutMealKcal, 0)} kcal
+            </p>
+            <p className="text-muted-foreground tabular-nums">
+              {formatNumber(withoutMealProtein, 0)} g Protein
+            </p>
+          </div>
+          <div className="space-y-1 rounded-xl bg-muted/40 px-3 py-3">
+            <p className="text-xs text-muted-foreground">Inkl. dieser Mahlzeit</p>
+            <p className="font-semibold tabular-nums">
+              {formatNumber(todayKcal, 0)} / {formatNumber(kcalGoal, 0)} kcal
+            </p>
+            <p className="text-muted-foreground tabular-nums">
+              {formatNumber(todayProtein, 0)} / {formatNumber(proteinGoal, 0)} g
+              Protein
+            </p>
+          </div>
+          <div className="space-y-1 rounded-xl bg-primary/10 px-3 py-3">
+            <p className="text-xs text-muted-foreground">Noch übrig heute</p>
+            <p className="font-semibold tabular-nums">
+              {formatNumber(kcalLeft, 0)} kcal
+            </p>
+            <p className="text-muted-foreground tabular-nums">
+              {formatNumber(proteinLeft, 0)} g Protein
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="space-y-1 rounded-xl bg-muted/40 px-3 py-3 sm:col-span-2">
+            <p className="text-xs text-muted-foreground">
+              Diese Mahlzeit ist von einem anderen Tag · Heute bisher
+            </p>
+            <p className="font-semibold tabular-nums">
+              {formatNumber(todayKcal, 0)} / {formatNumber(kcalGoal, 0)} kcal
+            </p>
+            <p className="text-muted-foreground tabular-nums">
+              {formatNumber(todayProtein, 0)} g Protein
+            </p>
+          </div>
+          <div className="space-y-1 rounded-xl bg-primary/10 px-3 py-3">
+            <p className="text-xs text-muted-foreground">Noch übrig heute</p>
+            <p className="font-semibold tabular-nums">
+              {formatNumber(kcalLeft, 0)} kcal
+            </p>
+            <p className="text-muted-foreground tabular-nums">
+              {formatNumber(proteinLeft, 0)} g Protein
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function GoalsPage({
   values,
   goals,
+  dayTotals,
+  mealIsToday,
 }: {
   values: MealFormValues;
   goals: Goals | null;
+  dayTotals: Pick<
+    NutrientTotals,
+    "calories" | "protein" | "carbs" | "fat" | "fiber"
+  > | null;
+  mealIsToday: boolean;
 }) {
   const [more, setMore] = useState(false);
 
   if (!goals) {
     return (
-      <div className="mx-auto max-w-lg space-y-3">
+      <div className="flex min-h-full w-full flex-col gap-3">
         <h2 className="font-display text-lg font-bold sm:text-xl">
-          Anteil am Tagesziel
+          Heute & Ziele
         </h2>
         <p className="text-sm text-muted-foreground">Ziele werden geladen…</p>
       </div>
@@ -453,121 +468,142 @@ function GoalsPage({
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-4">
-      <div>
-        <h2 className="font-display text-lg font-bold sm:text-xl">
-          Anteil am Tagesziel
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Beitrag dieser Mahlzeit zu deinen heutigen Zielen.
-        </p>
-      </div>
-      <div className="space-y-4 rounded-2xl border border-border bg-background p-4">
-        <NutrientProgress
-          label="Kalorien"
-          current={values.calories}
-          goal={goals.dailyCaloriesGoal}
-          unit="kcal"
-        />
-        <NutrientProgress
-          label="Protein"
-          current={values.protein}
-          goal={goals.dailyProteinGoal}
-          colorClass="bg-teal-600"
-        />
-        <NutrientProgress
-          label="Kohlenhydrate"
-          current={values.carbs}
-          goal={goals.dailyCarbsGoal}
-          colorClass="bg-cyan-600"
-        />
-        <NutrientProgress
-          label="Fett"
-          current={values.fat}
-          goal={goals.dailyFatGoal}
-          colorClass="bg-orange-600"
-        />
-        <NutrientProgress
-          label="Ballaststoffe"
-          current={values.fiber}
-          goal={goals.dailyFiberGoal}
-          colorClass="bg-emerald-700"
-        />
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-11 w-full justify-between px-1"
-          onClick={() => setMore((value) => !value)}
-          aria-expanded={more}
-        >
-          <span>Weitere Nährstoffe</span>
-          <ChevronDown
-            className={cn("h-4 w-4 transition-transform", more && "rotate-180")}
+    <div className="flex min-h-full w-full flex-col gap-5">
+      <section className="shrink-0 space-y-2">
+        <h2 className="font-display text-lg font-bold sm:text-xl">Heute</h2>
+        {dayTotals ? (
+          <TodaySummary
+            values={values}
+            goals={goals}
+            dayTotals={dayTotals}
+            mealIsToday={mealIsToday}
           />
-        </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Tageswerte werden geladen…
+          </p>
+        )}
+      </section>
 
-        {more ? (
-          <div className="space-y-4">
-            <NutrientProgress
-              label="Zucker"
-              current={values.sugar}
-              goal={goals.dailySugarGoal}
-              colorClass="bg-rose-600"
+      <section className="flex min-h-0 flex-1 flex-col space-y-3">
+        <div>
+          <h2 className="font-display text-lg font-bold sm:text-xl">
+            Anteil am Tagesziel
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Beitrag dieser Mahlzeit zu deinen heutigen Zielen.
+          </p>
+        </div>
+        <div className="flex flex-1 flex-col justify-evenly gap-4 rounded-2xl border border-border bg-background p-4">
+          <NutrientProgress
+            label="Kalorien"
+            current={values.calories}
+            goal={goals.dailyCaloriesGoal}
+            unit="kcal"
+          />
+          <NutrientProgress
+            label="Protein"
+            current={values.protein}
+            goal={goals.dailyProteinGoal}
+            colorClass="bg-teal-600"
+          />
+          <NutrientProgress
+            label="Kohlenhydrate"
+            current={values.carbs}
+            goal={goals.dailyCarbsGoal}
+            colorClass="bg-cyan-600"
+          />
+          <NutrientProgress
+            label="Fett"
+            current={values.fat}
+            goal={goals.dailyFatGoal}
+            colorClass="bg-orange-600"
+          />
+          <NutrientProgress
+            label="Ballaststoffe"
+            current={values.fiber}
+            goal={goals.dailyFiberGoal}
+            colorClass="bg-emerald-700"
+          />
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-11 w-full shrink-0 justify-between px-1"
+            onClick={() => setMore((value) => !value)}
+            aria-expanded={more}
+          >
+            <span>Weitere Nährstoffe</span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform",
+                more && "rotate-180",
+              )}
             />
-            <NutrientProgress
-              label="Natrium"
-              current={values.sodium}
-              goal={goals.dailySodiumGoal}
-              unit="mg"
-              colorClass="bg-sky-700"
-            />
-            <NutrientProgress
-              label="Kalium"
-              current={values.potassium}
-              goal={goals.dailyPotassiumGoal}
-              unit="mg"
-              colorClass="bg-violet-600"
-            />
-            <NutrientProgress
-              label="Vitamin A"
-              current={values.vitaminA}
-              goal={goals.dailyVitaminAGoal}
-              unit="µg"
-              colorClass="bg-amber-600"
-            />
-            <NutrientProgress
-              label="Vitamin C"
-              current={values.vitaminC}
-              goal={goals.dailyVitaminCGoal}
-              unit="mg"
-              colorClass="bg-lime-600"
-            />
-            <NutrientProgress
-              label="Vitamin D"
-              current={values.vitaminD}
-              goal={goals.dailyVitaminDGoal}
-              unit="µg"
-              colorClass="bg-yellow-600"
-            />
-            <NutrientProgress
-              label="Kalzium"
-              current={values.calcium}
-              goal={goals.dailyCalciumGoal}
-              unit="mg"
-              colorClass="bg-stone-600"
-            />
-            <NutrientProgress
-              label="Eisen"
-              current={values.iron}
-              goal={goals.dailyIronGoal}
-              unit="mg"
-              colorClass="bg-red-700"
-            />
-          </div>
-        ) : null}
-      </div>
+          </Button>
+
+          {more ? (
+            <div className="space-y-4">
+              <NutrientProgress
+                label="Zucker"
+                current={values.sugar}
+                goal={goals.dailySugarGoal}
+                colorClass="bg-rose-600"
+              />
+              <NutrientProgress
+                label="Natrium"
+                current={values.sodium}
+                goal={goals.dailySodiumGoal}
+                unit="mg"
+                colorClass="bg-sky-700"
+              />
+              <NutrientProgress
+                label="Kalium"
+                current={values.potassium}
+                goal={goals.dailyPotassiumGoal}
+                unit="mg"
+                colorClass="bg-violet-600"
+              />
+              <NutrientProgress
+                label="Vitamin A"
+                current={values.vitaminA}
+                goal={goals.dailyVitaminAGoal}
+                unit="µg"
+                colorClass="bg-amber-600"
+              />
+              <NutrientProgress
+                label="Vitamin C"
+                current={values.vitaminC}
+                goal={goals.dailyVitaminCGoal}
+                unit="mg"
+                colorClass="bg-lime-600"
+              />
+              <NutrientProgress
+                label="Vitamin D"
+                current={values.vitaminD}
+                goal={goals.dailyVitaminDGoal}
+                unit="µg"
+                colorClass="bg-yellow-600"
+              />
+              <NutrientProgress
+                label="Kalzium"
+                current={values.calcium}
+                goal={goals.dailyCalciumGoal}
+                unit="mg"
+                colorClass="bg-stone-600"
+              />
+              <NutrientProgress
+                label="Eisen"
+                current={values.iron}
+                goal={goals.dailyIronGoal}
+                unit="mg"
+                colorClass="bg-red-700"
+              />
+            </div>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
