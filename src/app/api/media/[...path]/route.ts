@@ -1,7 +1,7 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/session";
+import { requireRequestUser } from "@/lib/session";
 import { fileExists, getUploadDir, resolveLocalUploadPath } from "@/lib/uploads";
 
 export const runtime = "nodejs";
@@ -51,8 +51,8 @@ async function readUpload(filename: string) {
   return null;
 }
 
-export async function GET(_request: Request, { params }: Params) {
-  const user = await requireUser();
+export async function GET(request: Request, { params }: Params) {
+  const user = await requireRequestUser(request);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
