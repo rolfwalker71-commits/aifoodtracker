@@ -12,6 +12,14 @@ type Props = {
   onContinue: () => void;
 };
 
+/** Menge und Gesamtgewicht getrennt; Einheit bleibt am Zahlenwert. */
+function amountLines(label: string) {
+  const withNbsp = label.replace(/(\d+(?:[.,]\d+)?)\s+(g|kg|ml|l)\b/gi, "$1\u00A0$2");
+  const comma = withNbsp.match(/^(.+?),\s+(.+)$/);
+  if (comma) return [comma[1], comma[2]];
+  return [withNbsp];
+}
+
 export function RecognitionPopup({
   open,
   name,
@@ -27,6 +35,8 @@ export function RecognitionPopup({
       document.body.style.overflow = previous;
     };
   }, [open]);
+
+  const lines = amountLabel ? amountLines(amountLabel) : [];
 
   return (
     <AnimatePresence>
@@ -54,10 +64,14 @@ export function RecognitionPopup({
             <h2 className="mt-4 font-display text-5xl font-bold leading-tight tracking-tight sm:text-6xl">
               {name}
             </h2>
-            {amountLabel ? (
-              <p className="mt-5 text-2xl font-bold text-primary sm:text-3xl">
-                {amountLabel}
-              </p>
+            {lines.length ? (
+              <div className="mt-5 space-y-1 text-2xl font-bold text-primary sm:text-3xl">
+                {lines.map((line) => (
+                  <p key={line} className="whitespace-nowrap">
+                    {line}
+                  </p>
+                ))}
+              </div>
             ) : null}
             {subtitle ? (
               <p className="mt-3 text-sm text-muted-foreground">{subtitle}</p>
