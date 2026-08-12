@@ -60,13 +60,34 @@ npm run dev
 
 ## Docker (gesamte App)
 
+### Image von GitHub pullen (empfohlen auf dem Server)
+
+Nach jedem Push auf `main` baut die Action ein Image nach  
+`ghcr.io/rolfwalker71-commits/aifoodtracker:latest`.
+
+```bash
+# einmalig, falls das Package privat ist:
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+cp .env.example .env
+# AUTH_SECRET / ENCRYPTION_KEY / AUTH_URL setzen
+docker compose pull
+docker compose up -d
+```
+
+Optional bestimmtes Tag: `IMAGE_TAG=sha-abcdef docker compose pull && docker compose up -d`
+
+### Lokal aus dem Dockerfile bauen
+
 ```bash
 cp .env.example .env
-# AUTH_SECRET / ENCRYPTION_KEY setzen
-docker compose up --build
+docker compose up -d --build
 ```
 
 App: [http://localhost:3333](http://localhost:3333)
+
+**Hinweis:** Unter GitHub → Packages das Image ggf. auf **Public** stellen,  
+damit `docker compose pull` ohne Login funktioniert.
 
 ## Wichtige Umgebungsvariablen
 

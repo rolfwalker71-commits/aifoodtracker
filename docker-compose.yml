@@ -17,6 +17,12 @@ services:
       retries: 10
 
   app:
+    # Von GitHub Container Registry pullen:
+    #   docker compose pull
+    #   docker compose up -d
+    # Lokal neu bauen (optional):
+    #   docker compose up -d --build
+    image: ghcr.io/rolfwalker71-commits/aifoodtracker:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
