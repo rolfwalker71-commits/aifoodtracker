@@ -3,20 +3,36 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { MealDetailViewer } from "@/components/meals/meal-detail-viewer";
 import { MealForm } from "@/components/meals/meal-form";
 import { MealSaveConfirm } from "@/components/meals/meal-save-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toFormDateTime } from "@/lib/datetime";
 import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
-import { scaleIngredients } from "@/lib/meal-ingredients";
-import { parseStoredIngredients } from "@/lib/meal-ingredients";
+import {
+  parseStoredIngredients,
+  scaleIngredients,
+} from "@/lib/meal-ingredients";
+import type { NutritionGoals } from "@/lib/nutrition";
 import {
   formatPortionLabel,
   parsePortionGrams,
   rescaleNutrientTotals,
 } from "@/lib/portion";
 import type { MealFormValues } from "@/types/meals";
+
+type DayGoals = Pick<
+  NutritionGoals,
+  | "dailyCaloriesGoal"
+  | "dailyProteinGoal"
+  | "dailyCarbsGoal"
+  | "dailyFatGoal"
+  | "dailyFiberGoal"
+  | "dailySugarGoal"
+  | "dailySodiumGoal"
+  | "dailyPotassiumGoal"
+>;
 
 function resolveCurrentGrams(values: MealFormValues): number | null {
   const fromLabel = parsePortionGrams(values.portionSize || "");
@@ -29,54 +45,66 @@ function resolveCurrentGrams(values: MealFormValues): number | null {
   return ingredientTotal > 0 ? ingredientTotal : null;
 }
 
-export default function EditMealPage() {
+export default function MealDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [values, setValues] = useState<MealFormValues | null>(null);
+  const [goals, setGoals] = useState<DayGoals | null>(null);
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<"simple" | "details">("simple");
+  const [mode, setMode] = useState<"view" | "simple" | "details">("view");
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const response = await fetch(`/api/meals/${params.id}`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        toast.error(data.error || "Mahlzeit nicht gefunden");
+      const [mealResponse, statsResponse] = await Promise.all([
+        fetch(`/api/meals/${params.id}`, { cache: "no-store" }),
+        fetch("/api/stats?range=day", { cache: "no-store" }),
+      ]);
+
+      const mealData = await mealResponse.json();
+      if (!mealResponse.ok) {
+        toast.error(mealData.error || "Mahlzeit nicht gefunden");
         navigateFresh(router, "/meals");
         return;
       }
-      if (cancelled) return;
-      const meal = data.meal;
-      setValues({
-        name: localizeGermanLabel(meal.name),
-        portionSize: meal.portionSize ?? "",
-        mealType: meal.mealType,
-        consumedAt: toFormDateTime(meal.consumedAt),
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
-        fiber: meal.fiber,
-        sugar: meal.sugar,
-        saturatedFat: meal.saturatedFat,
-        sodium: meal.sodium,
-        potassium: meal.potassium,
-        vitaminA: meal.vitaminA,
-        vitaminC: meal.vitaminC,
-        vitaminD: meal.vitaminD,
-        calcium: meal.calcium,
-        iron: meal.iron,
-        notes: meal.notes ?? "",
-        imagePath: meal.imagePath,
-        ingredients: parseStoredIngredients(meal.ingredients),
-      });
+
+      if (!cancelled) {
+        const meal = mealData.meal;
+        setValues({
+          name: localizeGermanLabel(meal.name),
+          portionSize: meal.portionSize ?? "",
+          mealType: meal.mealType,
+          consumedAt: toFormDateTime(meal.consumedAt),
+          calories: meal.calories,
+          protein: meal.protein,
+          carbs: meal.carbs,
+          fat: meal.fat,
+          fiber: meal.fiber,
+          sugar: meal.sugar,
+          saturatedFat: meal.saturatedFat,
+          sodium: meal.sodium,
+          potassium: meal.potassium,
+          vitaminA: meal.vitaminA,
+          vitaminC: meal.vitaminC,
+          vitaminD: meal.vitaminD,
+          calcium: meal.calcium,
+          iron: meal.iron,
+          notes: meal.notes ?? "",
+          imagePath: meal.imagePath,
+          ingredients: parseStoredIngredients(meal.ingredients),
+        });
+      }
+
+      if (statsResponse.ok) {
+        const stats = await statsResponse.json();
+        if (!cancelled && stats.goals) {
+          setGoals(stats.goals as DayGoals);
+        }
+      }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
@@ -86,7 +114,9 @@ export default function EditMealPage() {
     if (!values) return;
     const previous = resolveCurrentGrams(values);
     if (!previous || previous <= 0) {
-      toast.error("Aktuelle Menge in Gramm nicht erkennbar. Bitte zuerst z. B. „250 g“ setzen.");
+      toast.error(
+        "Aktuelle Menge in Gramm nicht erkennbar. Bitte zuerst z. B. „250 g“ setzen.",
+      );
       setValues({
         ...values,
         portionSize: formatPortionLabel(grams),
@@ -150,7 +180,9 @@ export default function EditMealPage() {
       navigateFresh(router, "/meals");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Aktualisierung fehlgeschlagen",
+        error instanceof Error
+          ? error.message
+          : "Aktualisierung fehlgeschlagen",
       );
     } finally {
       setBusy(false);
@@ -165,23 +197,44 @@ export default function EditMealPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
-          Mahlzeit bearbeiten
+          {mode === "view" ? "Mahlzeit" : "Mahlzeit bearbeiten"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Menge ändern → neu berechnen → speichern
+          {mode === "view"
+            ? "Wischen für Nährwerte und Tagesanteil"
+            : "Menge ändern → neu berechnen → speichern"}
         </p>
       </div>
 
-      {mode === "simple" ? (
-        <MealSaveConfirm
+      {mode === "view" ? (
+        <MealDetailViewer
           values={values}
-          busy={busy}
-          onChange={setValues}
-          onRecalculatePortion={recalculatePortion}
-          onSave={() => onSubmit(values)}
-          onEditDetails={() => setMode("details")}
+          goals={goals}
+          onEdit={() => setMode("simple")}
         />
-      ) : (
+      ) : null}
+
+      {mode === "simple" ? (
+        <>
+          <MealSaveConfirm
+            values={values}
+            busy={busy}
+            onChange={setValues}
+            onRecalculatePortion={recalculatePortion}
+            onSave={() => onSubmit(values)}
+            onEditDetails={() => setMode("details")}
+          />
+          <button
+            type="button"
+            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            onClick={() => setMode("view")}
+          >
+            Zurück zur Übersicht
+          </button>
+        </>
+      ) : null}
+
+      {mode === "details" ? (
         <Card>
           <CardHeader>
             <CardTitle>{values.name}</CardTitle>
@@ -200,11 +253,11 @@ export default function EditMealPage() {
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"
               onClick={() => setMode("simple")}
             >
-              Zurück zur einfachen Ansicht
+              Zurück zur einfachen Bearbeitung
             </button>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }
