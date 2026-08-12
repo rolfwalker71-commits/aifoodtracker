@@ -20,6 +20,7 @@ import {
   parsePortionGrams,
   rescaleNutrientTotals,
 } from "@/lib/portion";
+import { cn } from "@/lib/utils";
 import type { MealFormValues } from "@/types/meals";
 
 function isSameAppDay(isoOrForm: string) {
@@ -259,32 +260,52 @@ export default function MealDetailPage() {
     return <p className="text-sm text-muted-foreground">Lade Mahlzeit…</p>;
   }
 
+  if (mode === "view") {
+    return (
+      <div
+        className={cn(
+          "flex w-full flex-col bg-background",
+          // PWA/mobile: pin exactly between sticky header and bottom nav
+          "max-md:fixed max-md:inset-x-0 max-md:top-14 max-md:bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] max-md:z-20",
+          // Desktop: in-flow, taller stage
+          "md:relative md:mx-auto md:h-[min(85vh,52rem)] md:max-w-2xl md:gap-4",
+        )}
+      >
+        <div className="shrink-0 px-4 pt-2 md:px-0 md:pt-0">
+          <h1 className="font-display text-xl font-bold tracking-tight md:text-3xl">
+            Mahlzeit
+          </h1>
+          <p className="hidden text-sm text-muted-foreground md:block">
+            Wischen: Zutaten, Coach, Heute & Ziele
+          </p>
+        </div>
+        <div className="min-h-0 flex-1">
+          <MealDetailViewer
+            values={values}
+            goals={goals}
+            dayTotals={dayTotals}
+            mealIsToday={isSameAppDay(values.consumedAt)}
+            isFavorite={isFavorite}
+            busy={busy}
+            onEdit={() => setMode("simple")}
+            onToggleFavorite={() => void toggleFavorite()}
+            onDuplicate={() => void duplicateMeal()}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-3 md:space-y-5">
       <div className="md:space-y-1">
         <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-          {mode === "view" ? "Mahlzeit" : "Mahlzeit bearbeiten"}
+          Mahlzeit bearbeiten
         </h1>
-        <p className="hidden text-sm text-muted-foreground md:block">
-          {mode === "view"
-            ? "Wischen: Einblick, Coach, Tagesanteil"
-            : "Menge ändern → neu berechnen → speichern"}
+        <p className="text-sm text-muted-foreground">
+          Menge ändern → neu berechnen → speichern
         </p>
       </div>
-
-      {mode === "view" ? (
-        <MealDetailViewer
-          values={values}
-          goals={goals}
-          dayTotals={dayTotals}
-          mealIsToday={isSameAppDay(values.consumedAt)}
-          isFavorite={isFavorite}
-          busy={busy}
-          onEdit={() => setMode("simple")}
-          onToggleFavorite={() => void toggleFavorite()}
-          onDuplicate={() => void duplicateMeal()}
-        />
-      ) : null}
 
       {mode === "simple" ? (
         <>

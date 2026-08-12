@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion, type PanInfo } from "framer-motion";
 import { ChevronDown, CopyPlus, Pencil, Star } from "lucide-react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { Button } from "@/components/ui/button";
@@ -47,20 +46,21 @@ export function MealDetailViewer({
   onDuplicate,
 }: Props) {
   const [page, setPage] = useState(0);
-  const [width, setWidth] = useState(0);
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Array<HTMLElement | null>>([]);
 
   useLayoutEffect(() => {
-    const el = viewportRef.current;
+    const el = scrollerRef.current;
     if (!el) return;
 
-    const measure = () => setWidth(el.clientWidth);
-    measure();
+    const onScroll = () => {
+      const w = el.clientWidth || 1;
+      const idx = Math.round(el.scrollLeft / w);
+      setPage(Math.min(PAGE_COUNT - 1, Math.max(0, idx)));
+    };
 
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
@@ -68,108 +68,90 @@ export function MealDetailViewer({
     if (node) node.scrollTop = 0;
   }, [page]);
 
-  function onDragEnd(_: unknown, info: PanInfo) {
-    const w = width || viewportRef.current?.clientWidth || 320;
-    const delta = info.offset.x + info.velocity.x * 0.18;
-    if (delta < -Math.min(56, w * 0.18)) {
-      setPage((p) => Math.min(PAGE_COUNT - 1, p + 1));
-    } else if (delta > Math.min(56, w * 0.18)) {
-      setPage((p) => Math.max(0, p - 1));
-    }
+  function goTo(index: number) {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
+    setPage(index);
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
-      {/* Full-bleed on PWA/mobile; contained card on desktop */}
+    <div
+      className={cn(
+        "flex min-h-0 flex-col overflow-hidden bg-background",
+        // Mobile/PWA: fill remaining viewport (parent sets height)
+        "h-full",
+        // Desktop card look when parent gives fixed taller height
+        "md:rounded-2xl md:border md:border-border",
+      )}
+    >
       <div
-        ref={viewportRef}
+        ref={scrollerRef}
         className={cn(
-          "relative overflow-hidden bg-background",
-          "-mx-4 border-y border-border md:mx-0 md:rounded-2xl md:border",
-          // Viewport height under sticky header + bottom nav + page chrome
-          "h-[calc(100dvh-11.5rem)] min-h-[22rem] max-h-[46rem]",
-          "md:h-[min(70vh,40rem)] md:min-h-[28rem]",
+          "flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden",
+          "overscroll-x-contain touch-pan-x",
+          "[-webkit-overflow-scrolling:touch] [scrollbar-width:none]",
+          "[&::-webkit-scrollbar]:hidden",
         )}
       >
-        <motion.div
-          className="flex h-full touch-pan-y will-change-transform"
-          style={{ width: width ? width * PAGE_COUNT : "300%" }}
-          drag={width > 0 ? "x" : false}
-          dragDirectionLock
-          dragConstraints={
-            width > 0
-              ? { left: -width * (PAGE_COUNT - 1), right: 0 }
-              : { left: 0, right: 0 }
-          }
-          dragElastic={0.12}
-          onDragEnd={onDragEnd}
-          animate={{ x: width > 0 ? -page * width : 0 }}
-          transition={{ type: "spring", stiffness: 420, damping: 38, mass: 0.8 }}
+        <section
+          ref={(node) => {
+            pageRefs.current[0] = node;
+          }}
+          className="h-full min-h-0 w-full min-w-full shrink-0 snap-center snap-always overflow-y-auto overscroll-y-contain px-4 py-3 pb-4 touch-pan-y"
         >
-          <section
-            ref={(node) => {
-              pageRefs.current[0] = node;
-            }}
-            className="h-full shrink-0 overflow-y-auto overscroll-y-contain px-4 py-4 pb-16 [-webkit-overflow-scrolling:touch]"
-            style={{ width: width || "100%" }}
-          >
-            <OverviewPage
-              values={values}
-              isFavorite={isFavorite}
-              busy={busy}
-              onEdit={onEdit}
-              onToggleFavorite={onToggleFavorite}
-              onDuplicate={onDuplicate}
-            />
-          </section>
-          <section
-            ref={(node) => {
-              pageRefs.current[1] = node;
-            }}
-            className="h-full shrink-0 overflow-y-auto overscroll-y-contain px-4 py-4 pb-16 [-webkit-overflow-scrolling:touch]"
-            style={{ width: width || "100%" }}
-          >
-            <InsightPage values={values} goals={goals} onEdit={onEdit} />
-          </section>
-          <section
-            ref={(node) => {
-              pageRefs.current[2] = node;
-            }}
-            className="h-full shrink-0 overflow-y-auto overscroll-y-contain px-4 py-4 pb-16 [-webkit-overflow-scrolling:touch]"
-            style={{ width: width || "100%" }}
-          >
-            <GoalsPage
-              values={values}
-              goals={goals}
-              dayTotals={dayTotals}
-              mealIsToday={mealIsToday}
-            />
-          </section>
-        </motion.div>
+          <OverviewPage
+            values={values}
+            isFavorite={isFavorite}
+            busy={busy}
+            onEdit={onEdit}
+            onToggleFavorite={onToggleFavorite}
+            onDuplicate={onDuplicate}
+          />
+        </section>
+        <section
+          ref={(node) => {
+            pageRefs.current[1] = node;
+          }}
+          className="h-full min-h-0 w-full min-w-full shrink-0 snap-center snap-always overflow-y-auto overscroll-y-contain px-4 py-3 pb-4 touch-pan-y"
+        >
+          <InsightPage values={values} goals={goals} onEdit={onEdit} />
+        </section>
+        <section
+          ref={(node) => {
+            pageRefs.current[2] = node;
+          }}
+          className="h-full min-h-0 w-full min-w-full shrink-0 snap-center snap-always overflow-y-auto overscroll-y-contain px-4 py-3 pb-4 touch-pan-y"
+        >
+          <GoalsPage
+            values={values}
+            goals={goals}
+            dayTotals={dayTotals}
+            mealIsToday={mealIsToday}
+          />
+        </section>
+      </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/90 to-transparent px-4 pb-3 pt-8">
-          <div className="pointer-events-auto flex flex-col items-center gap-1.5">
-            <div className="flex items-center justify-center gap-2">
-              {PAGE_LABELS.map((label, index) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-label={label}
-                  className={cn(
-                    "h-2.5 rounded-full transition-all",
-                    index === page
-                      ? "w-6 bg-primary"
-                      : "w-2.5 bg-muted-foreground/35",
-                  )}
-                  onClick={() => setPage(index)}
-                />
-              ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              {PAGE_LABELS[page]} · wischen
-            </p>
-          </div>
+      <div className="flex shrink-0 flex-col items-center gap-1 border-t border-border/60 bg-background px-4 py-2.5">
+        <div className="flex items-center justify-center gap-2">
+          {PAGE_LABELS.map((label, index) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={label}
+              className={cn(
+                "h-2.5 rounded-full transition-all",
+                index === page
+                  ? "w-6 bg-primary"
+                  : "w-2.5 bg-muted-foreground/35",
+              )}
+              onClick={() => goTo(index)}
+            />
+          ))}
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          {PAGE_LABELS[page]} · wischen
+        </p>
       </div>
     </div>
   );
@@ -191,8 +173,8 @@ function OverviewPage({
   onDuplicate: () => void;
 }) {
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-lg flex-col justify-center space-y-4 md:max-w-none">
-      <div className="mx-auto h-36 w-36 overflow-hidden rounded-2xl bg-muted sm:h-44 sm:w-44">
+    <div className="flex min-h-full w-full flex-col justify-center gap-4 py-1">
+      <div className="mx-auto h-32 w-32 overflow-hidden rounded-2xl bg-muted sm:h-40 sm:w-40">
         {values.imagePath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -284,19 +266,19 @@ function InsightPage({
   const ingredients = values.ingredients ?? [];
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-5">
-      <section className="flex min-h-0 flex-1 flex-col space-y-2">
-        <h2 className="font-display text-lg font-bold sm:text-xl">
+    <div className="flex min-h-full w-full flex-col gap-4">
+      <section className="flex min-h-0 flex-1 flex-col gap-2">
+        <h2 className="shrink-0 font-display text-lg font-bold sm:text-xl">
           Zutaten & Menge
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="shrink-0 text-sm text-muted-foreground">
           Portion:{" "}
           <span className="font-medium text-foreground">
             {values.portionSize?.trim() || "unbekannt"}
           </span>
         </p>
         {ingredients.length ? (
-          <ul className="min-h-0 flex-1 divide-y divide-border/70 overflow-hidden rounded-2xl border border-border">
+          <ul className="min-h-0 flex-1 divide-y divide-border/70 overflow-y-auto rounded-2xl border border-border">
             {ingredients.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
@@ -380,7 +362,7 @@ function TodaySummary({
     : todayProtein;
 
   return (
-    <div className="grid gap-3 rounded-2xl border border-border bg-background p-4 text-sm sm:grid-cols-3">
+    <div className="grid gap-2 rounded-2xl border border-border bg-background p-3 text-sm sm:grid-cols-3 sm:gap-3 sm:p-4">
       {mealIsToday ? (
         <>
           <div className="space-y-1 rounded-xl bg-muted/40 px-3 py-3">
@@ -468,7 +450,7 @@ function GoalsPage({
   }
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-5">
+    <div className="flex min-h-full w-full flex-col gap-4">
       <section className="shrink-0 space-y-2">
         <h2 className="font-display text-lg font-bold sm:text-xl">Heute</h2>
         {dayTotals ? (
@@ -485,8 +467,8 @@ function GoalsPage({
         )}
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col space-y-3">
-        <div>
+      <section className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="shrink-0">
           <h2 className="font-display text-lg font-bold sm:text-xl">
             Anteil am Tagesziel
           </h2>
@@ -494,7 +476,7 @@ function GoalsPage({
             Beitrag dieser Mahlzeit zu deinen heutigen Zielen.
           </p>
         </div>
-        <div className="flex flex-1 flex-col justify-evenly gap-4 rounded-2xl border border-border bg-background p-4">
+        <div className="flex min-h-0 flex-1 flex-col justify-evenly gap-3 rounded-2xl border border-border bg-background p-4">
           <NutrientProgress
             label="Kalorien"
             current={values.calories}
