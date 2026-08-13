@@ -6,11 +6,17 @@ import { toast } from "sonner";
 import { BarcodeCapture } from "@/components/meals/barcode-capture";
 import { CameraCapture } from "@/components/meals/camera-capture";
 import { FoodLookup } from "@/components/meals/food-lookup";
+import {
+  buildAssistSteps,
+  CaptureIdentityStep,
+  type AssistStepId,
+  type CaptureEntryKind,
+  MealCaptureAssistant,
+} from "@/components/meals/meal-capture-assistant";
 import { MealForm } from "@/components/meals/meal-form";
 import { MealSaveConfirm } from "@/components/meals/meal-save-confirm";
 import { OffCompareCard } from "@/components/meals/off-compare-card";
 import { PortionPrompt } from "@/components/meals/portion-prompt";
-import { RecognitionPopup } from "@/components/meals/recognition-popup";
 import { TextMealCapture } from "@/components/meals/text-meal-capture";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,14 +26,13 @@ import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
 import { scaleIngredients } from "@/lib/meal-ingredients";
 import { suggestMealTypeNow } from "@/lib/nutrition";
-import {
-  enqueueOfflineMeal,
-} from "@/lib/offline-meal-queue";
+import { enqueueOfflineMeal } from "@/lib/offline-meal-queue";
 import {
   formatPortionLabel,
   nutrientsFromPortion,
   scaleNutrients,
 } from "@/lib/portion";
+import { suggestPortionGrams } from "@/lib/portion-suggestion";
 import type { MealFormValues, MealIngredient } from "@/types/meals";
 import type {
   FoodLookupItem,
@@ -77,6 +82,8 @@ type PendingFood = {
   imagePath?: string | null;
   nutrientsPer100g: NutrientValues;
   estimatedPortionGrams?: number | null;
+  /** Schätzung vor Confidence-Mix */
+  rawEstimateGrams?: number | null;
   currentNutrients?: NutrientValues;
   suggestedGrams?: number | null;
   helperText?: string;
@@ -85,14 +92,7 @@ type PendingFood = {
   recognitionSubtitle?: string;
   portionConfidence?: number | null;
   confidence?: number | null;
-};
-
-type RecognitionState = {
-  name: string;
-  amountLabel: string;
-  subtitle?: string;
-  portionConfidence?: number | null;
-  confidence?: number | null;
+  allowOffCompare?: boolean;
 };
 
 export default function NewMealPage() {
@@ -100,17 +100,29 @@ export default function NewMealPage() {
   const [busy, setBusy] = useState(false);
   const [formValues, setFormValues] = useState<MealFormValues>(emptyForm);
   const [tab, setTab] = useState("photo");
-  const [step, setStep] = useState<"capture" | "portion" | "confirm" | "details">(
+  const [phase, setPhase] = useState<"capture" | "assist" | "details">(
     "capture",
   );
+  const [assistStep, setAssistStep] = useState<AssistStepId>("identity");
+  const [entryKind, setEntryKind] = useState<CaptureEntryKind>("photo");
   const [pendingFood, setPendingFood] = useState<PendingFood | null>(null);
-  const [recognition, setRecognition] = useState<RecognitionState | null>(null);
   const [offMatch, setOffMatch] = useState<FoodLookupItem | null>(null);
+  const [confirmedGrams, setConfirmedGrams] = useState<number | null>(null);
 
   const formKey = useMemo(
     () =>
       `${formValues.name}-${formValues.portionSize}-${formValues.calories}-${tab}`,
     [formValues.name, formValues.portionSize, formValues.calories, tab],
+  );
+
+  const assistSteps = useMemo(
+    () =>
+      buildAssistSteps(
+        entryKind,
+        Boolean(pendingFood?.allowOffCompare),
+        Boolean(offMatch),
+      ),
+    [entryKind, pendingFood?.allowOffCompare, offMatch],
   );
 
   function buildMealFromPending(
@@ -143,26 +155,48 @@ export default function NewMealPage() {
     );
   }
 
-  function beginPortionFlow(pending: PendingFood, showPopup: boolean) {
-    const amountLabel =
-      pending.amountLabel ||
-      (pending.suggestedGrams
-        ? formatPortionLabel(pending.suggestedGrams)
-        : "Menge schätzen");
+  function resetAssist() {
+    setPhase("capture");
+    setAssistStep("identity");
+    setPendingFood(null);
+    setOffMatch(null);
+    setConfirmedGrams(null);
+  }
 
-    setPendingFood(pending);
-    setStep("portion");
+  function startAssist(
+    pending: PendingFood,
+    entry: CaptureEntryKind,
+    options?: { lookupOff?: boolean },
+  ) {
+    const estimate =
+      pending.estimatedPortionGrams && pending.estimatedPortionGrams > 0
+        ? pending.estimatedPortionGrams
+        : pending.suggestedGrams && pending.suggestedGrams > 0
+          ? pending.suggestedGrams
+          : 200;
+    const suggestion = suggestPortionGrams(
+      estimate,
+      pending.portionConfidence,
+    );
 
-    if (showPopup) {
-      setRecognition({
-        name: pending.name,
-        amountLabel,
-        subtitle: pending.recognitionSubtitle,
-        portionConfidence: pending.portionConfidence,
-        confidence: pending.confidence,
-      });
+    setPendingFood({
+      ...pending,
+      estimatedPortionGrams: estimate,
+      rawEstimateGrams: suggestion.estimateGrams,
+      suggestedGrams: suggestion.suggestedGrams,
+      amountLabel:
+        pending.amountLabel || formatPortionLabel(suggestion.suggestedGrams),
+    });
+    setEntryKind(entry);
+    setAssistStep("identity");
+    setPhase("assist");
+    setConfirmedGrams(null);
+    setFormValues(emptyForm());
+
+    if (options?.lookupOff && pending.allowOffCompare) {
+      void lookupOffMatch(pending.name);
     } else {
-      setRecognition(null);
+      setOffMatch(null);
     }
   }
 
@@ -183,6 +217,26 @@ export default function NewMealPage() {
     }
   }
 
+  function goNextFrom(current: AssistStepId) {
+    const steps = buildAssistSteps(
+      entryKind,
+      Boolean(pendingFood?.allowOffCompare),
+      Boolean(offMatch),
+    );
+    const idx = steps.indexOf(current);
+    const next = steps[idx + 1];
+    if (next) setAssistStep(next);
+  }
+
+  function goBackFrom(current: AssistStepId) {
+    const idx = assistSteps.indexOf(current);
+    if (idx <= 0) {
+      resetAssist();
+      return;
+    }
+    setAssistStep(assistSteps[idx - 1]!);
+  }
+
   function onFoodSelected(
     item: FoodLookupItem,
     mealType?: MealType,
@@ -195,8 +249,11 @@ export default function NewMealPage() {
     );
     const portionConfidence =
       item.portionConfidence ?? (item.source === "ai" ? 0.55 : 0.8);
+    const isOff = item.source === "openfoodfacts";
+    const entry: CaptureEntryKind =
+      tab === "barcode" ? "barcode" : tab === "manual" ? "search" : "text";
 
-    beginPortionFlow(
+    startAssist(
       {
         name,
         brand: item.brand,
@@ -208,20 +265,20 @@ export default function NewMealPage() {
         estimatedPortionGrams: suggested,
         ingredients: item.ingredients ?? [],
         amountLabel: item.servingSizeLabel
-          ? `${localizeAmount(item.servingSizeLabel, suggested)}`
+          ? localizeAmount(item.servingSizeLabel, suggested)
           : formatPortionLabel(suggested),
-        recognitionSubtitle:
-          item.source === "openfoodfacts"
-            ? "Produkt gefunden – bitte Menge bestätigen"
-            : "KI-Schätzung – bitte Menge bestätigen",
+        recognitionSubtitle: isOff
+          ? "Produkt gefunden – bitte Menge bestätigen"
+          : "KI-Schätzung – bitte Menge bestätigen",
         helperText:
-          "Gib die gegessene Menge ein. Alle Nährwerte werden darauf umgerechnet und erst beim Speichern übernommen.",
+          "Gib die gegessene Menge ein. Alle Nährwerte werden darauf umgerechnet.",
         portionConfidence,
         confidence: item.confidence ?? portionConfidence,
+        allowOffCompare: !isOff,
       },
-      true,
+      entry,
+      { lookupOff: !isOff },
     );
-    setOffMatch(null);
   }
 
   function onCameraAnalyzed(analysis: PortionAwareAnalysis, imagePath: string) {
@@ -232,7 +289,7 @@ export default function NewMealPage() {
     const portion = confidenceLevel(analysis.portionConfidence);
     const name = localizeGermanLabel(analysis.name);
 
-    beginPortionFlow(
+    startAssist(
       {
         name,
         mealType: analysis.mealType,
@@ -250,20 +307,21 @@ export default function NewMealPage() {
           ? `Gesamtgewicht prüfen (${portion.label})`
           : `Erkannt – Menge bestätigen (${portion.label})`,
         helperText:
-          "Die Gramm-Angabe ist das geschätzte Gesamtgewicht aller Speisen (z. B. Fleisch + Beilagen). Passe sie bei Bedarf an – die Nährwerte werden darauf umgerechnet.",
+          "Die Gramm-Angabe ist das geschätzte Gesamtgewicht aller Speisen. Passe sie bei Bedarf an – die Nährwerte werden umgerechnet.",
         portionConfidence: analysis.portionConfidence,
         confidence: analysis.confidence ?? null,
+        allowOffCompare: true,
       },
-      true,
+      "photo",
+      { lookupOff: true },
     );
-
-    void lookupOffMatch(name);
   }
 
   function applyOffMatch(item: FoodLookupItem) {
     if (!pendingFood) return;
     const label = item.brand ? `${item.brand} ${item.name}` : item.name;
-    setPendingFood({
+    const grams = confirmedGrams ?? pendingFood.suggestedGrams ?? 200;
+    const next: PendingFood = {
       ...pendingFood,
       name: localizeGermanLabel(label),
       brand: item.brand,
@@ -274,30 +332,35 @@ export default function NewMealPage() {
         ? `${pendingFood.notes}\nNährwerte von Open Food Facts übernommen.`
         : "Nährwerte von Open Food Facts übernommen.",
       portionConfidence: 0.85,
-      recognitionSubtitle: "OFF-Werte übernommen – Menge noch bestätigen",
-    });
+      recognitionSubtitle: "OFF-Werte übernommen",
+      allowOffCompare: false,
+    };
+    setPendingFood(next);
     setOffMatch(null);
+    setFormValues(buildMealFromPending(next, grams));
+    setAssistStep("confirm");
     toast.success("Open-Food-Facts-Werte übernommen");
   }
 
   function confirmPortion(grams: number) {
     if (!pendingFood) return;
-    const meal = buildMealFromPending(pendingFood, grams);
-    setFormValues(meal);
-    setStep("confirm");
-    setTab("photo");
-    toast.success("Berechnet", {
-      description: `Nährwerte für ${formatPortionLabel(grams)} umgerechnet.`,
-    });
+    setConfirmedGrams(grams);
+    setFormValues(buildMealFromPending(pendingFood, grams));
+    const steps = buildAssistSteps(
+      entryKind,
+      Boolean(pendingFood.allowOffCompare),
+      Boolean(offMatch),
+    );
+    const next = steps[steps.indexOf("portion") + 1];
+    setAssistStep(next ?? "confirm");
   }
 
   function recalculatePortion(grams: number) {
     if (!pendingFood) {
       const previous = Number(
-        String(formValues.portionSize || "").match(/(\d+(?:[.,]\d+)?)/)?.[1]?.replace(
-          ",",
-          ".",
-        ),
+        String(formValues.portionSize || "")
+          .match(/(\d+(?:[.,]\d+)?)/)?.[1]
+          ?.replace(",", "."),
       );
       if (previous > 0 && formValues.calories > 0) {
         const factor = grams / previous;
@@ -328,6 +391,7 @@ export default function NewMealPage() {
       return;
     }
 
+    setConfirmedGrams(grams);
     setFormValues(buildMealFromPending(pendingFood, grams));
   }
 
@@ -385,60 +449,102 @@ export default function NewMealPage() {
           Mahlzeit erfassen
         </h1>
         <p className="text-sm text-muted-foreground">
-          Foto, Freitext, Barcode oder Suche → Menge prüfen → speichern.
+          Foto, Freitext, Barcode oder Suche – danach führt dich der Assistent
+          bis zum Speichern.
         </p>
       </div>
 
-      <RecognitionPopup
-        open={Boolean(recognition)}
-        name={recognition?.name || ""}
-        amountLabel={recognition?.amountLabel}
-        subtitle={recognition?.subtitle}
-        portionConfidence={recognition?.portionConfidence}
-        confidence={recognition?.confidence}
-        onContinue={() => setRecognition(null)}
-      />
-
-      {step === "portion" && pendingFood ? (
-        <>
-          <PortionPrompt
-            foodName={pendingFood.name}
-            suggestedGrams={pendingFood.suggestedGrams}
-            helperText={pendingFood.helperText}
-            portionConfidence={pendingFood.portionConfidence}
-            confirmLabel="Berechnen"
-            onConfirm={(grams) => confirmPortion(grams)}
-          />
-          {offMatch ? (
-            <OffCompareCard
-              aiName={pendingFood.name}
-              aiPer100g={pendingFood.nutrientsPer100g}
-              match={offMatch}
-              onUseOff={applyOffMatch}
-              onDismiss={() => setOffMatch(null)}
+      {phase === "assist" && pendingFood ? (
+        <MealCaptureAssistant
+          steps={assistSteps}
+          current={assistStep}
+          entry={entryKind}
+          onBack={() => goBackFrom(assistStep)}
+          onCancel={resetAssist}
+        >
+          {assistStep === "identity" ? (
+            <CaptureIdentityStep
+              entry={entryKind}
+              name={pendingFood.name}
+              brand={pendingFood.brand}
+              amountLabel={pendingFood.amountLabel}
+              subtitle={pendingFood.recognitionSubtitle}
+              imagePath={pendingFood.imagePath}
+              portionConfidence={pendingFood.portionConfidence}
+              confidence={pendingFood.confidence}
+              onNameChange={(name) =>
+                setPendingFood({ ...pendingFood, name })
+              }
+              onContinue={() => goNextFrom("identity")}
             />
           ) : null}
-        </>
+
+          {assistStep === "portion" ? (
+            <PortionPrompt
+              key={`portion-${pendingFood.suggestedGrams}-${pendingFood.name}`}
+              foodName={pendingFood.name}
+              suggestedGrams={pendingFood.suggestedGrams}
+              estimateGrams={pendingFood.rawEstimateGrams}
+              helperText={pendingFood.helperText}
+              portionConfidence={pendingFood.portionConfidence}
+              confirmLabel="Weiter"
+              onConfirm={(grams) => confirmPortion(grams)}
+              onSkip={
+                pendingFood.suggestedGrams
+                  ? () => confirmPortion(pendingFood.suggestedGrams!)
+                  : undefined
+              }
+            />
+          ) : null}
+
+          {assistStep === "source" ? (
+            offMatch ? (
+              <OffCompareCard
+                aiName={pendingFood.name}
+                aiPer100g={pendingFood.nutrientsPer100g}
+                match={offMatch}
+                onUseOff={applyOffMatch}
+                onDismiss={() => {
+                  setOffMatch(null);
+                  setAssistStep("confirm");
+                }}
+              />
+            ) : (
+              <div className="space-y-4 rounded-2xl border border-border p-5 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Kein Open-Food-Facts-Treffer – weiter mit der KI-Schätzung.
+                </p>
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  onClick={() => setAssistStep("confirm")}
+                >
+                  Weiter zum Speichern
+                </button>
+              </div>
+            )
+          ) : null}
+
+          {assistStep === "confirm" ? (
+            <MealSaveConfirm
+              key={`confirm-${formKey}`}
+              values={formValues}
+              busy={busy}
+              onChange={setFormValues}
+              onRecalculatePortion={recalculatePortion}
+              onSave={() => saveMeal()}
+              onEditDetails={() => setPhase("details")}
+            />
+          ) : null}
+        </MealCaptureAssistant>
       ) : null}
 
-      {step === "confirm" ? (
-        <MealSaveConfirm
-          key={`confirm-${formKey}`}
-          values={formValues}
-          busy={busy}
-          onChange={setFormValues}
-          onRecalculatePortion={recalculatePortion}
-          onSave={() => saveMeal()}
-          onEditDetails={() => setStep("details")}
-        />
-      ) : null}
-
-      {step === "details" ? (
+      {phase === "details" ? (
         <Card>
           <CardHeader>
             <CardTitle>Alle Nährwerte</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <MealForm
               key={`details-${formKey}`}
               initialValues={formValues}
@@ -446,11 +552,21 @@ export default function NewMealPage() {
               onSubmit={saveMeal}
               busy={busy}
             />
+            <button
+              type="button"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              onClick={() => {
+                setPhase("assist");
+                setAssistStep("confirm");
+              }}
+            >
+              Zurück zur Übersicht
+            </button>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === "capture" ? (
+      {phase === "capture" ? (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
             <TabsTrigger value="photo">Foto</TabsTrigger>
@@ -489,21 +605,6 @@ export default function NewMealPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      ) : null}
-
-      {step === "portion" || step === "confirm" || step === "details" ? (
-        <button
-          type="button"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          onClick={() => {
-            setStep("capture");
-            setPendingFood(null);
-            setRecognition(null);
-            setOffMatch(null);
-          }}
-        >
-          Abbrechen und neu erfassen
-        </button>
       ) : null}
     </div>
   );
