@@ -99,7 +99,14 @@ export function MealSaveConfirm({
           <Input
             id="confirm-name"
             value={values.name}
+            className="break-words"
             onChange={(e) => onChange({ ...values, name: e.target.value })}
+            onFocus={(e) =>
+              e.currentTarget.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              })
+            }
           />
         </div>
 
@@ -180,7 +187,7 @@ export function MealSaveConfirm({
           </p>
         ) : null}
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <Button
             type="button"
             size="lg"

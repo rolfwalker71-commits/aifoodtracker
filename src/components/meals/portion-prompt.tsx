@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ type Props = {
   onSkip?: () => void;
 };
 
-const QUICK = [100, 150, 200, 250, 300, 400];
+const BASE_QUICK = [100, 150, 200, 250, 300, 400];
 
 export function PortionPrompt({
   foodName,
@@ -40,10 +40,24 @@ export function PortionPrompt({
     suggestedGrams ? String(Math.round(suggestedGrams)) : "",
   );
   const portion = confidenceLevel(portionConfidence);
+  const suggestedRounded =
+    typeof suggestedGrams === "number" && suggestedGrams > 0
+      ? Math.round(suggestedGrams)
+      : null;
+  const estimateRounded =
+    typeof estimateGrams === "number" && estimateGrams > 0
+      ? Math.round(estimateGrams)
+      : null;
   const showEstimateHint =
-    typeof estimateGrams === "number" &&
-    estimateGrams > 0 &&
-    Math.round(estimateGrams) !== Math.round(Number(value) || 0);
+    estimateRounded !== null &&
+    suggestedRounded !== null &&
+    estimateRounded !== suggestedRounded;
+
+  const quickChips = useMemo(() => {
+    const set = new Set(BASE_QUICK);
+    if (suggestedRounded) set.add(suggestedRounded);
+    return Array.from(set).sort((a, b) => a - b);
+  }, [suggestedRounded]);
 
   function submit() {
     const grams = parsePortionGrams(value);
@@ -61,7 +75,7 @@ export function PortionPrompt({
       )}
     >
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Scale className="h-8 w-8" />
+        <Scale className="h-8 w-8" aria-hidden />
       </div>
 
       <div className="space-y-1 text-center">
@@ -72,8 +86,8 @@ export function PortionPrompt({
         </p>
         {showEstimateHint ? (
           <p className="text-xs text-muted-foreground">
-            Rohschätzung {Math.round(estimateGrams!)} g · Vorschlag an
-            Sicherheit angepasst
+            KI schätzte {estimateRounded} g · Vorschlag an Sicherheit angepasst
+            ({suggestedRounded} g)
           </p>
         ) : null}
       </div>
@@ -98,7 +112,7 @@ export function PortionPrompt({
       ) : null}
 
       <div className="flex flex-wrap justify-center gap-2">
-        {QUICK.map((grams) => (
+        {quickChips.map((grams) => (
           <Button
             key={grams}
             type="button"
@@ -116,13 +130,27 @@ export function PortionPrompt({
         <Input
           id="portion-grams"
           inputMode="decimal"
+          enterKeyHint="done"
+          autoComplete="off"
           placeholder="z. B. 220"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onFocus={(e) =>
+            e.currentTarget.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            })
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
         />
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <Button type="button" size="lg" className="h-12 w-full" onClick={submit}>
           {confirmLabel}
         </Button>

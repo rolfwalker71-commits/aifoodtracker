@@ -22,12 +22,13 @@ export async function resolveUserFromApiAccessKey(rawKey: string) {
           id: true,
           email: true,
           name: true,
+          isActive: true,
         },
       },
     },
   });
 
-  if (!record) return null;
+  if (!record || !record.user.isActive) return null;
 
   void prisma.apiAccessKey
     .update({

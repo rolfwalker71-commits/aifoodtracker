@@ -107,6 +107,7 @@ export default function NewMealPage() {
   const [entryKind, setEntryKind] = useState<CaptureEntryKind>("photo");
   const [pendingFood, setPendingFood] = useState<PendingFood | null>(null);
   const [offMatch, setOffMatch] = useState<FoodLookupItem | null>(null);
+  const [offLookupPending, setOffLookupPending] = useState(false);
   const [confirmedGrams, setConfirmedGrams] = useState<number | null>(null);
 
   const formKey = useMemo(
@@ -160,6 +161,7 @@ export default function NewMealPage() {
     setAssistStep("identity");
     setPendingFood(null);
     setOffMatch(null);
+    setOffLookupPending(false);
     setConfirmedGrams(null);
   }
 
@@ -197,23 +199,31 @@ export default function NewMealPage() {
       void lookupOffMatch(pending.name);
     } else {
       setOffMatch(null);
+      setOffLookupPending(false);
     }
   }
 
   async function lookupOffMatch(query: string) {
+    setOffLookupPending(true);
+    setOffMatch(null);
     try {
       const response = await fetch(
         `/api/foods/search?q=${encodeURIComponent(query)}`,
         { cache: "no-store" },
       );
       const data = await response.json();
-      if (!response.ok) return;
+      if (!response.ok) {
+        setOffMatch(null);
+        return;
+      }
       const items = (data.items || data.results || data) as FoodLookupItem[];
       const list = Array.isArray(items) ? items : [];
       const first = list.find((item) => item.source === "openfoodfacts");
       setOffMatch(first || null);
     } catch {
       setOffMatch(null);
+    } finally {
+      setOffLookupPending(false);
     }
   }
 
@@ -337,6 +347,7 @@ export default function NewMealPage() {
     };
     setPendingFood(next);
     setOffMatch(null);
+    setOffLookupPending(false);
     setFormValues(buildMealFromPending(next, grams));
     setAssistStep("confirm");
     toast.success("Open-Food-Facts-Werte übernommen");
@@ -512,15 +523,19 @@ export default function NewMealPage() {
             ) : (
               <div className="space-y-4 rounded-2xl border border-border p-5 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Kein Open-Food-Facts-Treffer – weiter mit der KI-Schätzung.
+                  {offLookupPending
+                    ? "Suche passende Open-Food-Facts-Produkte…"
+                    : "Kein Open-Food-Facts-Treffer – weiter mit der KI-Schätzung."}
                 </p>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                  onClick={() => setAssistStep("confirm")}
-                >
-                  Weiter zum Speichern
-                </button>
+                {!offLookupPending ? (
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    onClick={() => setAssistStep("confirm")}
+                  >
+                    Weiter zum Speichern
+                  </button>
+                ) : null}
               </div>
             )
           ) : null}

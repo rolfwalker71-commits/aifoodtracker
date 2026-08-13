@@ -33,11 +33,18 @@ enum GoalMode {
   GAIN
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id                 String         @id @default(cuid())
   email              String         @unique
   name               String?
   passwordHash       String
+  role               UserRole       @default(USER)
+  isActive           Boolean        @default(true)
   openAiApiKey       String?
   avatarPath         String?
   sex                Sex?
@@ -67,8 +74,27 @@ model User {
   updatedAt          DateTime       @updatedAt
   meals              Meal[]
   apiAccessKeys      ApiAccessKey[]
+  invitationsCreated Invitation[]   @relation("InvitationCreator")
   accounts           Account[]
   sessions           Session[]
+}
+
+/// One-time invite code (hash stored). Claim creates a user; later login is email+password.
+model Invitation {
+  id          String    @id @default(cuid())
+  codeHash    String    @unique
+  /// Display prefix only, e.g. "NS-AB12"
+  codePrefix  String
+  createdById String
+  createdBy   User      @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  usedById    String?
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdById, usedAt])
+  @@index([expiresAt])
 }
 
 /// NutriSight REST API access key (plaintext shown once; only hash stored)

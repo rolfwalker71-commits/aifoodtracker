@@ -71,8 +71,8 @@ function LoginForm() {
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Noch kein Konto?{" "}
-          <Link href="/register" className="font-semibold text-primary">
-            Registrieren
+          <Link href="/invite" className="font-semibold text-primary">
+            Mit Einladungscode beitreten
           </Link>
         </p>
       </CardContent>

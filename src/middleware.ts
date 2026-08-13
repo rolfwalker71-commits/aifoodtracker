@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const publicPaths = ["/login", "/register"];
+const publicPaths = ["/login", "/invite", "/register"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,6 +25,7 @@ export async function middleware(request: NextRequest) {
   });
 
   const isPublic = publicPaths.some((path) => pathname.startsWith(path));
+  const isAdminPath = pathname.startsWith("/admin");
 
   if (!token && !isPublic && pathname !== "/") {
     const url = request.nextUrl.clone();
@@ -43,6 +44,21 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+
+  if (isAdminPath) {
+    if (!token) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(url);
+    }
+    // Older sessions may lack role until re-login; API/page still enforce ADMIN.
+    if (token.role && token.role !== "ADMIN") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   return NextResponse.next();

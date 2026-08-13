@@ -40,15 +40,19 @@ const STEP_META: Record<
 export function buildAssistSteps(
   entry: CaptureEntryKind,
   allowOffCompare: boolean,
-  hasOffMatch: boolean,
+  /** @deprecated kept for call-site compat; source is included whenever OFF compare is allowed */
+  _hasOffMatch = false,
 ): AssistStepId[] {
   const steps: AssistStepId[] = ["identity", "portion"];
-  if (allowOffCompare && hasOffMatch) {
+  // Always reserve Quelle when OFF compare is allowed, so a late search
+  // result is not skipped after the user already left the portion step.
+  if (allowOffCompare) {
     steps.push("source");
   }
   steps.push("confirm");
-  // Barcode/Suche: identity label still "Erkannt" but copy adapts in identity body
+  // Barcode/Suche: identity label adapts to "Produkt" via stepMeta
   void entry;
+  void _hasOffMatch;
   return steps;
 }
 
@@ -186,9 +190,17 @@ export function CaptureIdentityStep({
     typeof confidence === "number" ? confidenceLevel(confidence) : null;
   const portion = confidenceLevel(portionConfidence);
   const isProduct = entry === "barcode" || entry === "search";
+  const dishUncertain = dish?.key === "low" || dish?.key === "medium";
 
   return (
-    <div className="space-y-5 rounded-2xl border border-border bg-background p-5 sm:p-6">
+    <div
+      className={cn(
+        "space-y-5 rounded-2xl border bg-background p-5 sm:p-6",
+        dishUncertain
+          ? "border-amber-500/50 bg-amber-500/5"
+          : "border-border",
+      )}
+    >
       <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         {isProduct ? (
           <Package className="h-9 w-9" />
@@ -209,13 +221,27 @@ export function CaptureIdentityStep({
         </div>
       ) : null}
 
+      {dishUncertain ? (
+        <p className="text-center text-sm font-medium text-amber-900 dark:text-amber-100">
+          {isProduct
+            ? "Produkt unsicher – Bezeichnung prüfen und bei Bedarf anpassen."
+            : "Gericht unsicher – Name prüfen und bei Bedarf anpassen."}
+        </p>
+      ) : null}
+
       {onNameChange ? (
         <label className="block space-y-2 text-center">
           <span className="text-xs text-muted-foreground">Bezeichnung</span>
           <input
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-center font-display text-xl font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-xl border border-border bg-background px-3 py-3 text-center font-display text-xl font-bold leading-snug tracking-tight break-words outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-2xl"
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
+            onFocus={(e) =>
+              e.currentTarget.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              })
+            }
           />
         </label>
       ) : (

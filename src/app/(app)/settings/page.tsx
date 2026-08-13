@@ -1,8 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { signOut } from "next-auth/react";
+import Link from "next/link";
+import { signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
 import { ApiAccessKeysCard } from "@/components/settings/api-access-keys-card";
+import { InviteFriendsCard } from "@/components/settings/invite-friends-card";
 import { triggerMissingImageBackfill } from "@/components/meals/missing-image-backfill";
 import { formatNumber } from "@/lib/utils";
 import {
@@ -71,6 +74,7 @@ type Profile = {
 };
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -239,6 +243,15 @@ export default function SettingsPage() {
           Körperdaten für die Kalorienberechnung, Passwort und API-Key
         </p>
       </div>
+
+      {session?.user?.isAdmin ? (
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/admin/users">
+            <Shield className="h-4 w-4" />
+            Benutzerverwaltung (Admin)
+          </Link>
+        </Button>
+      ) : null}
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Card>
@@ -616,6 +629,8 @@ export default function SettingsPage() {
           {busy ? "Speichern…" : "Profil & Ziele speichern"}
         </Button>
       </form>
+
+      <InviteFriendsCard />
 
       <ApiAccessKeysCard />
 
