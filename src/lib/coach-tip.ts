@@ -66,7 +66,7 @@ export function getDailyCoachTip(params: {
   if (sodiumOver > 400) {
     return {
       title: "Natrium im Blick",
-      body: `Du liegst etwa ${formatNumber(sodiumOver, 0)} mg über dem Tagesziel. Bei der nächsten Mahlzeit eher frisch und wenig gesalzen wählen.`,
+      body: `Du liegst etwa ${formatNumber(sodiumOver, 0)} mg Natrium über dem Tagesziel (${formatNumber(totals.sodium, 0)} / ${formatNumber(goals.dailySodiumGoal, 0)} mg). Bei der nächsten Mahlzeit eher frisch und wenig gesalzen wählen.`,
       tone: "attention",
     };
   }

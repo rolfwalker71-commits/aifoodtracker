@@ -18,7 +18,8 @@ export function NutrientProgress({
   unit = "g",
   colorClass = "bg-primary",
 }: Props) {
-  const percent = clampPercent((current / Math.max(goal, 1)) * 100);
+  const rawPercent = (current / Math.max(goal, 1)) * 100;
+  const barPercent = clampPercent(rawPercent);
   const over = current > goal;
 
   return (
@@ -27,16 +28,21 @@ export function NutrientProgress({
         <span className="font-medium">{label}</span>
         <span className="text-muted-foreground">
           {formatNumber(current, unit === "kcal" ? 0 : 1)}
-          {unit === "kcal" ? "" : unit} / {formatNumber(goal, unit === "kcal" ? 0 : 1)}
+          {unit === "kcal" ? "" : unit} /{" "}
+          {formatNumber(goal, unit === "kcal" ? 0 : 1)}
           {unit === "kcal" ? " kcal" : unit}
-          <span className={over ? "ml-2 text-amber-600" : "ml-2"}>
-            ({formatNumber(percent, 0)}%)
+          <span
+            className={
+              over ? "ml-2 font-medium text-rose-600" : "ml-2"
+            }
+          >
+            ({formatNumber(rawPercent, 0)}%)
           </span>
         </span>
       </div>
       <Progress
-        value={percent}
-        indicatorClassName={over ? "bg-amber-500" : colorClass}
+        value={barPercent}
+        indicatorClassName={over ? "bg-rose-600" : colorClass}
       />
     </div>
   );

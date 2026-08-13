@@ -6,10 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatNumber(value: number, digits = 0) {
+  // Node and browsers disagree on the de-CH thousands separator
+  // (ASCII ' vs typographic ’) — normalize to avoid hydration mismatches.
   return new Intl.NumberFormat("de-CH", {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
-  }).format(value);
+  })
+    .format(value)
+    .replace(/[\u2019\u02BC]/g, "'");
 }
 
 export function clampPercent(value: number, max = 100) {
