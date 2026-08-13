@@ -25,9 +25,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+      # docker-container driver pulls moby/buildkit from Docker Hub;
+      # Hub 5xx is intermittent — retry once before failing the job.
       - name: Set up Docker Buildx
+        id: buildx
+        continue-on-error: true
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Buildx (retry)
+        if: steps.buildx.outcome == 'failure'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
