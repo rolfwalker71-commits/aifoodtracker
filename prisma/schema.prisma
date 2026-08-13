@@ -27,6 +27,12 @@ enum ActivityLevel {
   VERY_ACTIVE
 }
 
+enum GoalMode {
+  LOSE
+  MAINTAIN
+  GAIN
+}
+
 model User {
   id                 String         @id @default(cuid())
   email              String         @unique
@@ -39,6 +45,7 @@ model User {
   weightKg           Float?
   birthYear          Int?
   activityLevel      ActivityLevel  @default(MODERATE)
+  goalMode           GoalMode       @default(MAINTAIN)
   autoCalculateGoals Boolean        @default(true)
   dailyCaloriesGoal  Float          @default(2000)
   dailyProteinGoal   Float          @default(150)

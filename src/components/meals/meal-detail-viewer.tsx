@@ -34,6 +34,7 @@ type Props = {
   mealIsToday: boolean;
   isFavorite: boolean;
   busy?: boolean;
+  goalMode?: "LOSE" | "MAINTAIN" | "GAIN";
   onClose: () => void;
   onEdit: () => void;
   onToggleFavorite: () => void;
@@ -52,6 +53,7 @@ export function MealDetailViewer({
   mealIsToday,
   isFavorite,
   busy,
+  goalMode = "MAINTAIN",
   onClose,
   onEdit,
   onToggleFavorite,
@@ -258,7 +260,12 @@ export function MealDetailViewer({
               className="h-full min-h-0 shrink-0 overflow-y-auto overscroll-y-contain px-4 py-3"
               style={{ width: width > 0 ? width : "33.333%" }}
             >
-              <InsightPage values={values} goals={goals} onEdit={onEdit} />
+              <InsightPage
+                values={values}
+                goals={goals}
+                goalMode={goalMode}
+                onEdit={onEdit}
+              />
             </section>
             <section
               ref={(node) => {
@@ -405,13 +412,15 @@ function OverviewPage({
 function InsightPage({
   values,
   goals,
+  goalMode = "MAINTAIN",
   onEdit,
 }: {
   values: MealFormValues;
   goals: Goals | null;
+  goalMode?: "LOSE" | "MAINTAIN" | "GAIN";
   onEdit: () => void;
 }) {
-  const tip = getMealQualityTip(values, goals);
+  const tip = getMealQualityTip(values, goals, goalMode);
   const ingredients = values.ingredients ?? [];
 
   return (
@@ -474,7 +483,25 @@ function InsightPage({
           <p className="mt-1 text-sm leading-snug text-muted-foreground">
             {tip.body}
           </p>
-          {tip.alternatives?.length ? (
+          {tip.swaps?.length ? (
+            <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+              {tip.swaps.map((swap) => (
+                <li key={swap.label} className="leading-snug">
+                  <span className="font-medium text-foreground">
+                    {swap.label}
+                  </span>
+                  <span className="tabular-nums">
+                    {swap.deltaKcal !== 0
+                      ? ` · ${swap.deltaKcal > 0 ? "+" : ""}${formatNumber(swap.deltaKcal, 0)} kcal`
+                      : ""}
+                    {swap.deltaProtein !== 0
+                      ? ` · ${swap.deltaProtein > 0 ? "+" : ""}${formatNumber(swap.deltaProtein, 0)} g Protein`
+                      : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : tip.alternatives?.length ? (
             <ul className="mt-2 list-disc space-y-0.5 pl-4 text-sm text-muted-foreground">
               {tip.alternatives.map((item) => (
                 <li key={item}>{item}</li>

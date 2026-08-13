@@ -6,6 +6,7 @@ import { NO_STORE_HEADERS } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
 import { normalizeReminders } from "@/lib/reminders";
 import { requireUser } from "@/lib/session";
+import { resolveAvatarForUser } from "@/lib/uploads";
 import {
   calculateBmr,
   calculateDailyGoals,
@@ -31,6 +32,7 @@ const profileSchema = z.object({
   activityLevel: z
     .enum(["SEDENTARY", "LIGHT", "MODERATE", "ACTIVE", "VERY_ACTIVE"])
     .optional(),
+  goalMode: z.enum(["LOSE", "MAINTAIN", "GAIN"]).optional(),
   autoCalculateGoals: z.boolean().optional(),
   dailyCaloriesGoal: z.coerce.number().positive().optional(),
   dailyProteinGoal: z.coerce.number().positive().optional(),
@@ -60,6 +62,7 @@ const profileSelect = {
   weightKg: true,
   birthYear: true,
   activityLevel: true,
+  goalMode: true,
   autoCalculateGoals: true,
   dailyCaloriesGoal: true,
   dailyProteinGoal: true,
@@ -138,11 +141,16 @@ export async function GET() {
   }
 
   const meta = metaFromProfile(profile);
+  const avatarPath = await resolveAvatarForUser({
+    userId: user.id,
+    avatarPath: profile.avatarPath,
+  });
 
   return NextResponse.json(
     {
       profile: {
         ...profile,
+        avatarPath,
         reminders: normalizeReminders(profile.reminders),
         openAiApiKey: undefined,
         hasOpenAiApiKey: Boolean(profile.openAiApiKey),
@@ -196,6 +204,10 @@ export async function PUT(request: Request) {
       activityLevel:
         (data.activityLevel as ActivityLevel | undefined) ??
         existing.activityLevel,
+      goalMode:
+        (data.goalMode as "LOSE" | "MAINTAIN" | "GAIN" | undefined) ??
+        existing.goalMode ??
+        "MAINTAIN",
       autoCalculateGoals:
         typeof data.autoCalculateGoals === "boolean"
           ? data.autoCalculateGoals
@@ -212,13 +224,16 @@ export async function PUT(request: Request) {
         activityLevel: merged.activityLevel,
       })
     ) {
-      const goals = calculateDailyGoals({
-        sex: merged.sex as Sex,
-        heightCm: merged.heightCm as number,
-        weightKg: merged.weightKg as number,
-        birthYear: merged.birthYear as number,
-        activityLevel: merged.activityLevel,
-      });
+      const goals = calculateDailyGoals(
+        {
+          sex: merged.sex as Sex,
+          heightCm: merged.heightCm as number,
+          weightKg: merged.weightKg as number,
+          birthYear: merged.birthYear as number,
+          activityLevel: merged.activityLevel,
+        },
+        merged.goalMode,
+      );
       Object.assign(data, goals);
     }
 

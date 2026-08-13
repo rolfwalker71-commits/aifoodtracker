@@ -54,6 +54,9 @@ export default function MealDetailPage() {
   const router = useRouter();
   const [values, setValues] = useState<MealFormValues | null>(null);
   const [goals, setGoals] = useState<NutritionGoals | null>(null);
+  const [goalMode, setGoalMode] = useState<"LOSE" | "MAINTAIN" | "GAIN">(
+    "MAINTAIN",
+  );
   const [dayTotals, setDayTotals] = useState<Pick<
     NutrientTotals,
     "calories" | "protein" | "carbs" | "fat" | "fiber"
@@ -119,6 +122,18 @@ export default function MealDetailPage() {
             fat: stats.totals.fat ?? 0,
             fiber: stats.totals.fiber ?? 0,
           });
+        }
+      }
+
+      const profileResponse = await fetch("/api/profile", { cache: "no-store" });
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        const mode = profileData.profile?.goalMode;
+        if (
+          !cancelled &&
+          (mode === "LOSE" || mode === "MAINTAIN" || mode === "GAIN")
+        ) {
+          setGoalMode(mode);
         }
       }
     }
@@ -268,6 +283,7 @@ export default function MealDetailPage() {
         mealIsToday={isSameAppDay(values.consumedAt)}
         isFavorite={isFavorite}
         busy={busy}
+        goalMode={goalMode}
         onClose={() => {
           if (typeof window !== "undefined" && window.history.length > 1) {
             router.back();

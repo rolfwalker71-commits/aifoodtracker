@@ -9,18 +9,23 @@ import { MacroChart } from "@/components/dashboard/macro-chart";
 import { DailyGoalsSummary } from "@/components/dashboard/daily-goals-summary";
 import { FavoriteMealsStrip } from "@/components/meals/favorite-meals-strip";
 import { MealList } from "@/components/meals/meal-list";
+import { DayRestBudgetCard } from "@/components/coach/coach-panels";
+import { UserAvatar } from "@/components/settings/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { getDailyCoachTip } from "@/lib/coach-tip";
+import { getDayRestBudget } from "@/lib/day-plan";
 import {
   APP_DATE_FORMAT,
   APP_TIMEZONE,
   getRangeBoundsInAppTz,
 } from "@/lib/datetime";
+import { normalizeGoalMode } from "@/lib/goal-mode";
 import { formatNumber } from "@/lib/utils";
 import { getStatsForUser } from "@/lib/stats";
 import { prisma } from "@/lib/prisma";
+import { resolveAvatarForUser } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +63,7 @@ export default async function DashboardPage() {
         weightKg: true,
         birthYear: true,
         autoCalculateGoals: true,
+        goalMode: true,
       },
     }),
   ]);
@@ -68,15 +74,26 @@ export default async function DashboardPage() {
       profile.weightKg &&
       profile.birthYear,
   );
+  const goalMode = normalizeGoalMode(profile?.goalMode);
   const coachTip = getDailyCoachTip({
     totals: stats.totals,
     goals: stats.goals,
+    goalMode,
     meals: meals.map((meal) => ({
       mealType: meal.mealType,
       calories: meal.calories,
       protein: meal.protein,
       name: meal.name,
     })),
+  });
+  const restBudget = getDayRestBudget({
+    totals: stats.totals,
+    goals: stats.goals,
+    goalMode,
+  });
+  const avatarPath = await resolveAvatarForUser({
+    userId: session.user.id,
+    avatarPath: profile?.avatarPath,
   });
 
   return (
@@ -94,23 +111,19 @@ export default async function DashboardPage() {
             {formatNumber(stats.goals.dailyCaloriesGoal)} kcal
           </p>
         </div>
-        {profile?.avatarPath ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.avatarPath}
-            alt=""
-            className="h-16 w-16 shrink-0 rounded-full object-cover sm:h-20 sm:w-20"
-          />
-        ) : null}
+        <UserAvatar
+          src={avatarPath}
+          className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
+        />
       </section>
 
       <Card className="animate-rise">
         <CardContent className="flex items-start justify-between gap-3 pt-5">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-primary">Coach</p>
             <p className="mt-1 text-sm text-muted-foreground">{coachTip.body}</p>
           </div>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="shrink-0">
             <Link href="/coach">
               <Sparkles className="h-4 w-4" />
               Öffnen
@@ -118,6 +131,8 @@ export default async function DashboardPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <DayRestBudgetCard budget={restBudget} />
 
       <section className="grid gap-3 sm:grid-cols-2 animate-rise-delay">
         <Button asChild size="lg" className="h-14 justify-start px-5">

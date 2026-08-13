@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/settings/user-avatar";
 
 type Props = {
   avatarPath?: string | null;
@@ -63,14 +64,7 @@ export function AvatarUploader({ avatarPath, onChange }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
-      {avatarPath ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatarPath}
-          alt="Avatar"
-          className="h-20 w-20 rounded-full object-cover"
-        />
-      ) : null}
+      <UserAvatar src={avatarPath} alt="Avatar" className="h-20 w-20" />
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"

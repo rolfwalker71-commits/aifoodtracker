@@ -67,11 +67,17 @@ export function calculateTdee(input: BodyProfileInput) {
  * Derive daily nutrient goals from body data.
  * Protein ~1.8 g/kg, fat ~27% energy, carbs fill the rest.
  */
-export function calculateDailyGoals(input: BodyProfileInput): DailyGoals {
+export function calculateDailyGoals(
+  input: BodyProfileInput,
+  goalMode: "LOSE" | "MAINTAIN" | "GAIN" = "MAINTAIN",
+): DailyGoals {
   const tdee = calculateTdee(input);
-  const calories = Math.round(tdee / 10) * 10; // nearest 10 kcal
+  let calories = Math.round(tdee / 10) * 10; // nearest 10 kcal
+  if (goalMode === "LOSE") calories = Math.round((tdee * 0.85) / 10) * 10;
+  if (goalMode === "GAIN") calories = Math.round((tdee * 1.1) / 10) * 10;
 
-  const protein = Math.round(input.weightKg * 1.8);
+  const proteinPerKg = goalMode === "GAIN" ? 2.0 : goalMode === "LOSE" ? 2.0 : 1.8;
+  const protein = Math.round(input.weightKg * proteinPerKg);
   const fat = Math.round((calories * 0.27) / 9);
   const proteinKcal = protein * 4;
   const fatKcal = fat * 9;

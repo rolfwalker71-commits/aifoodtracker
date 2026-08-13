@@ -32,6 +32,11 @@ import {
   type ActivityLevel,
   type Sex,
 } from "@/lib/tdee";
+import {
+  GOAL_MODE_HINTS,
+  GOAL_MODE_LABELS,
+  type GoalMode,
+} from "@/lib/goal-mode";
 
 type Profile = {
   name: string;
@@ -42,6 +47,7 @@ type Profile = {
   weightKg: number | null;
   birthYear: number | null;
   activityLevel: ActivityLevel;
+  goalMode: GoalMode;
   autoCalculateGoals: boolean;
   dailyCaloriesGoal: number;
   dailyProteinGoal: number;
@@ -76,7 +82,12 @@ export default function SettingsPage() {
     async function load() {
       const response = await fetch("/api/profile", { cache: "no-store" });
       const data = await response.json();
-      if (!cancelled && response.ok) setProfile(data.profile);
+      if (!cancelled && response.ok) {
+        setProfile({
+          ...data.profile,
+          goalMode: data.profile.goalMode ?? "MAINTAIN",
+        });
+      }
     }
     load();
     return () => {
@@ -97,13 +108,16 @@ export default function SettingsPage() {
     ) {
       return null;
     }
-    return calculateDailyGoals({
-      sex: profile.sex as Sex,
-      heightCm: profile.heightCm as number,
-      weightKg: profile.weightKg as number,
-      birthYear: profile.birthYear as number,
-      activityLevel: profile.activityLevel,
-    });
+    return calculateDailyGoals(
+      {
+        sex: profile.sex as Sex,
+        heightCm: profile.heightCm as number,
+        weightKg: profile.weightKg as number,
+        birthYear: profile.birthYear as number,
+        activityLevel: profile.activityLevel,
+      },
+      profile.goalMode ?? "MAINTAIN",
+    );
   }, [profile]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -122,6 +136,7 @@ export default function SettingsPage() {
         weightKg: profile.weightKg,
         birthYear: profile.birthYear,
         activityLevel: profile.activityLevel,
+        goalMode: profile.goalMode ?? "MAINTAIN",
         autoCalculateGoals: profile.autoCalculateGoals,
         dailyCaloriesGoal: profile.dailyCaloriesGoal,
         dailyProteinGoal: profile.dailyProteinGoal,
@@ -355,6 +370,33 @@ export default function SettingsPage() {
                   )}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Ziel-Modus</Label>
+              <Select
+                value={profile.goalMode ?? "MAINTAIN"}
+                onValueChange={(value) =>
+                  setProfile({
+                    ...profile,
+                    goalMode: value as GoalMode,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(GOAL_MODE_LABELS) as GoalMode[]).map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {GOAL_MODE_LABELS[mode]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {GOAL_MODE_HINTS[profile.goalMode ?? "MAINTAIN"]} Steuert Coach
+                und – bei Auto-Zielen – kcal/Protein.
+              </p>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3 sm:col-span-2">
               <div>

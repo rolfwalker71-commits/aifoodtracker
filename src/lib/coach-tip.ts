@@ -1,4 +1,5 @@
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
+import type { GoalMode } from "@/lib/goal-mode";
 import { formatNumber } from "@/lib/utils";
 import type { NutritionGoals, NutrientTotals } from "@/lib/nutrition";
 import type { MealType } from "@/generated/prisma/client";
@@ -16,13 +17,15 @@ type MealLite = {
   name: string;
 };
 
-/** Deterministischer Tages-Coach aus Zielen und bisherigen Einträgen. */
+/** Deterministischer Tages-Coach aus Zielen, Modus und bisherigen Einträgen. */
 export function getDailyCoachTip(params: {
   totals: NutrientTotals;
   goals: NutritionGoals;
   meals: MealLite[];
   hour?: number;
+  goalMode?: GoalMode;
 }): CoachTip {
+  const mode = params.goalMode ?? "MAINTAIN";
   const hour =
     typeof params.hour === "number"
       ? params.hour
@@ -44,7 +47,12 @@ export function getDailyCoachTip(params: {
     if (hour < 11) {
       return {
         title: "Tagesstart",
-        body: "Noch nichts erfasst. Ein Frühstück mit etwas Protein hilft, den Tag stabil zu starten.",
+        body:
+          mode === "GAIN"
+            ? "Noch nichts erfasst. Starte proteinreich – z. B. Eier, Quark oder Hafer mit Milch."
+            : mode === "LOSE"
+              ? "Noch nichts erfasst. Ein proteinreiches, sättigendes Frühstück hilft gegen Heisshunger."
+              : "Noch nichts erfasst. Ein Frühstück mit etwas Protein hilft, den Tag stabil zu starten.",
         tone: "neutral",
       };
     }
@@ -66,7 +74,10 @@ export function getDailyCoachTip(params: {
   if (proteinLeft >= 25 && hour >= 15) {
     return {
       title: "Protein-Rest",
-      body: `Noch ca. ${formatNumber(proteinLeft, 0)} g Protein bis zum Ziel. Quark, Eier, Fisch oder Hülsenfrüchte schliessen die Lücke gut.`,
+      body:
+        mode === "GAIN"
+          ? `Noch ca. ${formatNumber(proteinLeft, 0)} g Protein – wichtig für Muskelaufbau. Quark, Fisch, Fleisch oder Shake schliessen die Lücke.`
+          : `Noch ca. ${formatNumber(proteinLeft, 0)} g Protein bis zum Ziel. Quark, Eier, Fisch oder Hülsenfrüchte schliessen die Lücke gut.`,
       tone: "attention",
     };
   }
@@ -74,8 +85,19 @@ export function getDailyCoachTip(params: {
   if (kcalLeft < -150) {
     return {
       title: "Über dem Kalorienziel",
-      body: `Du bist ca. ${formatNumber(Math.abs(kcalLeft), 0)} kcal über dem Tagesziel. Für den Rest des Tages eher leichte Optionen wählen.`,
+      body:
+        mode === "LOSE"
+          ? `Du bist ca. ${formatNumber(Math.abs(kcalLeft), 0)} kcal über dem Ziel. Für den Rest leichte, proteinreiche Optionen wählen.`
+          : `Du bist ca. ${formatNumber(Math.abs(kcalLeft), 0)} kcal über dem Tagesziel. Für den Rest des Tages eher leichte Optionen wählen.`,
       tone: "attention",
+    };
+  }
+
+  if (mode === "GAIN" && kcalLeft > 400 && hour >= 17) {
+    return {
+      title: "Energie für Aufbau",
+      body: `Es bleiben etwa ${formatNumber(kcalLeft, 0)} kcal. Nutze den Spielraum für eine vollwertige Mahlzeit mit Protein und Beilage.`,
+      tone: "neutral",
     };
   }
 
