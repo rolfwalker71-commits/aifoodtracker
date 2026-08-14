@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { BarcodeCapture } from "@/components/meals/barcode-capture";
 import { CameraCapture } from "@/components/meals/camera-capture";
@@ -26,7 +26,12 @@ import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
 import { scaleIngredients } from "@/lib/meal-ingredients";
 import { suggestMealTypeNow } from "@/lib/nutrition";
-import { enqueueOfflineMeal } from "@/lib/offline-meal-queue";
+import {
+  enqueueOfflineDraft,
+  getOfflineDraft,
+  listOfflineDrafts,
+  removeOfflineDraft,
+} from "@/lib/offline-db";
 import {
   formatPortionLabel,
   nutrientsFromPortion,
@@ -96,7 +101,23 @@ type PendingFood = {
 };
 
 export default function NewMealPage() {
+  return (
+    <Suspense
+      fallback={
+        <p className="text-sm text-muted-foreground">Lade Erfassung…</p>
+      }
+    >
+      <NewMealPageInner />
+    </Suspense>
+  );
+}
+
+function NewMealPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftParam = searchParams.get("draft");
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+  const [draftBooting, setDraftBooting] = useState(Boolean(draftParam));
   const [busy, setBusy] = useState(false);
   const [formValues, setFormValues] = useState<MealFormValues>(emptyForm);
   const [tab, setTab] = useState("photo");
@@ -406,6 +427,189 @@ export default function NewMealPage() {
     setFormValues(buildMealFromPending(pendingFood, grams));
   }
 
+  async function finishAfterSave() {
+    if (activeDraftId) {
+      await removeOfflineDraft(activeDraftId);
+      const remaining = await listOfflineDrafts();
+      setActiveDraftId(null);
+      if (remaining.length) {
+        toast.success("Gespeichert – nächster Entwurf");
+        navigateFresh(
+          router,
+          `/meals/new?draft=${encodeURIComponent(remaining[0]!.id)}`,
+        );
+        return;
+      }
+      toast.success("Alle Offline-Entwürfe erledigt");
+      navigateFresh(router, "/meals/offline");
+      return;
+    }
+    navigateFresh(router, "/dashboard");
+  }
+
+  async function queuePhotoOffline(file: File) {
+    await enqueueOfflineDraft({
+      kind: "photo",
+      label: file.name || "Foto-Entwurf",
+      imageBlob: file,
+      imageName: file.name || "meal.jpg",
+      imageMime: file.type || "image/jpeg",
+    });
+    toast.success("Foto offline gespeichert", {
+      description: "Später unter Offline-Entwürfe mit KI nachbearbeiten.",
+    });
+    navigateFresh(router, "/meals/offline");
+  }
+
+  async function queueTextOffline(text: string) {
+    await enqueueOfflineDraft({
+      kind: "text",
+      label: text.slice(0, 48) || "Freitext",
+      text,
+    });
+    toast.success("Text offline gespeichert", {
+      description: "Später mit KI auswerten und Menge bestätigen.",
+    });
+    navigateFresh(router, "/meals/offline");
+  }
+
+  async function queueBarcodeOffline(barcode: string) {
+    await enqueueOfflineDraft({
+      kind: "barcode",
+      label: `Barcode ${barcode}`,
+      barcode,
+    });
+    toast.success("Barcode offline gespeichert", {
+      description: "Später nachschlagen, Menge wählen, speichern.",
+    });
+    navigateFresh(router, "/meals/offline");
+  }
+
+  useEffect(() => {
+    if (!draftParam) {
+      setDraftBooting(false);
+      return;
+    }
+    let cancelled = false;
+
+    async function bootDraft() {
+      setDraftBooting(true);
+      setBusy(true);
+      try {
+        if (!navigator.onLine) {
+          toast.error("Nachbearbeitung braucht eine Internetverbindung");
+          navigateFresh(router, "/meals/offline");
+          return;
+        }
+        const draft = await getOfflineDraft(draftParam!);
+        if (!draft || cancelled) {
+          toast.error("Entwurf nicht gefunden");
+          navigateFresh(router, "/meals/offline");
+          return;
+        }
+        setActiveDraftId(draft.id);
+
+        if (draft.kind === "manual" && draft.formDraft) {
+          setFormValues({
+            ...emptyForm(),
+            ...draft.formDraft,
+            consumedAt: draft.formDraft.consumedAt || toFormDateTime(),
+          });
+          setPhase("details");
+          toast.message("Manueller Entwurf – bitte prüfen und speichern");
+          return;
+        }
+
+        if (draft.kind === "photo" && draft.imageBlob) {
+          const formData = new FormData();
+          formData.append(
+            "image",
+            draft.imageBlob,
+            draft.imageName || "meal.jpg",
+          );
+          const response = await fetch("/api/analyze", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Analyse fehlgeschlagen");
+          }
+          if (cancelled) return;
+          onCameraAnalyzed(
+            data.analysis as PortionAwareAnalysis,
+            data.imagePath as string,
+          );
+          toast.success("KI-Analyse fertig – bitte Menge prüfen");
+          return;
+        }
+
+        if (draft.kind === "text" && draft.text) {
+          const response = await fetch("/api/foods/estimate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+            body: JSON.stringify({ query: draft.text }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "KI-Schätzung fehlgeschlagen");
+          }
+          if (cancelled) return;
+          setTab("text");
+          onFoodSelected(
+            data.item as FoodLookupItem,
+            data.mealType,
+            data.notes,
+          );
+          toast.success("KI-Schätzung fertig – bitte Menge prüfen");
+          return;
+        }
+
+        if (draft.kind === "barcode" && draft.barcode) {
+          const response = await fetch(
+            `/api/foods/barcode?code=${encodeURIComponent(draft.barcode)}`,
+            { cache: "no-store" },
+          );
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Produkt nicht gefunden");
+          }
+          if (cancelled) return;
+          setTab("barcode");
+          onFoodSelected(
+            data.item as FoodLookupItem,
+            undefined,
+            `Barcode ${draft.barcode}`,
+          );
+          toast.success("Produkt geladen – bitte Menge prüfen");
+          return;
+        }
+
+        throw new Error("Entwurf unvollständig");
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Entwurf konnte nicht geladen werden",
+        );
+        navigateFresh(router, "/meals/offline");
+      } finally {
+        if (!cancelled) {
+          setBusy(false);
+          setDraftBooting(false);
+        }
+      }
+    }
+
+    void bootDraft();
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally only when draft id changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftParam]);
+
   async function saveMeal(values: MealFormValues = formValues) {
     setBusy(true);
     try {
@@ -431,18 +635,23 @@ export default function NewMealPage() {
           ? "Symbolbild wird im Hintergrund erzeugt…"
           : undefined,
       });
-      navigateFresh(router, "/dashboard");
+      await finishAfterSave();
     } catch (error) {
       const offline =
         (typeof navigator !== "undefined" && !navigator.onLine) ||
         (error instanceof TypeError &&
           /fetch|network|failed/i.test(error.message));
       if (offline) {
-        enqueueOfflineMeal(values);
-        toast.success("Offline gespeichert", {
-          description: "Wird synchronisiert, sobald du wieder online bist.",
+        await enqueueOfflineDraft({
+          kind: "manual",
+          label: values.name || "Offline-Mahlzeit",
+          formDraft: values,
         });
-        navigateFresh(router, "/dashboard");
+        toast.success("Offline gespeichert", {
+          description:
+            "Liegt unter Offline-Entwürfe – später einzeln nachbearbeiten.",
+        });
+        navigateFresh(router, "/meals/offline");
         return;
       }
       toast.error(
@@ -457,13 +666,22 @@ export default function NewMealPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
-          Mahlzeit erfassen
+          {activeDraftId ? "Offline-Entwurf nachbearbeiten" : "Mahlzeit erfassen"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Foto, Freitext, Barcode oder Suche – danach führt dich der Assistent
-          bis zum Speichern.
+          {activeDraftId
+            ? "KI läuft über den Entwurf – danach Menge prüfen und speichern."
+            : "Offline: Rohdaten in die Warteschlange. Online: Assistent bis zum Speichern."}
         </p>
       </div>
+
+      {draftBooting ? (
+        <Card>
+          <CardContent className="pt-5 text-sm text-muted-foreground">
+            Entwurf wird mit KI vorbereitet…
+          </CardContent>
+        </Card>
+      ) : null}
 
       {phase === "assist" && pendingFood ? (
         <MealCaptureAssistant
@@ -581,7 +799,7 @@ export default function NewMealPage() {
         </Card>
       ) : null}
 
-      {phase === "capture" ? (
+      {phase === "capture" && !draftBooting ? (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
             <TabsTrigger value="photo">Foto</TabsTrigger>
@@ -591,15 +809,24 @@ export default function NewMealPage() {
           </TabsList>
 
           <TabsContent value="photo" className="space-y-4">
-            <CameraCapture onAnalyzed={onCameraAnalyzed} />
+            <CameraCapture
+              onAnalyzed={onCameraAnalyzed}
+              onOfflineQueue={queuePhotoOffline}
+            />
           </TabsContent>
 
           <TabsContent value="text" className="space-y-4">
-            <TextMealCapture onSelect={onFoodSelected} />
+            <TextMealCapture
+              onSelect={onFoodSelected}
+              onOfflineQueue={queueTextOffline}
+            />
           </TabsContent>
 
           <TabsContent value="barcode" className="space-y-4">
-            <BarcodeCapture onSelect={onFoodSelected} />
+            <BarcodeCapture
+              onSelect={onFoodSelected}
+              onOfflineQueue={queueBarcodeOffline}
+            />
           </TabsContent>
 
           <TabsContent value="manual" className="space-y-4">

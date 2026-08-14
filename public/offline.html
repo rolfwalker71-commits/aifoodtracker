@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de-CH">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f766e" />
+    <title>Offline – NutriSight</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4fbf7;
+        --fg: #0f1f1c;
+        --muted: #5b6f69;
+        --card: #ffffffcc;
+        --accent: #0f766e;
+        --border: #d5e5df;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #071512;
+          --fg: #e8f5f1;
+          --muted: #9bb5ad;
+          --card: #0d221e;
+          --border: #1f3a34;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+        background:
+          radial-gradient(1200px 600px at 10% -10%, #9fd9c933, transparent),
+          radial-gradient(900px 500px at 100% 0%, #0f766e22, transparent),
+          var(--bg);
+        color: var(--fg);
+        padding: 24px 16px 40px;
+      }
+      main { max-width: 28rem; margin: 0 auto; }
+      h1 { font-size: 1.6rem; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+      p { color: var(--muted); line-height: 1.45; }
+      .card {
+        margin-top: 1.25rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--card);
+        backdrop-filter: blur(10px);
+      }
+      .card h2 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+      ul { margin: 0; padding-left: 1.1rem; color: var(--muted); }
+      li { margin: 0.25rem 0; }
+      a.btn {
+        display: inline-flex;
+        margin-top: 0.85rem;
+        margin-right: 0.5rem;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: white;
+        text-decoration: none;
+        font-weight: 650;
+        font-size: 0.9rem;
+      }
+      a.btn.secondary {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
+      #meta { font-size: 0.8rem; margin-top: 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Du bist offline</h1>
+      <p>
+        Die App-Oberfläche bleibt nutzbar, sobald sie einmal geladen war.
+        Neue Erfassungen werden zwischengespeichert und später einzeln mit KI
+        nachbearbeitet.
+      </p>
+
+      <div class="card">
+        <h2>Warteschlange</h2>
+        <p id="queue">Prüfe lokale Entwürfe…</p>
+        <a class="btn" href="/meals/new">Offline erfassen</a>
+        <a class="btn secondary" href="/meals/offline">Entwürfe öffnen</a>
+      </div>
+
+      <div class="card">
+        <h2>Letzter Tag (Cache)</h2>
+        <div id="snap">Noch kein Tagesstand gespeichert.</div>
+        <a class="btn secondary" href="/dashboard">Zum Dashboard</a>
+      </div>
+
+      <p id="meta"></p>
+    </main>
+    <script>
+      const DB = "nutrisight-offline";
+      const VER = 2;
+      function openDb() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB, VER);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains("drafts")) db.createObjectStore("drafts", { keyPath: "id" });
+            if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "key" });
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      function storeGet(db, store, key) {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(store, "readonly");
+          const req = tx.objectStore(store).get(key);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      function storeAll(db, store) {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(store, "readonly");
+          const req = tx.objectStore(store).getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      (async () => {
+        const online = navigator.onLine;
+        document.getElementById("meta").textContent = online
+          ? "Netz erkannt – Seite neu laden für Live-Daten."
+          : "Kein Netz – nur lokale Daten.";
+        try {
+          const db = await openDb();
+          const drafts = await storeAll(db, "drafts");
+          document.getElementById("queue").textContent = drafts.length
+            ? drafts.length + " Entwurf" + (drafts.length === 1 ? "" : "e") + " warten auf Nachbearbeitung."
+            : "Keine offenen Entwürfe.";
+          const snap = await storeGet(db, "meta", "day-snapshot");
+          if (snap && snap.value) {
+            const v = snap.value;
+            const kcal = Math.round(v.totals?.calories || 0);
+            const goal = Math.round(v.goals?.calories || 0);
+            const meals = (v.meals || []).length;
+            document.getElementById("snap").innerHTML =
+              "<ul>" +
+              "<li>" + (v.dateLabel || "Heute") + "</li>" +
+              "<li>" + kcal + " / " + goal + " kcal</li>" +
+              "<li>" + meals + " Mahlzeit" + (meals === 1 ? "" : "en") + "</li>" +
+              (v.weightKg != null ? "<li>Gewicht " + v.weightKg + " kg</li>" : "") +
+              "</ul>";
+          }
+        } catch (e) {
+          document.getElementById("queue").textContent = "Lokaler Speicher nicht verfügbar.";
+        }
+      })();
+    </script>
+  </body>
+</html>

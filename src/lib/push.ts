@@ -4,18 +4,19 @@ import {
   absoluteAssetUrl,
   type PushPayload,
 } from "@/lib/push-motifs";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 let configured = false;
 
 export function vapidPublicKey() {
-  return process.env.VAPID_PUBLIC_KEY?.trim() || "";
+  return runtimeEnv("VAPID_PUBLIC_KEY");
 }
 
 function configureWebPush() {
   const publicKey = vapidPublicKey();
-  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim() || "";
+  const privateKey = runtimeEnv("VAPID_PRIVATE_KEY");
   const subject =
-    process.env.VAPID_SUBJECT?.trim() || "mailto:hello@example.com";
+    runtimeEnv("VAPID_SUBJECT") || "mailto:hello@example.com";
   if (!publicKey || !privateKey) return false;
   if (!configured) {
     webpush.setVapidDetails(subject, publicKey, privateKey);
@@ -25,7 +26,7 @@ function configureWebPush() {
 }
 
 export function pushConfigured() {
-  return Boolean(vapidPublicKey() && process.env.VAPID_PRIVATE_KEY?.trim());
+  return Boolean(vapidPublicKey() && runtimeEnv("VAPID_PRIVATE_KEY"));
 }
 
 function withAbsoluteAssets(payload: PushPayload): PushPayload {

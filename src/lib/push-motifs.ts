@@ -1,4 +1,5 @@
 import type { MealType } from "@/generated/prisma/client";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 export type PushKind =
   | "breakfast"
@@ -62,7 +63,7 @@ export function buildPushPayload(
 }
 
 export function absoluteAssetUrl(path: string) {
-  const base = (process.env.AUTH_URL || process.env.NEXTAUTH_URL || "")
+  const base = (runtimeEnv("AUTH_URL") || runtimeEnv("NEXTAUTH_URL") || "")
     .replace(/\/$/, "");
   if (!base) return path;
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;

@@ -16,9 +16,10 @@ type Props = {
     mealType?: MealType,
     notes?: string,
   ) => void;
+  onOfflineQueue?: (text: string) => Promise<void>;
 };
 
-export function TextMealCapture({ onSelect }: Props) {
+export function TextMealCapture({ onSelect, onOfflineQueue }: Props) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -28,6 +29,18 @@ export function TextMealCapture({ onSelect }: Props) {
       toast.error("Bitte etwas genauer beschreiben (mind. 3 Zeichen).");
       return;
     }
+
+    if (!navigator.onLine && onOfflineQueue) {
+      setBusy(true);
+      try {
+        await onOfflineQueue(query);
+        setText("");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     setBusy(true);
     try {
       const response = await fetch("/api/foods/estimate", {
@@ -42,6 +55,15 @@ export function TextMealCapture({ onSelect }: Props) {
       }
       onSelect(data.item as FoodLookupItem, data.mealType, data.notes);
     } catch (error) {
+      const networkFail =
+        !navigator.onLine ||
+        (error instanceof TypeError &&
+          /fetch|network|failed/i.test(error.message));
+      if (networkFail && onOfflineQueue) {
+        await onOfflineQueue(query);
+        setText("");
+        return;
+      }
       toast.error(
         error instanceof Error ? error.message : "KI-Schätzung fehlgeschlagen",
       );
@@ -49,6 +71,8 @@ export function TextMealCapture({ onSelect }: Props) {
       setBusy(false);
     }
   }
+
+  const offline = typeof navigator !== "undefined" && !navigator.onLine;
 
   return (
     <Card>
@@ -69,8 +93,7 @@ export function TextMealCapture({ onSelect }: Props) {
             onChange={(e) => setText(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            Menge und Zutaten möglichst mit angeben – die KI schätzt dann die
-            Nährwerte.
+            Offline speichert nur den Text – KI und Menge folgen später online.
           </p>
         </div>
         <Button
@@ -80,7 +103,13 @@ export function TextMealCapture({ onSelect }: Props) {
           disabled={busy || text.trim().length < 3}
           onClick={() => void analyze()}
         >
-          {busy ? "Wird geschätzt…" : "Mit KI auswerten"}
+          {busy
+            ? offline
+              ? "Speichere…"
+              : "Wird geschätzt…"
+            : offline
+              ? "Offline speichern"
+              : "Mit KI auswerten"}
         </Button>
       </CardContent>
     </Card>

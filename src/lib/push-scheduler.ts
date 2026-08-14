@@ -1,8 +1,10 @@
+import { runtimeEnv } from "@/lib/runtime-env";
+
 let started = false;
 
 export function startPushScheduler() {
   if (started) return;
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+  if (!runtimeEnv("VAPID_PUBLIC_KEY") || !runtimeEnv("VAPID_PRIVATE_KEY")) return;
   started = true;
 
   const tick = async () => {

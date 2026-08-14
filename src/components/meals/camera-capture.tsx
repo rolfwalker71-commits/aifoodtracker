@@ -10,13 +10,16 @@ import type { PortionAwareAnalysis } from "@/types/nutrition";
 
 type Props = {
   onAnalyzed: (result: PortionAwareAnalysis, imagePath: string) => void;
+  onOfflineQueue?: (file: File) => Promise<void>;
 };
 
-export function CameraCapture({ onAnalyzed }: Props) {
+export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const offline =
+    typeof navigator !== "undefined" ? !navigator.onLine : false;
 
   function onFileChange(selected?: File | null) {
     if (!selected) return;
@@ -27,6 +30,16 @@ export function CameraCapture({ onAnalyzed }: Props) {
   async function analyze() {
     if (!file) {
       toast.error("Bitte zuerst ein Foto auswählen.");
+      return;
+    }
+
+    if (!navigator.onLine && onOfflineQueue) {
+      setAnalyzing(true);
+      try {
+        await onOfflineQueue(file);
+      } finally {
+        setAnalyzing(false);
+      }
       return;
     }
 
@@ -42,8 +55,19 @@ export function CameraCapture({ onAnalyzed }: Props) {
       if (!response.ok) {
         throw new Error(data.error || "Analyse fehlgeschlagen");
       }
-      onAnalyzed(data.analysis as PortionAwareAnalysis, data.imagePath as string);
+      onAnalyzed(
+        data.analysis as PortionAwareAnalysis,
+        data.imagePath as string,
+      );
     } catch (error) {
+      const networkFail =
+        !navigator.onLine ||
+        (error instanceof TypeError &&
+          /fetch|network|failed/i.test(error.message));
+      if (networkFail && onOfflineQueue) {
+        await onOfflineQueue(file);
+        return;
+      }
       toast.error(
         error instanceof Error ? error.message : "Analyse fehlgeschlagen",
       );
@@ -79,7 +103,7 @@ export function CameraCapture({ onAnalyzed }: Props) {
               <ImagePlus className="mb-3 h-8 w-8 text-muted-foreground transition group-hover:text-primary" />
               <p className="text-sm font-medium">Kamera oder Galerie öffnen</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Bei unsicherer Portionsgrösse wirst du danach gefragt
+                Offline: Foto zwischenspeichern, später mit KI bearbeiten
               </p>
             </>
           )}
@@ -97,17 +121,17 @@ export function CameraCapture({ onAnalyzed }: Props) {
           className="w-full"
           size="lg"
           disabled={!file || analyzing}
-          onClick={analyze}
+          onClick={() => void analyze()}
         >
           {analyzing ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Analysiere mit GPT-4o…
+              {offline ? "Speichere offline…" : "Analysiere mit GPT-4o…"}
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
-              Mit KI analysieren
+              {offline ? "Offline speichern" : "Mit KI analysieren"}
             </>
           )}
         </Button>

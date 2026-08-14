@@ -14,13 +14,14 @@ import type { MealType } from "@/generated/prisma/client";
 
 type Props = {
   onSelect: (item: FoodLookupItem, mealType?: MealType, notes?: string) => void;
+  onOfflineQueue?: (barcode: string) => Promise<void>;
 };
 
 function normalizeBarcode(value: string) {
   return value.replace(/\D/g, "");
 }
 
-export function BarcodeCapture({ onSelect }: Props) {
+export function BarcodeCapture({ onSelect, onOfflineQueue }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
@@ -69,6 +70,17 @@ export function BarcodeCapture({ onSelect }: Props) {
     setLookingUp(true);
     setLastCode(code);
     setPreview(null);
+
+    if (!navigator.onLine && onOfflineQueue) {
+      try {
+        await onOfflineQueue(code);
+        stopScanner();
+      } finally {
+        setLookingUp(false);
+      }
+      return;
+    }
+
     try {
       const response = await fetch(
         `/api/foods/barcode?code=${encodeURIComponent(code)}`,
@@ -83,6 +95,15 @@ export function BarcodeCapture({ onSelect }: Props) {
       toast.success("Produkt gefunden");
       stopScanner();
     } catch (error) {
+      const networkFail =
+        !navigator.onLine ||
+        (error instanceof TypeError &&
+          /fetch|network|failed/i.test(error.message));
+      if (networkFail && onOfflineQueue) {
+        await onOfflineQueue(code);
+        stopScanner();
+        return;
+      }
       toast.error(
         error instanceof Error ? error.message : "Produkt nicht gefunden",
       );

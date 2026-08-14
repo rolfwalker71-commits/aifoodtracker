@@ -8,18 +8,15 @@ export function ServiceWorkerRegister() {
 
     async function register() {
       try {
-        // Drop outdated caches that previously stored dashboard/meal HTML
         const keys = await caches.keys();
         await Promise.all(
           keys
             .filter(
               (key) =>
-                key.startsWith("nutrisight-shell") ||
-                key === "nutrisight-static-v1" ||
-                key === "nutrisight-static-v2" ||
-                key === "nutrisight-static-v3" ||
-                key === "nutrisight-static-v4" ||
-                key === "nutrisight-static-v5",
+                key.startsWith("nutrisight-") &&
+                key !== "nutrisight-shell-v7" &&
+                key !== "nutrisight-static-v7" &&
+                key !== "nutrisight-runtime-v7",
             )
             .map((key) => caches.delete(key)),
         );

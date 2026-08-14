@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { dispatchDuePushes } from "@/lib/push-dispatch";
 import { pushConfigured } from "@/lib/push";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 function authorized(request: Request) {
-  const secret = process.env.CRON_SECRET?.trim();
+  const secret = runtimeEnv("CRON_SECRET");
   if (!secret) return false;
   const header = request.headers.get("authorization") || "";
   const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const publicPaths = ["/login", "/invite", "/register"];
+const publicPaths = ["/login", "/invite", "/register", "/offline"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (token && (isPublic || pathname === "/")) {
+  if (token && ((isPublic && pathname !== "/offline") || pathname === "/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

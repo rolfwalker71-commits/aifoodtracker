@@ -2,8 +2,9 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { OfflineQueueSync } from "@/components/meals/offline-queue-sync";
 import { MissingImageBackfill } from "@/components/meals/missing-image-backfill";
+import { DaySnapshotSync } from "@/components/offline/day-snapshot-sync";
+import { OfflineStatusBanner } from "@/components/offline/offline-status-banner";
 import { ReminderScheduler } from "@/components/reminders/reminder-scheduler";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -26,10 +27,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <ThemeToggle />
         </header>
         <main className="min-w-0 flex-1 px-4 py-5 pb-28 md:px-6 md:pb-8">
+          <OfflineStatusBanner />
           {children}
         </main>
         <BottomNav />
-        <OfflineQueueSync />
+        <DaySnapshotSync />
         <MissingImageBackfill />
         <ReminderScheduler />
       </div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
 import { Camera, ChartColumn, Sparkles } from "lucide-react";
@@ -9,10 +9,9 @@ import { MacroChart } from "@/components/dashboard/macro-chart";
 import { DailyGoalsSummary } from "@/components/dashboard/daily-goals-summary";
 import { FavoriteMealsStrip } from "@/components/meals/favorite-meals-strip";
 import { MealList } from "@/components/meals/meal-list";
-import { RepeatMealsStrip } from "@/components/meals/repeat-meals-strip";
 import { PushEnableButton } from "@/components/push/push-enable-button";
 import { WeightCard } from "@/components/weight/weight-card";
-import { pickRepeatCandidates } from "@/lib/repeat-meals";
+import { CachedDayPanel } from "@/components/offline/cached-day-panel";
 import { DayRestBudgetCard } from "@/components/coach/coach-panels";
 import { UserAvatar } from "@/components/settings/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -40,15 +39,11 @@ export default async function DashboardPage() {
 
   const today = new Date();
   const { from, to } = getRangeBoundsInAppTz("day", today);
-  const yesterdayBounds = getRangeBoundsInAppTz("day", subDays(today, 1));
-  const recentFrom = getRangeBoundsInAppTz("week", today).from;
   const [
     stats,
     meals,
     favorites,
     profile,
-    yesterdayMeals,
-    recentMeals,
     weightEntries,
   ] = await Promise.all([
     getStatsForUser(session.user.id, "day"),
@@ -80,35 +75,12 @@ export default async function DashboardPage() {
         goalMode: true,
       },
     }),
-    prisma.meal.findMany({
-      where: {
-        userId: session.user.id,
-        consumedAt: {
-          gte: yesterdayBounds.from,
-          lte: yesterdayBounds.to,
-        },
-      },
-      orderBy: { consumedAt: "desc" },
-      take: 12,
-    }),
-    prisma.meal.findMany({
-      where: {
-        userId: session.user.id,
-        consumedAt: { gte: recentFrom, lte: to },
-      },
-      orderBy: { consumedAt: "desc" },
-      take: 40,
-    }),
     prisma.weightEntry.findMany({
       where: { userId: session.user.id },
       orderBy: { recordedOn: "asc" },
       take: 90,
     }),
   ]);
-  const repeatMeals = pickRepeatCandidates({
-    yesterday: yesterdayMeals,
-    recent: recentMeals,
-  });
   const todayLabel = toZonedTime(today, APP_TIMEZONE);
   const profileComplete = Boolean(
     profile?.sex &&
@@ -176,9 +148,9 @@ export default async function DashboardPage() {
 
       <DayRestBudgetCard budget={restBudget} />
 
-      <PushEnableButton compact />
+      <CachedDayPanel />
 
-      <RepeatMealsStrip meals={repeatMeals} />
+      <PushEnableButton compact />
 
       <WeightCard
         currentKg={weightEntries.at(-1)?.kg ?? profile?.weightKg ?? null}

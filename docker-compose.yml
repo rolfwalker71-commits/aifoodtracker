@@ -29,6 +29,8 @@ services:
     restart: unless-stopped
     ports:
       - "3333:3333"
+    env_file:
+      - .env
     environment:
       PORT: 3333
       HOSTNAME: 0.0.0.0
@@ -40,8 +42,8 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3333}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-aifoodtracker-dev-encryption-key-32b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
-      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:hello@example.com}
       CRON_SECRET: ${CRON_SECRET:-dev-cron-secret}
     volumes:

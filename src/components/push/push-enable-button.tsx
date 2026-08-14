@@ -135,7 +135,7 @@ export function PushEnableButton({ compact = false }: { compact?: boolean }) {
 
   const hint =
     status === "needs-keys"
-      ? "Auf dem Server fehlen VAPID_PUBLIC_KEY und VAPID_PRIVATE_KEY. Keys mit npx web-push generate-vapid-keys erzeugen und in die .env legen, App neu starten."
+      ? "Die laufende App sieht keine VAPID-Keys. Stehen sie in der .env, Dev-Server neu starten — bei Docker: docker compose up -d --force-recreate."
       : status === "unsupported"
         ? "Dieser Browser kann kein Web Push. Auf dem Handy: NutriSight auf den Homescreen legen (PWA) und hier nochmals öffnen. Desktop: Chrome/Edge, nicht im Inkognito."
         : status === "on"
