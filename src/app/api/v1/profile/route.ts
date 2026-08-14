@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { NO_STORE_HEADERS } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
-import { normalizeReminders } from "@/lib/reminders";
+import { parseReminderSettings } from "@/lib/reminders";
 import { requireRequestUser } from "@/lib/session";
 
 export async function GET(request: Request) {
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     {
       profile: {
         ...profile,
-        reminders: normalizeReminders(profile.reminders),
+        reminders: parseReminderSettings(profile.reminders),
       },
     },
     { headers: NO_STORE_HEADERS },

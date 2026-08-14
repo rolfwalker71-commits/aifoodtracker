@@ -20,14 +20,14 @@ import { Switch } from "@/components/ui/switch";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
 import { ApiAccessKeysCard } from "@/components/settings/api-access-keys-card";
 import { InviteFriendsCard } from "@/components/settings/invite-friends-card";
+import { RemindersCard } from "@/components/settings/reminders-card";
 import { triggerMissingImageBackfill } from "@/components/meals/missing-image-backfill";
 import { formatNumber } from "@/lib/utils";
 import {
-  DEFAULT_REMINDERS,
-  normalizeReminders,
-  type MealReminder,
+  parseReminderSettings,
+  serializeReminderSettings,
+  type ReminderSettings,
 } from "@/lib/reminders";
-import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
 import {
   ACTIVITY_LABELS,
   calculateDailyGoals,
@@ -65,7 +65,7 @@ type Profile = {
   dailyVitaminDGoal: number;
   dailyCalciumGoal: number;
   dailyIronGoal: number;
-  reminders?: MealReminder[];
+  reminders: ReminderSettings;
   hasOpenAiApiKey: boolean;
   openAiApiKeyMasked?: string;
   profileComplete?: boolean;
@@ -90,6 +90,7 @@ export default function SettingsPage() {
         setProfile({
           ...data.profile,
           goalMode: data.profile.goalMode ?? "MAINTAIN",
+          reminders: parseReminderSettings(data.profile.reminders),
         });
       }
     }
@@ -155,7 +156,7 @@ export default function SettingsPage() {
         dailyVitaminDGoal: profile.dailyVitaminDGoal,
         dailyCalciumGoal: profile.dailyCalciumGoal,
         dailyIronGoal: profile.dailyIronGoal,
-        reminders: normalizeReminders(profile.reminders),
+        reminders: serializeReminderSettings(profile.reminders),
         openAiApiKey: apiKey || undefined,
       }),
     });
@@ -172,6 +173,7 @@ export default function SettingsPage() {
         ? {
             ...prev,
             ...data.profile,
+            reminders: parseReminderSettings(data.profile.reminders),
             openAiApiKeyMasked: apiKey
               ? `${apiKey.slice(0, 3)}••••${apiKey.slice(-4)}`
               : prev.openAiApiKeyMasked,
@@ -496,77 +498,10 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Erinnerungen</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Lokale Browser-Benachrichtigungen (App muss Permission erlauben).
-              Kein Push-Server.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={async () => {
-                if (!("Notification" in window)) {
-                  toast.error("Benachrichtigungen werden nicht unterstützt");
-                  return;
-                }
-                const permission = await Notification.requestPermission();
-                if (permission === "granted") {
-                  toast.success("Benachrichtigungen erlaubt");
-                } else {
-                  toast.error("Benachrichtigungen abgelehnt");
-                }
-              }}
-            >
-              Permission anfordern
-            </Button>
-            {(profile.reminders?.length
-              ? profile.reminders
-              : DEFAULT_REMINDERS
-            ).map((reminder) => (
-              <div
-                key={reminder.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium">
-                    {MEAL_TYPE_LABELS[reminder.mealType]}
-                  </p>
-                  <Input
-                    type="time"
-                    className="mt-2 w-32"
-                    value={reminder.timeLocal}
-                    onChange={(e) => {
-                      const reminders = normalizeReminders(
-                        profile.reminders,
-                      ).map((item) =>
-                        item.id === reminder.id
-                          ? { ...item, timeLocal: e.target.value }
-                          : item,
-                      );
-                      setProfile({ ...profile, reminders });
-                    }}
-                  />
-                </div>
-                <Switch
-                  checked={reminder.enabled}
-                  onCheckedChange={(checked) => {
-                    const reminders = normalizeReminders(profile.reminders).map(
-                      (item) =>
-                        item.id === reminder.id
-                          ? { ...item, enabled: checked }
-                          : item,
-                    );
-                    setProfile({ ...profile, reminders });
-                  }}
-                />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <RemindersCard
+          settings={profile.reminders}
+          onChange={(reminders) => setProfile({ ...profile, reminders })}
+        />
 
         <Card>
           <CardHeader>

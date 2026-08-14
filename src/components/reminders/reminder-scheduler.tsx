@@ -2,13 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import {
-  DEFAULT_REMINDERS,
-  normalizeReminders,
-  type MealReminder,
+  parseReminderSettings,
+  type ReminderSettings,
 } from "@/lib/reminders";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
 
-const FIRED_KEY = "nutrisight-reminder-fired-v1";
+const FIRED_KEY = "nutrisight-reminder-fired-v2";
 
 function firedMap(): Record<string, string> {
   try {
@@ -43,15 +42,29 @@ function localNowParts() {
   return { day, time };
 }
 
-async function maybeNotify(reminders: MealReminder[]) {
+async function hasPushSubscription() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return false;
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const sub = await registration.pushManager.getSubscription();
+    return Boolean(sub);
+  } catch {
+    return false;
+  }
+}
+
+async function maybeNotify(settings: ReminderSettings) {
   if (typeof window === "undefined") return;
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
+  if (await hasPushSubscription()) return;
 
   const { day, time } = localNowParts();
   const fired = firedMap();
 
-  for (const reminder of reminders) {
+  for (const reminder of settings.meals) {
     if (!reminder.enabled) continue;
     if (reminder.timeLocal !== time) continue;
     const key = `${reminder.id}:${reminder.timeLocal}`;
@@ -59,9 +72,10 @@ async function maybeNotify(reminders: MealReminder[]) {
 
     const label = MEAL_TYPE_LABELS[reminder.mealType];
     try {
-      new Notification("NutriSight Erinnerung", {
-        body: `Zeit für ${label}? Tippe zum Erfassen.`,
+      new Notification(`${label} eintragen?`, {
+        body: `Zeit für ${label}. Tippe zum Erfassen.`,
         tag: key,
+        icon: "/icons/icon-192.png",
       });
       markFired(key, day);
     } catch {
@@ -71,7 +85,7 @@ async function maybeNotify(reminders: MealReminder[]) {
 }
 
 export function ReminderScheduler() {
-  const remindersRef = useRef<MealReminder[]>(DEFAULT_REMINDERS);
+  const settingsRef = useRef<ReminderSettings>(parseReminderSettings(null));
 
   useEffect(() => {
     let cancelled = false;
@@ -81,7 +95,7 @@ export function ReminderScheduler() {
         const response = await fetch("/api/profile", { cache: "no-store" });
         const data = await response.json();
         if (!cancelled && response.ok) {
-          remindersRef.current = normalizeReminders(data.profile?.reminders);
+          settingsRef.current = parseReminderSettings(data.profile?.reminders);
         }
       } catch {
         // ignore
@@ -89,14 +103,14 @@ export function ReminderScheduler() {
     }
 
     void load();
-    void maybeNotify(remindersRef.current);
+    void maybeNotify(settingsRef.current);
 
     const timer = window.setInterval(() => {
-      void maybeNotify(remindersRef.current);
+      void maybeNotify(settingsRef.current);
     }, 30_000);
 
     const onFocus = () => {
-      void load().then(() => maybeNotify(remindersRef.current));
+      void load().then(() => maybeNotify(settingsRef.current));
     };
     window.addEventListener("focus", onFocus);
 

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { decryptSecret, encryptSecret, maskApiKey } from "@/lib/crypto";
 import { NO_STORE_HEADERS } from "@/lib/meal-cache";
 import { prisma } from "@/lib/prisma";
-import { normalizeReminders } from "@/lib/reminders";
+import { parseReminderSettings, serializeReminderSettings } from "@/lib/reminders";
 import { requireUser } from "@/lib/session";
 import { resolveAvatarForUser } from "@/lib/uploads";
 import {
@@ -21,6 +21,23 @@ const reminderItemSchema = z.object({
   mealType: z.enum(["BREAKFAST", "LUNCH", "DINNER", "SNACK"]),
   timeLocal: z.string().regex(/^\d{2}:\d{2}$/),
   enabled: z.boolean(),
+});
+
+const extraReminderSchema = z.object({
+  restCoach: z.object({
+    enabled: z.boolean(),
+    timeLocal: z.string().regex(/^\d{2}:\d{2}$/),
+  }),
+  weeklyWeight: z.object({
+    enabled: z.boolean(),
+    weekday: z.number().int().min(0).max(6),
+    timeLocal: z.string().regex(/^\d{2}:\d{2}$/),
+  }),
+});
+
+const reminderSettingsSchema = z.object({
+  meals: z.array(reminderItemSchema),
+  extras: extraReminderSchema,
 });
 
 const profileSchema = z.object({
@@ -47,7 +64,7 @@ const profileSchema = z.object({
   dailyVitaminDGoal: z.coerce.number().positive().optional(),
   dailyCalciumGoal: z.coerce.number().positive().optional(),
   dailyIronGoal: z.coerce.number().positive().optional(),
-  reminders: z.array(reminderItemSchema).optional(),
+  reminders: reminderSettingsSchema.optional(),
   openAiApiKey: z.string().optional().nullable(),
   clearOpenAiApiKey: z.boolean().optional(),
 });
@@ -151,7 +168,7 @@ export async function GET() {
       profile: {
         ...profile,
         avatarPath,
-        reminders: normalizeReminders(profile.reminders),
+        reminders: parseReminderSettings(profile.reminders),
         openAiApiKey: undefined,
         hasOpenAiApiKey: Boolean(profile.openAiApiKey),
         openAiApiKeyMasked: maskedKey,
@@ -186,6 +203,10 @@ export async function PUT(request: Request) {
     const data: Record<string, unknown> = { ...parsed.data };
     delete data.openAiApiKey;
     delete data.clearOpenAiApiKey;
+
+    if (parsed.data.reminders) {
+      data.reminders = serializeReminderSettings(parsed.data.reminders);
+    }
 
     if (parsed.data.clearOpenAiApiKey) {
       data.openAiApiKey = null;
@@ -243,6 +264,32 @@ export async function PUT(request: Request) {
       select: profileSelect,
     });
 
+    if (
+      typeof parsed.data.weightKg === "number" &&
+      parsed.data.weightKg > 0
+    ) {
+      const day = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Zurich",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+      await prisma.weightEntry.upsert({
+        where: {
+          userId_recordedOn: {
+            userId: user.id,
+            recordedOn: new Date(`${day}T00:00:00.000Z`),
+          },
+        },
+        create: {
+          userId: user.id,
+          kg: parsed.data.weightKg,
+          recordedOn: new Date(`${day}T00:00:00.000Z`),
+        },
+        update: { kg: parsed.data.weightKg },
+      });
+    }
+
     revalidatePath("/dashboard", "layout");
     revalidatePath("/stats", "layout");
     revalidatePath("/settings", "page");
@@ -253,7 +300,7 @@ export async function PUT(request: Request) {
       {
         profile: {
           ...profile,
-          reminders: normalizeReminders(profile.reminders),
+          reminders: parseReminderSettings(profile.reminders),
           openAiApiKey: undefined,
           hasOpenAiApiKey: Boolean(profile.openAiApiKey),
           ...meta,

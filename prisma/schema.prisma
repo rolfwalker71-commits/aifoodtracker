@@ -75,8 +75,50 @@ model User {
   meals              Meal[]
   apiAccessKeys      ApiAccessKey[]
   invitationsCreated Invitation[]   @relation("InvitationCreator")
+  pushSubscriptions  PushSubscription[]
+  pushDeliveries     PushDelivery[]
+  weightEntries      WeightEntry[]
   accounts           Account[]
   sessions           Session[]
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Dedupes one push kind per user per Zurich calendar day.
+model PushDelivery {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String
+  dayKey    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, dayKey])
+  @@index([dayKey])
+}
+
+model WeightEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  kg         Float
+  recordedOn DateTime @db.Date
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recordedOn])
+  @@index([userId, recordedOn])
 }
 
 /// One-time invite code (hash stored). Claim creates a user; later login is email+password.

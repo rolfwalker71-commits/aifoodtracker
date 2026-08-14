@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { MacroChart } from "@/components/dashboard/macro-chart";
 import { TrendChart } from "@/components/stats/trend-chart";
+import { WeightTrend } from "@/components/weight/weight-trend";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -40,16 +41,22 @@ export default function StatsPage() {
   const [range, setRange] = useState<StatsRange>("week");
   const [metric, setMetric] = useState<MetricKey>("calories");
   const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [weight, setWeight] = useState<Array<{ recordedOn: string; kg: number }>>(
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const response = await fetch(`/api/stats?range=${range}`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (!cancelled && response.ok) setStats(data);
+      const [statsRes, weightRes] = await Promise.all([
+        fetch(`/api/stats?range=${range}`, { cache: "no-store" }),
+        fetch("/api/weight", { cache: "no-store" }),
+      ]);
+      const data = await statsRes.json();
+      const weightData = await weightRes.json().catch(() => ({}));
+      if (!cancelled && statsRes.ok) setStats(data);
+      if (!cancelled && weightRes.ok) setWeight(weightData.entries || []);
     }
 
     load();
@@ -163,6 +170,15 @@ export default function StatsPage() {
                               : "#0369a1"
                     }
                   />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gewicht</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <WeightTrend data={weight} />
                 </CardContent>
               </Card>
 

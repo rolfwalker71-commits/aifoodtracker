@@ -1,4 +1,4 @@
-const CACHE_NAME = "nutrisight-static-v5";
+const CACHE_NAME = "nutrisight-static-v6";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/favicon.ico",
@@ -36,6 +36,7 @@ self.addEventListener("activate", (event) => {
 function isStaticAsset(pathname) {
   return (
     pathname.startsWith("/icons/") ||
+    pathname.startsWith("/motifs/") ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/favicon.ico" ||
     pathname === "/sw.js"
@@ -49,8 +50,6 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache dynamic app pages, RSC payloads, APIs or uploads.
-  // Stale HTML was causing deleted meals to remain visible after refresh.
   if (
     request.mode === "navigate" ||
     url.pathname.startsWith("/api/") ||
@@ -63,7 +62,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first only for true static assets
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
@@ -75,5 +73,48 @@ self.addEventListener("fetch", (event) => {
         return response;
       });
     }),
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "NutriSight";
+  const options = {
+    body: data.body || "Zeit für einen Check-in.",
+    icon: data.icon || "/icons/icon-192.png",
+    badge: data.badge || "/icons/icon-192.png",
+    image: data.image,
+    tag: data.tag || "nutrisight",
+    renotify: true,
+    data: { url: data.url || "/dashboard" },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || "/dashboard";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientsArr) => {
+        for (const client of clientsArr) {
+          if ("focus" in client) {
+            client.focus();
+            if ("navigate" in client) {
+              return client.navigate(target);
+            }
+            return client;
+          }
+        }
+        return self.clients.openWindow(target);
+      }),
   );
 });

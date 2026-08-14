@@ -40,6 +40,10 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3333}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-aifoodtracker-dev-encryption-key-32b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:hello@example.com}
+      CRON_SECRET: ${CRON_SECRET:-dev-cron-secret}
     volumes:
       # Bind-Mount auf dem Host – überlebt Image-Pulls und Container-Recreates.
       # Niemals `docker compose down -v` nutzen (löscht DB + Uploads).
@@ -48,6 +52,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  push-cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      CRON_SECRET: ${CRON_SECRET:-dev-cron-secret}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 20
+        while true; do
+          curl -fsS -X POST -H "Authorization: Bearer $$CRON_SECRET" http://app:3333/api/cron/push || true
+          sleep 60
+        done
 
 volumes:
   postgres_data:
