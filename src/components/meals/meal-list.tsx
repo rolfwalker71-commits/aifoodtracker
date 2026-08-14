@@ -88,7 +88,7 @@ function MealThumb({
     <img
       src={src}
       alt=""
-      className="h-full w-full object-cover"
+      className="h-full w-full max-w-none object-cover"
       onError={() => {
         setFailed(true);
         requestMealSymbol(mealId);

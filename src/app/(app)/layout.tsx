@@ -8,9 +8,9 @@ import { ReminderScheduler } from "@/components/reminders/reminder-scheduler";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-screen max-w-7xl">
+    <div className="mx-auto flex min-h-screen max-w-7xl overflow-x-clip">
       <Sidebar />
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl md:px-6">
           <div className="flex items-center gap-2.5">
             <BrandMark size="sm" className="md:hidden" />
@@ -25,7 +25,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <ThemeToggle />
         </header>
-        <main className="flex-1 px-4 py-5 pb-28 md:px-6 md:pb-8">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-5 pb-28 md:px-6 md:pb-8">
+          {children}
+        </main>
         <BottomNav />
         <OfflineQueueSync />
         <MissingImageBackfill />

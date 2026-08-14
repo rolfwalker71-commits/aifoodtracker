@@ -48,32 +48,32 @@ export function RemindersCard({
       <CardHeader>
         <CardTitle>Push & Erinnerungen</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Web Push kommt auch bei geschlossener PWA. Jede Erinnerung hat eine
-          eigene Motivkarte.
+          Web Push kommt auch bei geschlossener PWA. Motivkarten erscheinen in
+          der Notification, hier nur als kleine Vorschau.
         </p>
         <PushEnableButton />
 
-        {settings.meals.map((reminder) => {
-          const kind = mealTypeToPushKind(reminder.mealType);
-          return (
-            <div
-              key={reminder.id}
-              className="space-y-3 rounded-2xl border border-border/70 p-3"
-            >
-              <MotifCard
-                kind={kind}
-                caption={MEAL_TYPE_LABELS[reminder.mealType]}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">
+        <div className="space-y-2">
+          {settings.meals.map((reminder) => {
+            const kind = mealTypeToPushKind(reminder.mealType);
+            return (
+              <div
+                key={reminder.id}
+                className="flex min-w-0 items-center gap-3 rounded-xl border border-border/70 p-2.5"
+              >
+                <MotifCard
+                  kind={kind}
+                  caption={MEAL_TYPE_LABELS[reminder.mealType]}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
                     {MEAL_TYPE_LABELS[reminder.mealType]}
                   </p>
                   <Input
                     type="time"
-                    className="mt-2 w-32"
+                    className="mt-1.5 h-9 w-[7.25rem]"
                     value={reminder.timeLocal}
                     onChange={(e) =>
                       onChange({
@@ -87,11 +87,12 @@ export function RemindersCard({
                     }
                   />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-2">
                   <Button
                     type="button"
                     size="sm"
                     variant="ghost"
+                    className="px-2"
                     onClick={() => void sendTest(kind)}
                   >
                     Test
@@ -111,18 +112,16 @@ export function RemindersCard({
                   />
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        <div className="space-y-3 rounded-2xl border border-border/70 p-3">
-          <MotifCard kind="rest" caption="Abend-Coach / Restbudget" />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium">Abend-Coach</p>
+          <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/70 p-2.5">
+            <MotifCard kind="rest" caption="Abend-Coach" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">Abend-Coach</p>
               <Input
                 type="time"
-                className="mt-2 w-32"
+                className="mt-1.5 h-9 w-[7.25rem]"
                 value={settings.extras.restCoach.timeLocal}
                 onChange={(e) =>
                   onChange({
@@ -138,11 +137,12 @@ export function RemindersCard({
                 }
               />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2">
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
+                className="px-2"
                 onClick={() => void sendTest("rest")}
               >
                 Test
@@ -164,16 +164,14 @@ export function RemindersCard({
               />
             </div>
           </div>
-        </div>
 
-        <div className="space-y-3 rounded-2xl border border-border/70 p-3">
-          <MotifCard kind="weight" caption="Wöchentliches Wiegen" />
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="space-y-2">
+          <div className="flex min-w-0 items-start gap-3 rounded-xl border border-border/70 p-2.5 sm:items-center">
+            <MotifCard kind="weight" caption="Gewicht" />
+            <div className="min-w-0 flex-1 space-y-2">
               <p className="text-sm font-medium">Gewicht-Erinnerung</p>
               <div className="flex flex-wrap gap-2">
                 <select
-                  className="h-11 rounded-xl border border-border bg-background px-3 text-sm"
+                  className="h-9 max-w-full rounded-lg border border-border bg-background px-2 text-sm"
                   value={settings.extras.weeklyWeight.weekday}
                   onChange={(e) =>
                     onChange({
@@ -196,7 +194,7 @@ export function RemindersCard({
                 </select>
                 <Input
                   type="time"
-                  className="w-32"
+                  className="h-9 w-[7.25rem]"
                   value={settings.extras.weeklyWeight.timeLocal}
                   onChange={(e) =>
                     onChange({
@@ -216,11 +214,12 @@ export function RemindersCard({
                 Wochentag und Uhrzeit
               </Label>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 pt-1">
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
+                className="px-2"
                 onClick={() => void sendTest("weight")}
               >
                 Test

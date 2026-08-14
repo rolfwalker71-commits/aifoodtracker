@@ -85,6 +85,11 @@
   border-color: var(--border);
 }
 
+img,
+video {
+  max-width: 100%;
+}
+
 html,
 body {
   min-height: 100%;

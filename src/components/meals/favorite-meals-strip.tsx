@@ -62,7 +62,7 @@ export function FavoriteMealsStrip({ meals }: { meals: FavoriteMeal[] }) {
                   <img
                     src={meal.imagePath}
                     alt=""
-                    className="h-full w-full object-cover"
+                    className="h-full w-full max-w-none object-cover"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs text-muted-foreground">

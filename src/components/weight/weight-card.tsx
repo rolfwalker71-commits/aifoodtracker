@@ -3,7 +3,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,12 +78,11 @@ export function WeightCard({
     <Card id="gewicht">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2">
-          <Scale className="h-5 w-5" />
+          <MotifCard kind="weight" className="h-10 w-14 sm:h-12 sm:w-16" />
           Gewicht
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <MotifCard kind="weight" />
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-sm text-muted-foreground">Aktuell</p>
