@@ -21,6 +21,7 @@ import { AvatarUploader } from "@/components/settings/avatar-uploader";
 import { ApiAccessKeysCard } from "@/components/settings/api-access-keys-card";
 import { InviteFriendsCard } from "@/components/settings/invite-friends-card";
 import { RemindersCard } from "@/components/settings/reminders-card";
+import { PushSetupCard } from "@/components/push/push-enable-button";
 import { triggerMissingImageBackfill } from "@/components/meals/missing-image-backfill";
 import { formatNumber } from "@/lib/utils";
 import {
@@ -245,6 +246,8 @@ export default function SettingsPage() {
           Körperdaten für die Kalorienberechnung, Passwort und API-Key
         </p>
       </div>
+
+      <PushSetupCard />
 
       {session?.user?.isAdmin ? (
         <Button asChild variant="outline" className="w-full">

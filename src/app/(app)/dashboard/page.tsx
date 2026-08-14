@@ -10,6 +10,7 @@ import { DailyGoalsSummary } from "@/components/dashboard/daily-goals-summary";
 import { FavoriteMealsStrip } from "@/components/meals/favorite-meals-strip";
 import { MealList } from "@/components/meals/meal-list";
 import { RepeatMealsStrip } from "@/components/meals/repeat-meals-strip";
+import { PushEnableButton } from "@/components/push/push-enable-button";
 import { WeightCard } from "@/components/weight/weight-card";
 import { pickRepeatCandidates } from "@/lib/repeat-meals";
 import { DayRestBudgetCard } from "@/components/coach/coach-panels";
@@ -174,6 +175,8 @@ export default async function DashboardPage() {
       </Card>
 
       <DayRestBudgetCard budget={restBudget} />
+
+      <PushEnableButton compact />
 
       <RepeatMealsStrip meals={repeatMeals} />
 

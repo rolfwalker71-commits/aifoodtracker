@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MotifCard } from "@/components/push/motif-card";
-import { PushEnableButton } from "@/components/push/push-enable-button";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
 import { mealTypeToPushKind, type PushKind } from "@/lib/push-motifs";
 import type { ReminderSettings } from "@/lib/reminders";
@@ -46,14 +45,14 @@ export function RemindersCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Push & Erinnerungen</CardTitle>
+        <CardTitle>Erinnerungszeiten</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Web Push kommt auch bei geschlossener PWA. Motivkarten erscheinen in
-          der Notification, hier nur als kleine Vorschau.
+          Push zuerst oben auf dieser Seite aktivieren. Hier nur Zeiten und
+          welche Erinnerungen laufen. Motivkarten erscheinen in der
+          Notification, hier nur als kleine Vorschau.
         </p>
-        <PushEnableButton />
 
         <div className="space-y-2">
           {settings.meals.map((reminder) => {
