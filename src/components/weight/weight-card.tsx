@@ -2,13 +2,13 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MotifCard } from "@/components/push/motif-card";
-import { formatNumber } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 export type WeightPoint = {
   id?: string;
@@ -35,11 +35,12 @@ export function WeightCard({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editKg, setEditKg] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [entriesOpen, setEntriesOpen] = useState(false);
 
   const previous = entries.length >= 2 ? entries[entries.length - 2] : null;
   const latest = entries.at(-1) ?? null;
   const delta = latest && previous ? latest.kg - previous.kg : null;
-  const recent = useMemo(() => [...entries].reverse().slice(0, 8), [entries]);
+  const recent = useMemo(() => [...entries].reverse().slice(0, 10), [entries]);
 
   const spark = useMemo(() => {
     const slice = entries.slice(-14);
@@ -212,84 +213,107 @@ export function WeightCard({
 
         {recent.length ? (
           <div className="space-y-2">
-            <p className="text-sm font-medium">Einträge</p>
-            <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70">
-              {recent.map((entry) => {
-                const isEditing = editingId === entry.id;
-                return (
-                  <li key={entry.id || entry.recordedOn} className="px-3 py-2.5">
-                    {isEditing ? (
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <Input
-                          type="date"
-                          value={editDate}
-                          onChange={(e) => setEditDate(e.target.value)}
-                          className="sm:w-40"
-                        />
-                        <Input
-                          inputMode="decimal"
-                          value={editKg}
-                          onChange={(e) => setEditKg(e.target.value)}
-                          className="sm:w-24"
-                          aria-label="Gewicht bearbeiten"
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={busy}
-                            onClick={() => void saveEdit()}
-                          >
-                            OK
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingId(null)}
-                          >
-                            Abbrechen
-                          </Button>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 rounded-xl px-1 py-1 text-left text-sm font-medium transition hover:bg-muted/50"
+              aria-expanded={entriesOpen}
+              onClick={() => setEntriesOpen((open) => !open)}
+            >
+              <span>
+                Einträge
+                <span className="ml-1.5 font-normal text-muted-foreground">
+                  ({recent.length})
+                </span>
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                  entriesOpen && "rotate-180",
+                )}
+              />
+            </button>
+            {entriesOpen ? (
+              <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70">
+                {recent.map((entry) => {
+                  const isEditing = editingId === entry.id;
+                  return (
+                    <li
+                      key={entry.id || entry.recordedOn}
+                      className="px-3 py-2.5"
+                    >
+                      {isEditing ? (
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <Input
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            className="sm:w-40"
+                          />
+                          <Input
+                            inputMode="decimal"
+                            value={editKg}
+                            onChange={(e) => setEditKg(e.target.value)}
+                            className="sm:w-24"
+                            aria-label="Gewicht bearbeiten"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => void saveEdit()}
+                            >
+                              OK
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingId(null)}
+                            >
+                              Abbrechen
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium tabular-nums">
-                            {formatNumber(entry.kg, 1)} kg
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDay(entry.recordedOn)}
-                          </p>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium tabular-nums">
+                              {formatNumber(entry.kg, 1)} kg
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDay(entry.recordedOn)}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              aria-label="Eintrag bearbeiten"
+                              disabled={busy || !entry.id}
+                              onClick={() => startEdit(entry)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              aria-label="Eintrag löschen"
+                              disabled={busy || !entry.id}
+                              onClick={() => void removeEntry(entry.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex shrink-0 gap-1">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            aria-label="Eintrag bearbeiten"
-                            disabled={busy || !entry.id}
-                            onClick={() => startEdit(entry)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            aria-label="Eintrag löschen"
-                            disabled={busy || !entry.id}
-                            onClick={() => void removeEntry(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
           </div>
         ) : null}
       </CardContent>
