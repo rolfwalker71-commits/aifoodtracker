@@ -11,8 +11,10 @@ import { toFormDateTime } from "@/lib/datetime";
 import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
 import {
+  ingredientGramsTotal,
   parseStoredIngredients,
   scaleIngredients,
+  setIngredientGrams,
 } from "@/lib/meal-ingredients";
 import type { NutritionGoals, NutrientTotals } from "@/lib/nutrition";
 import {
@@ -21,6 +23,7 @@ import {
   rescaleNutrientTotals,
 } from "@/lib/portion";
 import type { MealFormValues } from "@/types/meals";
+import type { NutrientValues } from "@/types/nutrition";
 
 function isSameAppDay(isoOrForm: string) {
   const mealDay = new Intl.DateTimeFormat("en-CA", {
@@ -144,6 +147,25 @@ export default function MealDetailPage() {
     };
   }, [params.id, router]);
 
+  function mealNutrients(current: MealFormValues): NutrientValues {
+    return {
+      calories: current.calories,
+      protein: current.protein,
+      carbs: current.carbs,
+      fat: current.fat,
+      fiber: current.fiber,
+      sugar: current.sugar,
+      saturatedFat: current.saturatedFat,
+      sodium: current.sodium,
+      potassium: current.potassium,
+      vitaminA: current.vitaminA,
+      vitaminC: current.vitaminC,
+      vitaminD: current.vitaminD,
+      calcium: current.calcium,
+      iron: current.iron,
+    };
+  }
+
   function recalculatePortion(grams: number) {
     if (!values) return;
     const previous = resolveCurrentGrams(values);
@@ -159,22 +181,7 @@ export default function MealDetailPage() {
     }
 
     const nutrients = rescaleNutrientTotals(
-      {
-        calories: values.calories,
-        protein: values.protein,
-        carbs: values.carbs,
-        fat: values.fat,
-        fiber: values.fiber,
-        sugar: values.sugar,
-        saturatedFat: values.saturatedFat,
-        sodium: values.sodium,
-        potassium: values.potassium,
-        vitaminA: values.vitaminA,
-        vitaminC: values.vitaminC,
-        vitaminD: values.vitaminD,
-        calcium: values.calcium,
-        iron: values.iron,
-      },
+      mealNutrients(values),
       previous,
       grams,
     );
@@ -191,6 +198,49 @@ export default function MealDetailPage() {
     });
     toast.success("Nährwerte neu berechnet", {
       description: `Umgerechnet von ${formatPortionLabel(previous)} auf ${formatPortionLabel(grams)}.`,
+    });
+  }
+
+  function recalculateIngredientGrams(index: number, grams: number) {
+    if (!values) return;
+    const previousIngredients = values.ingredients ?? [];
+    if (!previousIngredients[index]) return;
+
+    const fromTotal = ingredientGramsTotal(previousIngredients);
+    const nextIngredients = setIngredientGrams(
+      previousIngredients,
+      index,
+      grams,
+    );
+    const toTotal = ingredientGramsTotal(nextIngredients);
+
+    if (fromTotal <= 0 || toTotal <= 0) {
+      setValues({
+        ...values,
+        ingredients: nextIngredients,
+        portionSize:
+          toTotal > 0 ? formatPortionLabel(toTotal) : values.portionSize,
+      });
+      toast.error(
+        "Zum Neuberechnen brauchen alle geänderten Zutaten gültige Gramm-Angaben.",
+      );
+      return;
+    }
+
+    const nutrients = rescaleNutrientTotals(
+      mealNutrients(values),
+      fromTotal,
+      toTotal,
+    );
+    const name = previousIngredients[index]?.name || "Zutat";
+    setValues({
+      ...values,
+      ...nutrients,
+      ingredients: nextIngredients,
+      portionSize: formatPortionLabel(toTotal),
+    });
+    toast.success(`${name} auf ${formatPortionLabel(grams)}`, {
+      description: `Gesamt ${formatPortionLabel(fromTotal)} → ${formatPortionLabel(toTotal)}, Nährwerte angepasst.`,
     });
   }
 
@@ -316,6 +366,7 @@ export default function MealDetailPage() {
             busy={busy}
             onChange={setValues}
             onRecalculatePortion={recalculatePortion}
+            onRecalculateIngredientGrams={recalculateIngredientGrams}
             onSave={() => onSubmit(values)}
             onEditDetails={() => setMode("details")}
           />
@@ -342,6 +393,7 @@ export default function MealDetailPage() {
               busy={busy}
               submitLabel="Änderungen speichern"
               onPortionGramsChange={recalculatePortion}
+              onIngredientGramsChange={recalculateIngredientGrams}
             />
             <button
               type="button"

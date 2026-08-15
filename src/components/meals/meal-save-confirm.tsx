@@ -25,21 +25,21 @@ type Props = {
   busy?: boolean;
   onChange: (values: MealFormValues) => void;
   onRecalculatePortion: (grams: number) => void;
+  onRecalculateIngredientGrams?: (index: number, grams: number) => void;
   onSave: () => Promise<void>;
   onEditDetails?: () => void;
 };
 
-function ingredientLine(ingredients: MealIngredient[] = []) {
-  if (!ingredients.length) return null;
-  return ingredients
-    .map((item) =>
-      item.portionSize ? `${item.name} (${item.portionSize})` : item.name,
-    )
-    .join(" · ");
-}
-
 function gramsFromValues(values: MealFormValues) {
   return parsePortionGrams(values.portionSize || "") ?? null;
+}
+
+function ingredientDisplayGrams(item: MealIngredient) {
+  if (typeof item.grams === "number" && item.grams > 0) {
+    return String(Math.round(item.grams));
+  }
+  const parsed = parsePortionGrams(item.portionSize || "");
+  return parsed && parsed > 0 ? String(Math.round(parsed)) : "";
 }
 
 export function MealSaveConfirm({
@@ -47,6 +47,7 @@ export function MealSaveConfirm({
   busy,
   onChange,
   onRecalculatePortion,
+  onRecalculateIngredientGrams,
   onSave,
   onEditDetails,
 }: Props) {
@@ -55,11 +56,23 @@ export function MealSaveConfirm({
     storedGrams ? String(Math.round(storedGrams)) : "",
   );
   const [syncedPortion, setSyncedPortion] = useState(values.portionSize);
+  const [ingredientInputs, setIngredientInputs] = useState<string[]>(() =>
+    (values.ingredients ?? []).map(ingredientDisplayGrams),
+  );
+  const [syncedIngredients, setSyncedIngredients] = useState(
+    values.ingredients ?? [],
+  );
+
   if (values.portionSize !== syncedPortion) {
     setSyncedPortion(values.portionSize);
     setGramsInput(storedGrams ? String(Math.round(storedGrams)) : "");
   }
-  const summary = ingredientLine(values.ingredients);
+  if (values.ingredients !== syncedIngredients) {
+    setSyncedIngredients(values.ingredients ?? []);
+    setIngredientInputs((values.ingredients ?? []).map(ingredientDisplayGrams));
+  }
+
+  const ingredients = values.ingredients ?? [];
 
   const inputGrams = useMemo(() => {
     const grams = Number(String(gramsInput).replace(",", "."));
@@ -75,6 +88,19 @@ export function MealSaveConfirm({
   function applyGrams() {
     if (!inputGrams) return;
     onRecalculatePortion(inputGrams);
+  }
+
+  function applyIngredientGrams(index: number) {
+    if (!onRecalculateIngredientGrams) return;
+    const raw = ingredientInputs[index] ?? "";
+    const grams = Number(String(raw).replace(",", "."));
+    if (!Number.isFinite(grams) || grams <= 0) return;
+    const current =
+      ingredients[index]?.grams && ingredients[index]!.grams! > 0
+        ? ingredients[index]!.grams!
+        : parsePortionGrams(ingredients[index]?.portionSize || "") || 0;
+    if (Math.round(grams) === Math.round(current)) return;
+    onRecalculateIngredientGrams(index, grams);
   }
 
   return (
@@ -110,6 +136,63 @@ export function MealSaveConfirm({
           />
         </div>
 
+        {ingredients.length > 0 && onRecalculateIngredientGrams ? (
+          <div className="space-y-3 rounded-2xl border border-border bg-muted/30 p-4">
+            <div>
+              <Label>Zutatenmengen (g)</Label>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Einzelne Mengen ändern – Nährwerte und Gesamtgewicht werden
+                neu berechnet.
+              </p>
+            </div>
+            <div className="space-y-2">
+              {ingredients.map((item, index) => (
+                <div
+                  key={`${item.name}-${index}`}
+                  className="grid grid-cols-[1fr_5.5rem_auto] items-center gap-2"
+                >
+                  <p className="min-w-0 truncate text-sm font-medium">
+                    {item.name}
+                  </p>
+                  <Input
+                    inputMode="decimal"
+                    aria-label={`${item.name} in Gramm`}
+                    value={ingredientInputs[index] ?? ""}
+                    onChange={(e) => {
+                      const next = [...ingredientInputs];
+                      next[index] = e.target.value;
+                      setIngredientInputs(next);
+                    }}
+                    onBlur={() => applyIngredientGrams(index)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyIngredientGrams(index);
+                      }
+                    }}
+                    placeholder="g"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="px-2"
+                    onClick={() => applyIngredientGrams(index)}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Gesamt:{" "}
+              <span className="font-medium text-foreground">
+                {values.portionSize?.trim() || "–"}
+              </span>
+            </p>
+          </div>
+        ) : null}
+
         <div
           className={`space-y-3 rounded-2xl border p-4 ${
             needsRecalculate
@@ -118,11 +201,10 @@ export function MealSaveConfirm({
           }`}
         >
           <div>
-            <Label htmlFor="confirm-grams">Menge (g)</Label>
+            <Label htmlFor="confirm-grams">Gesamtmenge (g)</Label>
             <p className="mt-1 text-sm text-muted-foreground">
-              Menge geändert? Danach unbedingt auf{" "}
-              <span className="font-semibold text-foreground">Neuberechnen</span>{" "}
-              tippen – sonst bleiben die alten Nährwerte.
+              Skaliert alle Zutaten proportional. Für einzelne Zutaten die Felder
+              oben nutzen.
             </p>
           </div>
           <Input
@@ -141,13 +223,12 @@ export function MealSaveConfirm({
             onClick={applyGrams}
           >
             <RefreshCw className="h-4 w-4" />
-            Neuberechnen
+            Gesamt neu berechnen
           </Button>
           {needsRecalculate ? (
             <p className="flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              Menge wurde geändert – bitte jetzt „Neuberechnen“ drücken, bevor du
-              speicherst.
+              Gesamtmenge geändert – bitte „Gesamt neu berechnen“ tippen.
             </p>
           ) : null}
         </div>
@@ -179,13 +260,6 @@ export function MealSaveConfirm({
           onChange={(consumedAt) => onChange({ ...values, consumedAt })}
           required
         />
-
-        {summary ? (
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Bestandteile: </span>
-            {summary}
-          </p>
-        ) : null}
 
         <div className="flex flex-col gap-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <Button

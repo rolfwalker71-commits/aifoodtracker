@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +11,16 @@ import { MotifCard } from "@/components/push/motif-card";
 import { formatNumber } from "@/lib/utils";
 
 export type WeightPoint = {
+  id?: string;
   kg: number;
   recordedOn: string;
 };
+
+function formatDay(isoDate: string) {
+  const [y, m, d] = isoDate.split("-");
+  if (!y || !m || !d) return isoDate;
+  return `${d}.${m}.${y}`;
+}
 
 export function WeightCard({
   currentKg,
@@ -24,11 +32,14 @@ export function WeightCard({
   const router = useRouter();
   const [kg, setKg] = useState(currentKg ? String(currentKg) : "");
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editKg, setEditKg] = useState("");
+  const [editDate, setEditDate] = useState("");
 
   const previous = entries.length >= 2 ? entries[entries.length - 2] : null;
   const latest = entries.at(-1) ?? null;
-  const delta =
-    latest && previous ? latest.kg - previous.kg : null;
+  const delta = latest && previous ? latest.kg - previous.kg : null;
+  const recent = useMemo(() => [...entries].reverse().slice(0, 8), [entries]);
 
   const spark = useMemo(() => {
     const slice = entries.slice(-14);
@@ -68,6 +79,71 @@ export function WeightCard({
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Speichern fehlgeschlagen",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function startEdit(entry: WeightPoint) {
+    if (!entry.id) {
+      toast.error("Eintrag kann nicht bearbeitet werden");
+      return;
+    }
+    setEditingId(entry.id);
+    setEditKg(String(entry.kg));
+    setEditDate(entry.recordedOn);
+  }
+
+  async function saveEdit() {
+    if (!editingId) return;
+    const value = Number(String(editKg).replace(",", "."));
+    if (!Number.isFinite(value) || value < 30) {
+      toast.error("Bitte ein gültiges Gewicht eingeben");
+      return;
+    }
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/weight/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kg: value, recordedOn: editDate }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Aktualisieren fehlgeschlagen");
+      }
+      toast.success("Gewicht aktualisiert");
+      setEditingId(null);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Aktualisieren fehlgeschlagen",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeEntry(id: string | undefined) {
+    if (!id) {
+      toast.error("Eintrag kann nicht gelöscht werden");
+      return;
+    }
+    if (!window.confirm("Diesen Gewichtseintrag löschen?")) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/weight/${id}`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Löschen fehlgeschlagen");
+      }
+      toast.success("Eintrag gelöscht");
+      if (editingId === id) setEditingId(null);
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Löschen fehlgeschlagen",
       );
     } finally {
       setBusy(false);
@@ -133,6 +209,89 @@ export function WeightCard({
             {busy ? "…" : "Speichern"}
           </Button>
         </form>
+
+        {recent.length ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Einträge</p>
+            <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70">
+              {recent.map((entry) => {
+                const isEditing = editingId === entry.id;
+                return (
+                  <li key={entry.id || entry.recordedOn} className="px-3 py-2.5">
+                    {isEditing ? (
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Input
+                          type="date"
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          className="sm:w-40"
+                        />
+                        <Input
+                          inputMode="decimal"
+                          value={editKg}
+                          onChange={(e) => setEditKg(e.target.value)}
+                          className="sm:w-24"
+                          aria-label="Gewicht bearbeiten"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => void saveEdit()}
+                          >
+                            OK
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingId(null)}
+                          >
+                            Abbrechen
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium tabular-nums">
+                            {formatNumber(entry.kg, 1)} kg
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDay(entry.recordedOn)}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            aria-label="Eintrag bearbeiten"
+                            disabled={busy || !entry.id}
+                            onClick={() => startEdit(entry)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            aria-label="Eintrag löschen"
+                            disabled={busy || !entry.id}
+                            onClick={() => void removeEntry(entry.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

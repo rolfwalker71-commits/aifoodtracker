@@ -24,7 +24,11 @@ import { confidenceLevel } from "@/lib/confidence";
 import { toFormDateTime } from "@/lib/datetime";
 import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
-import { scaleIngredients } from "@/lib/meal-ingredients";
+import {
+  ingredientGramsTotal,
+  scaleIngredients,
+  setIngredientGrams,
+} from "@/lib/meal-ingredients";
 import { suggestMealTypeNow } from "@/lib/nutrition";
 import {
   enqueueOfflineDraft,
@@ -35,6 +39,7 @@ import {
 import {
   formatPortionLabel,
   nutrientsFromPortion,
+  rescaleNutrientTotals,
   scaleNutrients,
 } from "@/lib/portion";
 import { suggestPortionGrams } from "@/lib/portion-suggestion";
@@ -427,6 +432,67 @@ function NewMealPageInner() {
     setFormValues(buildMealFromPending(pendingFood, grams));
   }
 
+  function recalculateIngredientGrams(index: number, grams: number) {
+    const previousIngredients = formValues.ingredients ?? [];
+    if (!previousIngredients[index]) return;
+    const fromTotal = ingredientGramsTotal(previousIngredients);
+    const nextIngredients = setIngredientGrams(
+      previousIngredients,
+      index,
+      grams,
+    );
+    const toTotal = ingredientGramsTotal(nextIngredients);
+    if (fromTotal <= 0 || toTotal <= 0) {
+      setFormValues({
+        ...formValues,
+        ingredients: nextIngredients,
+        portionSize:
+          toTotal > 0 ? formatPortionLabel(toTotal) : formValues.portionSize,
+      });
+      return;
+    }
+
+    const nutrients = rescaleNutrientTotals(
+      {
+        calories: formValues.calories,
+        protein: formValues.protein,
+        carbs: formValues.carbs,
+        fat: formValues.fat,
+        fiber: formValues.fiber,
+        sugar: formValues.sugar,
+        saturatedFat: formValues.saturatedFat,
+        sodium: formValues.sodium,
+        potassium: formValues.potassium,
+        vitaminA: formValues.vitaminA,
+        vitaminC: formValues.vitaminC,
+        vitaminD: formValues.vitaminD,
+        calcium: formValues.calcium,
+        iron: formValues.iron,
+      },
+      fromTotal,
+      toTotal,
+    );
+    setConfirmedGrams(toTotal);
+    if (pendingFood) {
+      setPendingFood({
+        ...pendingFood,
+        estimatedPortionGrams: toTotal,
+        suggestedGrams: toTotal,
+        ingredients: nextIngredients,
+        amountLabel: formatPortionLabel(toTotal),
+      });
+    }
+    setFormValues({
+      ...formValues,
+      ...nutrients,
+      ingredients: nextIngredients,
+      portionSize: formatPortionLabel(toTotal),
+    });
+    toast.success("Zutat angepasst", {
+      description: `Gesamt ${formatPortionLabel(toTotal)}`,
+    });
+  }
+
   async function finishAfterSave() {
     if (activeDraftId) {
       await removeOfflineDraft(activeDraftId);
@@ -765,6 +831,7 @@ function NewMealPageInner() {
               busy={busy}
               onChange={setFormValues}
               onRecalculatePortion={recalculatePortion}
+              onRecalculateIngredientGrams={recalculateIngredientGrams}
               onSave={() => saveMeal()}
               onEditDetails={() => setPhase("details")}
             />

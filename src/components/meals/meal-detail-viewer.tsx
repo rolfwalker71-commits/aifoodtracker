@@ -464,7 +464,7 @@ function InsightPage({
           className="h-10 w-full"
           onClick={onEdit}
         >
-          Menge anpassen
+          Zutaten & Menge anpassen
         </Button>
       </section>
 

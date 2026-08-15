@@ -155,6 +155,7 @@ export default async function DashboardPage() {
       <WeightCard
         currentKg={weightEntries.at(-1)?.kg ?? profile?.weightKg ?? null}
         entries={weightEntries.map((entry) => ({
+          id: entry.id,
           kg: entry.kg,
           recordedOn: entry.recordedOn.toISOString().slice(0, 10),
         }))}

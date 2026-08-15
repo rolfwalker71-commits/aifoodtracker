@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { localizeGermanLabel } from "@/lib/de-labels";
-import { formatPortionLabel } from "@/lib/portion";
+import { formatPortionLabel, parsePortionGrams } from "@/lib/portion";
 import type { MealIngredient } from "@/types/meals";
 
 export const mealIngredientSchema = z.object({
@@ -53,6 +53,31 @@ export function scaleIngredients(
       ...item,
       grams,
       portionSize: formatPortionLabel(grams),
+    };
+  });
+}
+
+/** Summe aller Zutaten mit gültigen Gramm-Angaben. */
+export function ingredientGramsTotal(ingredients: MealIngredient[]): number {
+  return ingredients.reduce((sum, item) => {
+    if (typeof item.grams === "number" && item.grams > 0) return sum + item.grams;
+    const parsed = parsePortionGrams(item.portionSize || "");
+    return parsed && parsed > 0 ? sum + parsed : sum;
+  }, 0);
+}
+
+export function setIngredientGrams(
+  ingredients: MealIngredient[],
+  index: number,
+  grams: number,
+): MealIngredient[] {
+  return ingredients.map((item, i) => {
+    if (i !== index) return item;
+    const next = Math.max(0, Math.round(grams * 10) / 10);
+    return {
+      ...item,
+      grams: next > 0 ? next : null,
+      portionSize: next > 0 ? formatPortionLabel(next) : item.portionSize,
     };
   });
 }

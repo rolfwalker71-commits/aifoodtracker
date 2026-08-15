@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { SwissDateTimeInput } from "@/components/ui/swiss-datetime-input";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
-import { parsePortionGrams } from "@/lib/portion";
+import { parsePortionGrams, formatPortionLabel } from "@/lib/portion";
 import type { MealFormValues, MealIngredient } from "@/types/meals";
 
 type Props = {
@@ -26,6 +26,7 @@ type Props = {
   busy?: boolean;
   /** When set, changing Menge and confirming rescales nutrients via parent. */
   onPortionGramsChange?: (grams: number) => void;
+  onIngredientGramsChange?: (index: number, grams: number) => void;
 };
 
 const numberFields: Array<{
@@ -54,6 +55,7 @@ export function MealForm({
   onSubmit,
   busy,
   onPortionGramsChange,
+  onIngredientGramsChange,
 }: Props) {
   const [values, setValues] = useState<MealFormValues>({
     ...initialValues,
@@ -100,18 +102,27 @@ export function MealForm({
       ingredients.map((item, i) => {
         if (i !== index) return item;
         if (key === "grams") {
-          const grams = value.trim() ? Number(value) : null;
+          const grams = value.trim() ? Number(value.replace(",", ".")) : null;
+          const next =
+            typeof grams === "number" && Number.isFinite(grams) && grams > 0
+              ? grams
+              : null;
           return {
             ...item,
-            grams:
-              typeof grams === "number" && Number.isFinite(grams) && grams > 0
-                ? grams
-                : null,
+            grams: next,
+            portionSize: next ? formatPortionLabel(next) : item.portionSize,
           };
         }
         return { ...item, [key]: value };
       }),
     );
+  }
+
+  function commitIngredientGrams(index: number) {
+    if (!onIngredientGramsChange) return;
+    const item = ingredients[index];
+    if (!item?.grams || item.grams <= 0) return;
+    onIngredientGramsChange(index, item.grams);
   }
 
   function addIngredient() {
@@ -255,7 +266,7 @@ export function MealForm({
             {ingredients.map((item, index) => (
               <div
                 key={`ingredient-${index}`}
-                className="grid grid-cols-[1fr_7rem_auto] gap-2 sm:grid-cols-[1fr_9rem_5.5rem_auto]"
+                className="grid grid-cols-[minmax(0,1fr)_4.75rem_auto] gap-2"
               >
                 <Input
                   aria-label={`Zutat ${index + 1}`}
@@ -266,24 +277,13 @@ export function MealForm({
                   placeholder="z. B. Spaghetti"
                 />
                 <Input
-                  aria-label={`Portion Zutat ${index + 1}`}
-                  value={item.portionSize}
-                  onChange={(e) =>
-                    updateIngredient(index, "portionSize", e.target.value)
-                  }
-                  placeholder="180 g"
-                />
-                <Input
-                  className="hidden sm:block"
                   aria-label={`Gramm Zutat ${index + 1}`}
-                  type="number"
-                  min={0}
-                  step="any"
                   inputMode="decimal"
                   value={item.grams ?? ""}
                   onChange={(e) =>
                     updateIngredient(index, "grams", e.target.value)
                   }
+                  onBlur={() => commitIngredientGrams(index)}
                   placeholder="g"
                 />
                 <Button
