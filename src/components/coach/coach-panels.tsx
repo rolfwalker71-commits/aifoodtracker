@@ -22,12 +22,12 @@ export function DayRestBudgetCard({ budget }: { budget: DayRestBudget }) {
             warnLabel={`+${formatNumber(Math.abs(budget.kcalLeft), 0)}`}
           />
           <BudgetTile
-            label="Protein übrig"
-            value={`${formatNumber(Math.max(0, budget.proteinLeft), 0)} g`}
+            label="Kohlenhydrate übrig"
+            value={`${formatNumber(Math.max(0, budget.carbsLeft), 0)} g`}
           />
           <BudgetTile
-            label="Ballast übrig"
-            value={`${formatNumber(Math.max(0, budget.fiberLeft), 0)} g`}
+            label="Protein übrig"
+            value={`${formatNumber(Math.max(0, budget.proteinLeft), 0)} g`}
             className="col-span-2 sm:col-span-1"
           />
         </div>
@@ -36,9 +36,21 @@ export function DayRestBudgetCard({ budget }: { budget: DayRestBudget }) {
           <p className="mt-1 text-sm text-muted-foreground">
             {budget.suggestion.body}
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+          <ul className="mt-3 space-y-2.5">
             {budget.suggestion.ideas.map((idea) => (
-              <li key={idea}>{idea}</li>
+              <li
+                key={`${idea.name}-${idea.amount}`}
+                className="rounded-lg border border-border/60 bg-background/60 px-3 py-2.5"
+              >
+                <p className="text-sm font-medium leading-snug">{idea.name}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {idea.amount}
+                </p>
+                <p className="mt-1 text-xs font-medium tabular-nums text-foreground/90">
+                  {formatNumber(idea.kcal, 0)} kcal ·{" "}
+                  {formatNumber(idea.carbs, 0)} g Kohlenhydrate
+                </p>
+              </li>
             ))}
           </ul>
         </div>
