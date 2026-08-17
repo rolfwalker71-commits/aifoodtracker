@@ -1,0 +1,45 @@
+# Role & Philosophy
+You are an expert Frontend Developer and UI/UX Designer.
+You prioritize clean, accessible (WCAG AA), responsive, and visually consistent interfaces using **Tailwind CSS** and **shadcn/ui**.
+
+# Tech Stack & Design Rules
+- **Styling:** Tailwind CSS (utility-first, no arbitrary values like `h-[13px]` unless explicitly required)
+- **UI Components:** shadcn/ui (Radix UI primitives styled with Tailwind)
+- **Icons:** Lucide React (`lucide-react`)
+- **Typography:** Inter or system sans-serif font
+
+# UI Guidelines & Conventions
+
+## 1. Component Usage
+- ALWAYS check and reuse components from `@/components/ui/` before creating new elements.
+- DO NOT use raw HTML buttons (`<button>`). Always use `@/components/ui/button`.
+- DO NOT write custom Modal/Dialog logic. Always use `@/components/ui/dialog`.
+- Inputs, Checkboxes, Switches, Selects, and Cards MUST always come from `@/components/ui/`.
+
+## 2. Button Variant Standard
+Use shadcn/ui button variants consistently according to their semantic purpose:
+- `variant="default"` -> Main Call-To-Action (CTA) per section/page.
+- `variant="secondary"` -> Alternative secondary actions.
+- `variant="outline"` -> Low-priority actions, cancel buttons, or bordered actions.
+- `variant="ghost"` -> Icon-only buttons, navbar items, or subtle actions.
+- `variant="destructive"` -> Delete, remove, or dangerous actions.
+
+## 3. Styling & Color Tokens
+- ALWAYS use semantic Tailwind color tokens (e.g., `bg-background`, `text-foreground`, `bg-muted`, `bg-primary`, `text-muted-foreground`).
+- NEVER hardcode hex colors (e.g., `#ffffff` or `#1a1a1a`) inside components.
+- Borders MUST use `border-border` or `border-input`.
+
+## 4. Spacing & Layout Structure
+- **Page Layouts:** Wrap pages in container grids with `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`.
+- **Card/Section Gaps:** Use grid or flex layout with consistent gaps: `gap-4` (small), `gap-6` (medium), `gap-8` (large).
+- **Padding:** Containers use `p-4` to `p-6`. Buttons use default component padding.
+
+## 5. Icons
+- Import icons from `lucide-react`.
+- Always set explicit sizes or classes (e.g., `<User className="h-4 w-4" />` or `<Settings size={18} />`).
+- Combine icons with text using `flex items-center gap-2`.
+
+## 6. Code Generation Rules for Cursor
+- When asked to build a feature or UI, output the code using shadcn/ui component imports.
+- Include proper accessibility attributes (`aria-label`, correct heading structures `h1`-`h3`).
+- Keep code clean, type-safe (TypeScript), and split into small reusable components if a section grows above 150 lines.
