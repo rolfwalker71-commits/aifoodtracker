@@ -258,7 +258,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
           Profil
@@ -268,7 +268,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form onSubmit={onSubmit} className="space-y-6">
         <section className="space-y-3">
           <Card>
             <CardHeader>

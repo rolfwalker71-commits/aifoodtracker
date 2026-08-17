@@ -22,7 +22,7 @@ export function MotifCard({
       className={cn(
         "min-w-0 overflow-hidden rounded-xl border border-border bg-muted",
         size === "thumb" && "h-14 w-20 shrink-0 sm:h-16 sm:w-24",
-        size === "tile" && "h-24 w-full max-w-[12rem] sm:h-28",
+        size === "tile" && "h-24 w-full max-w-48 sm:h-28",
         className,
       )}
     >

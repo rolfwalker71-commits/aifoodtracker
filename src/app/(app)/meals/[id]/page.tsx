@@ -7,6 +7,7 @@ import { MealDetailViewer } from "@/components/meals/meal-detail-viewer";
 import { MealForm } from "@/components/meals/meal-form";
 import { MealSaveConfirm } from "@/components/meals/meal-save-confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { toFormDateTime } from "@/lib/datetime";
 import { localizeGermanLabel } from "@/lib/de-labels";
 import { navigateFresh } from "@/lib/fresh-navigate";
@@ -349,7 +350,7 @@ export default function MealDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-3 md:space-y-5">
+    <div className="mx-auto max-w-2xl space-y-4 md:space-y-6">
       <div className="md:space-y-1">
         <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
           Mahlzeit bearbeiten
@@ -370,13 +371,13 @@ export default function MealDetailPage() {
             onSave={() => onSubmit(values)}
             onEditDetails={() => setMode("details")}
           />
-          <button
+          <Button
             type="button"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            variant="ghost"
             onClick={() => setMode("view")}
           >
             Zurück zur Übersicht
-          </button>
+          </Button>
         </>
       ) : null}
 
@@ -395,13 +396,14 @@ export default function MealDetailPage() {
               onPortionGramsChange={recalculatePortion}
               onIngredientGramsChange={recalculateIngredientGrams}
             />
-            <button
+            <Button
               type="button"
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              variant="ghost"
+              className="w-full"
               onClick={() => setMode("simple")}
             >
               Zurück zur einfachen Bearbeitung
-            </button>
+            </Button>
           </CardContent>
         </Card>
       ) : null}

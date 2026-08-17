@@ -82,7 +82,7 @@ export default function StatsPage() {
   }, [range, reloadTick]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
           Statistiken
@@ -190,14 +190,14 @@ export default function StatsPage() {
                     }
                     color={
                       metric === "calories"
-                        ? "#0f766e"
+                        ? "var(--chart-1)"
                         : metric === "protein"
-                          ? "#0891b2"
+                          ? "var(--chart-2)"
                           : metric === "fiber"
-                            ? "#15803d"
+                            ? "var(--chart-5)"
                             : metric === "sugar"
-                              ? "#c2410c"
-                              : "#0369a1"
+                              ? "var(--chart-3)"
+                              : "var(--chart-4)"
                     }
                   />
                 </CardContent>
@@ -233,25 +233,25 @@ export default function StatsPage() {
                       label="Kohlenhydrate"
                       current={stats.averages.carbs}
                       goal={stats.goals.dailyCarbsGoal}
-                      colorClass="bg-cyan-600"
+                      colorClass="bg-chart-3"
                     />
                     <NutrientProgress
                       label="Fett"
                       current={stats.averages.fat}
                       goal={stats.goals.dailyFatGoal}
-                      colorClass="bg-orange-600"
+                      colorClass="bg-chart-4"
                     />
                     <NutrientProgress
                       label="Ballaststoffe"
                       current={stats.averages.fiber}
                       goal={stats.goals.dailyFiberGoal}
-                      colorClass="bg-emerald-700"
+                      colorClass="bg-chart-5"
                     />
                     <NutrientProgress
                       label="Zucker"
                       current={stats.averages.sugar}
                       goal={stats.goals.dailySugarGoal}
-                      colorClass="bg-amber-600"
+                      colorClass="bg-chart-4"
                     />
                   </CardContent>
                 </Card>
@@ -266,49 +266,49 @@ export default function StatsPage() {
                       current={stats.averages.sodium}
                       goal={stats.goals.dailySodiumGoal}
                       unit="mg"
-                      colorClass="bg-sky-700"
+                      colorClass="bg-chart-5"
                     />
                     <NutrientProgress
                       label="Kalium"
                       current={stats.averages.potassium}
                       goal={stats.goals.dailyPotassiumGoal}
                       unit="mg"
-                      colorClass="bg-violet-600"
+                      colorClass="bg-chart-2"
                     />
                     <NutrientProgress
                       label="Vitamin A"
                       current={stats.averages.vitaminA}
                       goal={stats.goals.dailyVitaminAGoal}
                       unit="µg"
-                      colorClass="bg-amber-600"
+                      colorClass="bg-chart-4"
                     />
                     <NutrientProgress
                       label="Vitamin C"
                       current={stats.averages.vitaminC}
                       goal={stats.goals.dailyVitaminCGoal}
                       unit="mg"
-                      colorClass="bg-lime-600"
+                      colorClass="bg-chart-1"
                     />
                     <NutrientProgress
                       label="Vitamin D"
                       current={stats.averages.vitaminD}
                       goal={stats.goals.dailyVitaminDGoal}
                       unit="µg"
-                      colorClass="bg-yellow-600"
+                      colorClass="bg-chart-4"
                     />
                     <NutrientProgress
                       label="Kalzium"
                       current={stats.averages.calcium}
                       goal={stats.goals.dailyCalciumGoal}
                       unit="mg"
-                      colorClass="bg-stone-600"
+                      colorClass="bg-muted-foreground"
                     />
                     <NutrientProgress
                       label="Eisen"
                       current={stats.averages.iron}
                       goal={stats.goals.dailyIronGoal}
                       unit="mg"
-                      colorClass="bg-red-700"
+                      colorClass="bg-destructive"
                     />
                   </CardContent>
                 </Card>

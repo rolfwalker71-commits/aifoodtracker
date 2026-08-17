@@ -213,7 +213,7 @@ export function BarcodeCapture({ onSelect, onOfflineQueue }: Props) {
         </div>
 
         {cameraError ? (
-          <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+          <p className="rounded-xl bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
             {cameraError}
           </p>
         ) : null}

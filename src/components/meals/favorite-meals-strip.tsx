@@ -47,7 +47,7 @@ export function FavoriteMealsStrip({ meals }: { meals: FavoriteMeal[] }) {
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-display text-xl font-bold">Favoriten</h2>
-        <Star className="h-4 w-4 text-amber-500" />
+        <Star className="h-4 w-4 text-primary" />
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1">
         {meals.map((meal) => (

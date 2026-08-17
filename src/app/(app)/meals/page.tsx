@@ -26,7 +26,7 @@ export default async function MealsPage() {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
           Mahlzeiten

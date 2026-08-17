@@ -7,6 +7,8 @@ import { motion, type PanInfo } from "framer-motion";
 import { CopyPlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatAppDateTime } from "@/lib/datetime";
 import { parseStoredIngredients } from "@/lib/meal-ingredients";
 import { MEAL_TYPE_LABELS } from "@/lib/nutrition";
@@ -45,7 +47,7 @@ export type MealListItem = {
   isFavorite?: boolean;
 };
 
-const ACTION_WIDTH = 222;
+const ACTION_WIDTH = 192;
 const OPEN_X = -ACTION_WIDTH;
 
 function ImagePlaceholder({
@@ -140,13 +142,14 @@ function SwipeMealCard({
   return (
     <div className="relative overflow-hidden rounded-2xl">
       <div
-        className="absolute inset-y-0 right-0 z-0 hidden w-[222px] max-md:flex"
+        className="absolute inset-y-0 right-0 z-0 hidden w-48 max-md:flex"
         aria-hidden={!open}
       >
-        <button
+        <Button
           type="button"
+          variant="secondary"
           tabIndex={open ? 0 : -1}
-          className="flex w-[74px] flex-col items-center justify-center gap-1 bg-sky-700 text-white disabled:opacity-60"
+          className="h-full w-16 flex-col gap-1 rounded-none px-0"
           aria-label="Nochmal speichern"
           disabled={duplicating}
           onClick={() => {
@@ -155,22 +158,28 @@ function SwipeMealCard({
           }}
         >
           <CopyPlus className="h-5 w-5" />
-          <span className="text-[11px] font-medium">Nochmal</span>
-        </button>
-        <Link
-          href={`/meals/${meal.id}`}
-          tabIndex={open ? 0 : -1}
-          className="flex w-[74px] flex-col items-center justify-center gap-1 bg-emerald-600 text-white"
-          aria-label="Bearbeiten"
-          onClick={onClose}
+          <span className="text-xs font-medium">Nochmal</span>
+        </Button>
+        <Button
+          asChild
+          variant="default"
+          className="h-full w-16 flex-col gap-1 rounded-none px-0"
         >
-          <Pencil className="h-5 w-5" />
-          <span className="text-[11px] font-medium">Ändern</span>
-        </Link>
-        <button
+          <Link
+            href={`/meals/${meal.id}`}
+            tabIndex={open ? 0 : -1}
+            aria-label="Bearbeiten"
+            onClick={onClose}
+          >
+            <Pencil className="h-5 w-5" />
+            <span className="text-xs font-medium">Ändern</span>
+          </Link>
+        </Button>
+        <Button
           type="button"
+          variant="destructive"
           tabIndex={open ? 0 : -1}
-          className="flex w-[74px] flex-col items-center justify-center gap-1 bg-red-600 text-white disabled:opacity-60"
+          className="h-full w-16 flex-col gap-1 rounded-none px-0"
           aria-label="Löschen"
           disabled={deleting}
           onClick={() => {
@@ -179,8 +188,8 @@ function SwipeMealCard({
           }}
         >
           <Trash2 className="h-5 w-5" />
-          <span className="text-[11px] font-medium">Löschen</span>
-        </button>
+          <span className="text-xs font-medium">Löschen</span>
+        </Button>
       </div>
 
       <motion.div
@@ -206,7 +215,7 @@ function SwipeMealCard({
                   <h3 className="font-semibold leading-snug break-words hover:underline">
                     {meal.name}
                     {meal.isFavorite ? (
-                      <span className="ml-1 text-amber-500" aria-label="Favorit">
+                      <span className="ml-1 text-primary" aria-label="Favorit">
                         ★
                       </span>
                     ) : null}
@@ -234,32 +243,33 @@ function SwipeMealCard({
                 ) : null}
                 <p className="text-sm text-muted-foreground">{macrosLine}</p>
                 <div className="hidden gap-1 pt-1 md:flex">
-                  <Link
-                    href={`/meals/${meal.id}`}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
-                    onClick={onClose}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Ändern
-                  </Link>
-                  <button
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href={`/meals/${meal.id}`} onClick={onClose}>
+                      <Pencil className="h-4 w-4" />
+                      Ändern
+                    </Link>
+                  </Button>
+                  <Button
                     type="button"
-                    className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-60"
+                    variant="ghost"
+                    size="sm"
                     disabled={duplicating}
                     onClick={onDuplicate}
                   >
                     <CopyPlus className="h-4 w-4" />
                     Nochmal
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
                     disabled={deleting}
                     onClick={onDelete}
                   >
                     <Trash2 className="h-4 w-4" />
                     Löschen
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -294,6 +304,8 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
+
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const items = useMemo(
     () => meals.filter((meal) => !removedIds.includes(meal.id)),
@@ -339,9 +351,6 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
   }, [items, pendingIds, router]);
 
   async function removeMeal(id: string) {
-    const confirmed = window.confirm("Mahlzeit wirklich löschen?");
-    if (!confirmed) return;
-
     setDeletingId(id);
     setRemovedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
 
@@ -395,12 +404,9 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
           <p className="text-sm text-muted-foreground">
             Noch keine Mahlzeiten erfasst.
           </p>
-          <Link
-            href="/meals/new"
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
-          >
-            Erfassen
-          </Link>
+          <Button asChild>
+            <Link href="/meals/new">Erfassen</Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -420,10 +426,22 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
           onClose={() =>
             setOpenId((current) => (current === meal.id ? null : current))
           }
-          onDelete={() => void removeMeal(meal.id)}
+          onDelete={() => setPendingDeleteId(meal.id)}
           onDuplicate={() => void duplicateMeal(meal.id)}
         />
       ))}
+      <ConfirmDialog
+        open={Boolean(pendingDeleteId)}
+        title="Mahlzeit löschen?"
+        description="Die Mahlzeit wird dauerhaft entfernt."
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+        onConfirm={() => {
+          if (pendingDeleteId) void removeMeal(pendingDeleteId);
+          setPendingDeleteId(null);
+        }}
+      />
     </div>
   );
 }

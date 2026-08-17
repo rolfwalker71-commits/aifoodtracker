@@ -149,11 +149,12 @@ export function FoodLookup({ onSelect }: Props) {
 
         <div className="space-y-2">
           {visibleItems.map((item) => (
-            <button
+            <Button
               key={item.id}
               type="button"
+              variant="outline"
               onClick={() => onSelect(item)}
-              className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-background p-3 text-left transition hover:border-primary/40 hover:bg-accent/40"
+              className="h-auto w-full items-center justify-start gap-3 p-3 text-left"
             >
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
                 {item.imageUrl ? (
@@ -164,7 +165,7 @@ export function FoodLookup({ onSelect }: Props) {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                     OFF
                   </div>
                 )}
@@ -181,7 +182,7 @@ export function FoodLookup({ onSelect }: Props) {
                     : ""}
                 </p>
               </div>
-            </button>
+            </Button>
           ))}
         </div>
       </CardContent>

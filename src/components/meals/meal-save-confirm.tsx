@@ -114,7 +114,7 @@ export function MealSaveConfirm({
           Nährwerte wurden auf deine Menge umgerechnet und werden mitgespeichert.
         </p>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-6">
         <div className="rounded-2xl bg-muted/50 px-4 py-6 text-center">
           <p className="text-sm text-muted-foreground">Kalorien</p>
           <p className="mt-1 font-display text-5xl font-bold tracking-tight">
@@ -199,7 +199,7 @@ export function MealSaveConfirm({
         <div
           className={`space-y-3 rounded-2xl border p-4 ${
             needsRecalculate
-              ? "border-amber-500/50 bg-amber-500/10"
+              ? "border-warning/50 bg-warning/10"
               : "border-border bg-muted/30"
           }`}
         >
@@ -229,7 +229,7 @@ export function MealSaveConfirm({
             Gesamt neu berechnen
           </Button>
           {needsRecalculate ? (
-            <p className="flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+            <p className="flex items-start gap-2 text-sm font-medium text-warning-foreground">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               Gesamtmenge geändert – bitte „Gesamt neu berechnen“ tippen.
             </p>

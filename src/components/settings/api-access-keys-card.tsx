@@ -120,7 +120,7 @@ export function ApiAccessKeysCard() {
         </p>
 
         {freshKey ? (
-          <div className="space-y-2 rounded-xl border border-amber-600/30 bg-amber-500/10 p-3">
+          <div className="space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-3">
             <p className="text-sm font-medium">
               Neuer Key (nur jetzt sichtbar)
             </p>
@@ -148,7 +148,7 @@ export function ApiAccessKeysCard() {
                 Ausblenden
               </Button>
             </div>
-            <pre className="overflow-x-auto rounded-lg bg-background/80 p-3 text-[11px] leading-relaxed text-muted-foreground">
+            <pre className="overflow-x-auto rounded-lg bg-background/80 p-3 text-xs leading-relaxed text-muted-foreground">
               {example}
             </pre>
           </div>

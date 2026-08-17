@@ -7,11 +7,16 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { createPortal } from "react-dom";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { ChevronDown, CopyPlus, Pencil, Star, X } from "lucide-react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatAppDateTime } from "@/lib/datetime";
 import { getMealQualityTip } from "@/lib/meal-quality-tip";
 import {
@@ -59,7 +64,6 @@ export function MealDetailViewer({
   onToggleFavorite,
   onDuplicate,
 }: Props) {
-  const [mounted, setMounted] = useState(false);
   const [page, setPage] = useState(0);
   const [width, setWidth] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -75,10 +79,6 @@ export function MealDetailViewer({
   const pageRef = useRef(page);
   pageRef.current = page;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useLayoutEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -93,7 +93,7 @@ export function MealDetailViewer({
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [x, mounted]);
+  }, [x]);
 
   useEffect(() => {
     if (!width) return;
@@ -110,17 +110,6 @@ export function MealDetailViewer({
   useEffect(() => {
     pageRefs.current[page]?.scrollTo({ top: 0 });
   }, [page]);
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   function goTo(index: number) {
     setPage(Math.min(PAGE_COUNT - 1, Math.max(0, index)));
@@ -193,41 +182,27 @@ export function MealDetailViewer({
     }
   }
 
-  if (!mounted) return null;
-
-  return createPortal(
-    <div
-      className={cn(
-        "fixed inset-0 z-50 flex flex-col",
-        "md:items-center md:justify-center md:bg-black/45 md:p-6 md:backdrop-blur-[2px]",
-      )}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Mahlzeit-Details"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        showClose={false}
         className={cn(
-          "flex h-full min-h-0 w-full flex-col overflow-hidden bg-background",
-          "md:h-[min(88vh,52rem)] md:max-w-2xl md:rounded-2xl md:border md:border-border md:shadow-2xl",
+          "flex h-dvh max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 left-0 top-0",
+          "md:left-1/2 md:top-1/2 md:h-[90vh] md:max-w-2xl md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:border md:border-border md:shadow-2xl",
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/70 px-4 py-3">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-bold tracking-tight md:text-xl">
-              Mahlzeit
-            </h1>
-            <p className="truncate text-xs text-muted-foreground">
+            <DialogTitle className="md:text-xl">Mahlzeit</DialogTitle>
+            <DialogDescription className="truncate">
               {PAGE_LABELS[page]}
-            </p>
+            </DialogDescription>
           </div>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-10 w-10 shrink-0"
+            className="shrink-0"
             aria-label="Schliessen"
             onClick={onClose}
           >
@@ -303,26 +278,21 @@ export function MealDetailViewer({
           className="grid shrink-0 grid-cols-3 gap-1 border-t border-border/70 p-2"
         >
           {PAGE_LABELS.map((label, index) => (
-            <button
+            <Button
               key={label}
               type="button"
               role="tab"
+              variant={index === page ? "default" : "secondary"}
               aria-selected={index === page}
-              className={cn(
-                "h-11 rounded-xl px-2 text-xs font-semibold sm:text-sm",
-                index === page
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/70 text-muted-foreground hover:bg-accent hover:text-foreground",
-              )}
+              className="h-11 px-2 text-xs sm:text-sm"
               onClick={() => goTo(index)}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -413,7 +383,7 @@ function OverviewPage({
             <Star
               className={cn(
                 "h-4 w-4",
-                isFavorite && "fill-amber-500 text-amber-500",
+                isFavorite && "fill-primary text-primary",
               )}
             />
             {isFavorite ? "Favorit" : "Merken"}
@@ -451,7 +421,7 @@ function InsightPage({
           </p>
         </div>
         {ingredients.length ? (
-          <ul className="max-h-[38vh] divide-y divide-border/70 overflow-y-auto rounded-2xl border border-border sm:max-h-[42vh]">
+          <ul className="max-h-80 divide-y divide-border overflow-y-auto rounded-2xl border border-border sm:max-h-96">
             {ingredients.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
@@ -488,9 +458,9 @@ function InsightPage({
         <div
           className={cn(
             "rounded-2xl border p-3.5",
-            tip.tone === "positive" &&
-              "border-emerald-600/30 bg-emerald-500/10",
-            tip.tone === "attention" && "border-amber-600/30 bg-amber-500/10",
+            tip.tone === "positive" && "border-primary/30 bg-primary/10",
+            tip.tone === "attention" &&
+              "border-warning/40 bg-warning/10 text-warning-foreground",
             tip.tone === "neutral" && "border-border bg-background",
           )}
         >
@@ -678,25 +648,25 @@ function GoalsPage({
             label="Protein"
             current={values.protein}
             goal={goals.dailyProteinGoal}
-            colorClass="bg-teal-600"
+            colorClass="bg-chart-2"
           />
           <NutrientProgress
             label="Kohlenhydrate"
             current={values.carbs}
             goal={goals.dailyCarbsGoal}
-            colorClass="bg-cyan-600"
+            colorClass="bg-chart-3"
           />
           <NutrientProgress
             label="Fett"
             current={values.fat}
             goal={goals.dailyFatGoal}
-            colorClass="bg-orange-600"
+            colorClass="bg-chart-4"
           />
           <NutrientProgress
             label="Ballaststoffe"
             current={values.fiber}
             goal={goals.dailyFiberGoal}
-            colorClass="bg-emerald-700"
+            colorClass="bg-chart-5"
           />
 
           <Button
@@ -722,56 +692,56 @@ function GoalsPage({
                 label="Zucker"
                 current={values.sugar}
                 goal={goals.dailySugarGoal}
-                colorClass="bg-rose-600"
+                colorClass="bg-chart-3"
               />
               <NutrientProgress
                 label="Natrium"
                 current={values.sodium}
                 goal={goals.dailySodiumGoal}
                 unit="mg"
-                colorClass="bg-sky-700"
+                colorClass="bg-chart-5"
               />
               <NutrientProgress
                 label="Kalium"
                 current={values.potassium}
                 goal={goals.dailyPotassiumGoal}
                 unit="mg"
-                colorClass="bg-violet-600"
+                colorClass="bg-chart-2"
               />
               <NutrientProgress
                 label="Vitamin A"
                 current={values.vitaminA}
                 goal={goals.dailyVitaminAGoal}
                 unit="µg"
-                colorClass="bg-amber-600"
+                colorClass="bg-chart-4"
               />
               <NutrientProgress
                 label="Vitamin C"
                 current={values.vitaminC}
                 goal={goals.dailyVitaminCGoal}
                 unit="mg"
-                colorClass="bg-lime-600"
+                colorClass="bg-chart-1"
               />
               <NutrientProgress
                 label="Vitamin D"
                 current={values.vitaminD}
                 goal={goals.dailyVitaminDGoal}
                 unit="µg"
-                colorClass="bg-yellow-600"
+                colorClass="bg-chart-4"
               />
               <NutrientProgress
                 label="Kalzium"
                 current={values.calcium}
                 goal={goals.dailyCalciumGoal}
                 unit="mg"
-                colorClass="bg-stone-600"
+                colorClass="bg-muted-foreground"
               />
               <NutrientProgress
                 label="Eisen"
                 current={values.iron}
                 goal={goals.dailyIronGoal}
                 unit="mg"
-                colorClass="bg-red-700"
+                colorClass="bg-destructive"
               />
             </div>
           ) : null}

@@ -2,6 +2,7 @@
 
 import { Check, Package, Scale, Sparkles, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   confidenceLevel,
   confidencePercent,
@@ -81,19 +82,15 @@ export function MealCaptureAssistant({
   const meta = stepMeta(current, entry);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             Schritt {index + 1} von {steps.length}
           </p>
-          <button
-            type="button"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
             Abbrechen
-          </button>
+          </Button>
         </div>
         <ol className="flex items-center gap-1 sm:gap-2">
           {steps.map((id, i) => {
@@ -119,7 +116,7 @@ export function MealCaptureAssistant({
                 </div>
                 <span
                   className={cn(
-                    "max-w-full truncate text-[10px] sm:text-xs",
+                    "max-w-full truncate text-xs",
                     active
                       ? "font-medium text-foreground"
                       : "text-muted-foreground",
@@ -142,13 +139,9 @@ export function MealCaptureAssistant({
       {children}
 
       {onBack ? (
-        <button
-          type="button"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          onClick={onBack}
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
           Zurück
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -188,9 +181,9 @@ export function CaptureIdentityStep({
   return (
     <div
       className={cn(
-        "space-y-5 rounded-2xl border bg-background p-5 sm:p-6",
+        "space-y-6 rounded-2xl border bg-background p-5 sm:p-6",
         dishUncertain
-          ? "border-amber-500/50 bg-amber-500/5"
+          ? "border-warning/50 bg-warning/10"
           : "border-border",
       )}
     >
@@ -215,7 +208,7 @@ export function CaptureIdentityStep({
       ) : null}
 
       {dishUncertain ? (
-        <p className="text-center text-sm font-medium text-amber-900 dark:text-amber-100">
+        <p className="text-center text-sm font-medium text-warning-foreground">
           {isProduct
             ? "Produkt unsicher – Bezeichnung prüfen und bei Bedarf anpassen."
             : "Gericht unsicher – Name prüfen und bei Bedarf anpassen."}
@@ -225,8 +218,8 @@ export function CaptureIdentityStep({
       {onNameChange ? (
         <label className="block space-y-2 text-center">
           <span className="text-xs text-muted-foreground">Bezeichnung</span>
-          <input
-            className="w-full rounded-xl border border-border bg-background px-3 py-3 text-center font-display text-xl font-bold leading-snug tracking-tight break-words outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-2xl"
+          <Input
+            className="h-auto py-3 text-center font-display text-xl font-bold leading-snug tracking-tight sm:text-2xl"
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
             onFocus={(e) =>
@@ -294,12 +287,9 @@ function ConfidenceRow({
     <div
       className={cn(
         "rounded-2xl px-4 py-2.5 text-left text-sm",
-        level === "high" &&
-          "bg-emerald-500/15 text-emerald-900 dark:text-emerald-100",
-        level === "medium" &&
-          "bg-amber-500/15 text-amber-900 dark:text-amber-100",
-        level === "low" &&
-          "bg-orange-500/20 text-orange-950 dark:text-orange-100",
+        level === "high" && "bg-primary/15 text-foreground",
+        level === "medium" && "bg-warning/15 text-warning-foreground",
+        level === "low" && "bg-destructive/15 text-destructive",
       )}
     >
       <p className="font-semibold break-words">{label}</p>

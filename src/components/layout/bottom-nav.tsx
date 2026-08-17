@@ -27,7 +27,7 @@ export function BottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[11px] font-semibold leading-tight transition-colors",
+                  "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-xs font-semibold leading-tight transition-colors",
                   primary
                     ? "text-primary"
                     : active
@@ -44,7 +44,7 @@ export function BottomNav() {
                     !primary && active && "bg-accent",
                   )}
                 >
-                  <Icon className="h-[18px] w-[18px] stroke-[2.5]" />
+                  <Icon className="h-4 w-4" />
                 </span>
                 {label}
               </Link>

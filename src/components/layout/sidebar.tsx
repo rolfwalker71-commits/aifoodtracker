@@ -49,13 +49,13 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3.5 py-3 text-[17px] font-bold transition-colors",
+                "flex items-center gap-3 rounded-xl px-4 py-3 text-lg font-bold transition-colors",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              <Icon className="h-[19px] w-[19px] stroke-[2.5]" />
+              <Icon className="h-5 w-5" />
               {label}
             </Link>
           );
@@ -64,13 +64,13 @@ export function Sidebar() {
           <Link
             href="/admin/users"
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3.5 py-3 text-[17px] font-bold transition-colors",
+              "flex items-center gap-3 rounded-xl px-4 py-3 text-lg font-bold transition-colors",
               pathname.startsWith("/admin")
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
-            <Shield className="h-[19px] w-[19px] stroke-[2.5]" />
+            <Shield className="h-5 w-5" />
             Admin
           </Link>
         ) : null}

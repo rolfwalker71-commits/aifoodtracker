@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="mx-auto flex min-h-screen max-w-7xl overflow-x-clip">
       <Sidebar />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-xl md:px-6">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/80 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="flex items-center gap-2.5">
             <BrandMark size="sm" className="md:hidden" />
             <div>
@@ -26,7 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <ThemeToggle />
         </header>
-        <main className="min-w-0 flex-1 px-4 py-5 pb-28 md:px-6 md:pb-8">
+        <main className="min-w-0 flex-1 px-4 py-6 pb-28 sm:px-6 md:pb-8 lg:px-8">
           <OfflineStatusBanner />
           {children}
         </main>

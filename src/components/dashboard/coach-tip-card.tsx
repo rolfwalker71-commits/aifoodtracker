@@ -5,8 +5,8 @@ import type { CoachTip } from "@/lib/coach-tip";
 
 const toneClass: Record<CoachTip["tone"], string> = {
   neutral: "border-border/70 bg-card",
-  positive: "border-emerald-500/30 bg-emerald-500/10",
-  attention: "border-amber-500/40 bg-amber-500/10",
+  positive: "border-primary/30 bg-primary/10",
+  attention: "border-warning/40 bg-warning/10",
 };
 
 export function CoachTipCard({ tip }: { tip: CoachTip }) {

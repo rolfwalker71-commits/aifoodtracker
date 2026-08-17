@@ -20,7 +20,7 @@ export function DailyGoalsSummary({ totals, goals, profileComplete }: Props) {
   return (
     <div className="space-y-4">
       {!profileComplete && (
-        <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+        <p className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
           Für eine persönliche Kalorienberechnung bitte unter{" "}
           <Link href="/settings" className="font-semibold underline">
             Benutzer
@@ -39,25 +39,25 @@ export function DailyGoalsSummary({ totals, goals, profileComplete }: Props) {
         label="Protein"
         current={totals.protein}
         goal={goals.dailyProteinGoal}
-        colorClass="bg-teal-600"
+            colorClass="bg-chart-2"
       />
       <NutrientProgress
         label="Kohlenhydrate"
         current={totals.carbs}
         goal={goals.dailyCarbsGoal}
-        colorClass="bg-cyan-600"
+            colorClass="bg-chart-3"
       />
       <NutrientProgress
         label="Fett"
         current={totals.fat}
         goal={goals.dailyFatGoal}
-        colorClass="bg-orange-600"
+            colorClass="bg-chart-4"
       />
       <NutrientProgress
         label="Ballaststoffe"
         current={totals.fiber}
         goal={goals.dailyFiberGoal}
-        colorClass="bg-emerald-700"
+            colorClass="bg-chart-5"
       />
 
       <div className="space-y-3 border-t border-border/60 pt-3">
@@ -84,56 +84,56 @@ export function DailyGoalsSummary({ totals, goals, profileComplete }: Props) {
               label="Zucker"
               current={totals.sugar}
               goal={goals.dailySugarGoal}
-              colorClass="bg-rose-600"
+              colorClass="bg-chart-3"
             />
             <NutrientProgress
               label="Natrium"
               current={totals.sodium}
               goal={goals.dailySodiumGoal}
               unit="mg"
-              colorClass="bg-sky-700"
+              colorClass="bg-chart-5"
             />
             <NutrientProgress
               label="Kalium"
               current={totals.potassium}
               goal={goals.dailyPotassiumGoal}
               unit="mg"
-              colorClass="bg-violet-600"
+              colorClass="bg-chart-2"
             />
             <NutrientProgress
               label="Vitamin A"
               current={totals.vitaminA}
               goal={goals.dailyVitaminAGoal}
               unit="µg"
-              colorClass="bg-amber-600"
+              colorClass="bg-chart-4"
             />
             <NutrientProgress
               label="Vitamin C"
               current={totals.vitaminC}
               goal={goals.dailyVitaminCGoal}
               unit="mg"
-              colorClass="bg-lime-600"
+              colorClass="bg-chart-1"
             />
             <NutrientProgress
               label="Vitamin D"
               current={totals.vitaminD}
               goal={goals.dailyVitaminDGoal}
               unit="µg"
-              colorClass="bg-yellow-600"
+              colorClass="bg-chart-4"
             />
             <NutrientProgress
               label="Kalzium"
               current={totals.calcium}
               goal={goals.dailyCalciumGoal}
               unit="mg"
-              colorClass="bg-stone-600"
+              colorClass="bg-muted-foreground"
             />
             <NutrientProgress
               label="Eisen"
               current={totals.iron}
               goal={goals.dailyIronGoal}
               unit="mg"
-              colorClass="bg-red-700"
+              colorClass="bg-destructive"
             />
             <p className="text-xs text-muted-foreground">
               Verlauf und Tagesvergleiche findest du unter{" "}

@@ -141,7 +141,7 @@ export function MealForm({
 
   return (
     <form
-      className="space-y-5"
+      className="space-y-6"
       onSubmit={async (event) => {
         event.preventDefault();
         await onSubmit({
@@ -174,7 +174,7 @@ export function MealForm({
           <div
             className={`space-y-3 rounded-2xl border p-4 sm:col-span-2 ${
               needsRecalculate
-                ? "border-amber-500/50 bg-amber-500/10"
+                ? "border-warning/50 bg-warning/10"
                 : "border-border bg-muted/30"
             }`}
           >
@@ -207,7 +207,7 @@ export function MealForm({
               Neuberechnen
             </Button>
             {needsRecalculate ? (
-              <p className="flex items-start gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+              <p className="flex items-start gap-2 text-sm font-medium text-warning-foreground">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 Menge geändert – bitte „Neuberechnen“ drücken, bevor du
                 speicherst.

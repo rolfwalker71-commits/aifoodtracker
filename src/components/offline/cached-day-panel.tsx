@@ -38,7 +38,7 @@ export function CachedDayPanel() {
   if (online || !snapshot) return null;
 
   return (
-    <Card className="border-amber-500/30 bg-amber-500/5">
+    <Card className="border-warning/30 bg-warning/10">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Cache vom {snapshot.dateLabel}</CardTitle>
       </CardHeader>

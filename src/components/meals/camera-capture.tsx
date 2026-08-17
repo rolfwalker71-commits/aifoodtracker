@@ -86,10 +86,11 @@ export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => galleryRef.current?.click()}
-          className="group relative flex min-h-56 w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-muted/40 transition hover:border-primary/50 hover:bg-muted/70"
+          className="group relative flex min-h-56 w-full flex-col items-center justify-center overflow-hidden rounded-2xl border-dashed"
         >
           {preview ? (
             <Image
@@ -108,7 +109,7 @@ export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
               </p>
             </>
           )}
-        </button>
+        </Button>
         <input
           ref={cameraRef}
           type="file"

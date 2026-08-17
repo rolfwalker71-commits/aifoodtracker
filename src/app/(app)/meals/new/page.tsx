@@ -19,6 +19,7 @@ import { OffCompareCard } from "@/components/meals/off-compare-card";
 import { PortionPrompt } from "@/components/meals/portion-prompt";
 import { TextMealCapture } from "@/components/meals/text-meal-capture";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { confidenceLevel } from "@/lib/confidence";
 import { toFormDateTime } from "@/lib/datetime";
@@ -722,7 +723,7 @@ function NewMealPageInner() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
           {activeDraftId ? "Offline-Entwurf nachbearbeiten" : "Mahlzeit erfassen"}
@@ -826,16 +827,17 @@ function NewMealPageInner() {
               onSubmit={saveMeal}
               busy={busy}
             />
-            <button
+            <Button
               type="button"
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              variant="ghost"
+              className="w-full"
               onClick={() => {
                 setPhase("assist");
                 setAssistStep("confirm");
               }}
             >
               Zurück zur Übersicht
-            </button>
+            </Button>
           </CardContent>
         </Card>
       ) : null}
@@ -888,13 +890,14 @@ function NewMealPageInner() {
                 </CardContent>
               </Card>
             ) : (
-              <button
+              <Button
                 type="button"
-                className="h-11 w-full rounded-xl text-sm font-semibold text-muted-foreground underline-offset-4 hover:underline"
+                variant="ghost"
+                className="h-11 w-full"
                 onClick={() => setShowManualForm(true)}
               >
                 Mehr: komplett manuell eingeben
-              </button>
+              </Button>
             )}
           </TabsContent>
         </Tabs>

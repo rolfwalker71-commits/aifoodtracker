@@ -72,7 +72,7 @@ export function RemindersCard({
                   </p>
                   <Input
                     type="time"
-                    className="mt-1.5 h-9 w-[7.25rem]"
+                    className="mt-1.5 h-10 w-32"
                     value={reminder.timeLocal}
                     onChange={(e) =>
                       onChange({
@@ -120,7 +120,7 @@ export function RemindersCard({
               <p className="truncate text-sm font-medium">Abend-Coach</p>
               <Input
                 type="time"
-                className="mt-1.5 h-9 w-[7.25rem]"
+                className="mt-1.5 h-10 w-32"
                 value={settings.extras.restCoach.timeLocal}
                 onChange={(e) =>
                   onChange({
@@ -193,7 +193,7 @@ export function RemindersCard({
                 </select>
                 <Input
                   type="time"
-                  className="h-9 w-[7.25rem]"
+                  className="h-10 w-32"
                   value={settings.extras.weeklyWeight.timeLocal}
                   onChange={(e) =>
                     onChange({

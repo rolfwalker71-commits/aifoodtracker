@@ -24,8 +24,8 @@ export function OffCompareCard({
   const label = match.brand ? `${match.brand} · ${match.name}` : match.name;
 
   return (
-    <div className="space-y-5 rounded-2xl border border-sky-500/30 bg-sky-500/5 p-5 sm:p-6">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-800 dark:text-sky-200">
+    <div className="space-y-6 rounded-2xl border border-primary/30 bg-primary/5 p-5 sm:p-6">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 text-primary">
         <PackageSearch className="h-8 w-8" />
       </div>
 

@@ -24,6 +24,14 @@
   --border: #c9ddd4;
   --input: #c9ddd4;
   --ring: #0f766e;
+  --chart-1: #0f766e;
+  --chart-2: #0e7490;
+  --chart-3: #c2410c;
+  --chart-4: #047857;
+  --chart-5: #155e75;
+  --warning: #b45309;
+  --warning-foreground: #7c2d12;
+  --overlay: rgb(16 35 28 / 0.45);
   --radius: 1rem;
   --page-glow: radial-gradient(circle at top left, #b7f0d8 0%, transparent 42%),
     radial-gradient(circle at 85% 10%, #9ed9f5 0%, transparent 36%),
@@ -50,6 +58,14 @@
   --border: #24443b;
   --input: #24443b;
   --ring: #2dd4bf;
+  --chart-1: #2dd4bf;
+  --chart-2: #22d3ee;
+  --chart-3: #fb923c;
+  --chart-4: #34d399;
+  --chart-5: #38bdf8;
+  --warning: #fbbf24;
+  --warning-foreground: #fef3c7;
+  --overlay: rgb(0 0 0 / 0.55);
   --page-glow: radial-gradient(circle at top left, #134e4a 0%, transparent 40%),
     radial-gradient(circle at 80% 0%, #164e63 0%, transparent 35%),
     linear-gradient(180deg, #071512 0%, #0b1c18 100%);
@@ -75,6 +91,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-overlay: var(--overlay);
   --font-sans: var(--font-sans-stack);
   --font-display: var(--font-sans-stack);
   --radius-xl: calc(var(--radius) + 2px);

@@ -55,8 +55,8 @@ export function WeightTrend({
         <AreaChart data={points} margin={{ left: 4, right: 8, top: 8, bottom: 0 }}>
           <defs>
             <linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#0f766e" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#0f766e" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.35} />
+              <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -85,7 +85,7 @@ export function WeightTrend({
           <Area
             type="monotone"
             dataKey="kg"
-            stroke="#0f766e"
+            stroke="var(--primary)"
             fill="url(#weightFill)"
             strokeWidth={2.5}
           />

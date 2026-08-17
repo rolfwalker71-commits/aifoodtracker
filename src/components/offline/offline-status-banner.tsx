@@ -48,13 +48,13 @@ export function OfflineStatusBanner() {
   return (
     <div className="mb-4 space-y-2">
       {!online ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-sm">
-          <CloudOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+        <div className="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 px-3.5 py-3 text-sm">
+          <CloudOff className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-amber-900 dark:text-amber-100">
+            <p className="font-semibold text-warning-foreground">
               Offline-Modus
             </p>
-            <p className="mt-0.5 text-amber-900/80 dark:text-amber-100/80">
+            <p className="mt-0.5 text-warning-foreground">
               Erfassungen werden lokal gespeichert. KI und Sync folgen, sobald du
               wieder online bist.
               {snapshot
@@ -64,13 +64,13 @@ export function OfflineStatusBanner() {
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
                 href="/meals/new"
-                className="text-xs font-semibold text-amber-900 underline-offset-2 hover:underline dark:text-amber-100"
+                className="text-xs font-semibold text-warning-foreground underline-offset-2 hover:underline dark:text-warning-foreground"
               >
                 Offline erfassen
               </Link>
               <Link
                 href="/offline"
-                className="text-xs font-semibold text-amber-900 underline-offset-2 hover:underline dark:text-amber-100"
+                className="text-xs font-semibold text-warning-foreground underline-offset-2 hover:underline dark:text-warning-foreground"
               >
                 Cache ansehen
               </Link>

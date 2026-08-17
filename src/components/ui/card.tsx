@@ -23,7 +23,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
   return (
     <h3
       className={cn(
-        "text-[17px] font-bold tracking-tight",
+        "text-lg font-bold tracking-tight",
         className,
       )}
       {...props}

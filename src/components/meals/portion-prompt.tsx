@@ -68,9 +68,9 @@ export function PortionPrompt({
   return (
     <div
       className={cn(
-        "space-y-5 rounded-2xl border p-5 sm:p-6",
+        "space-y-6 rounded-2xl border p-5 sm:p-6",
         portion.key === "low"
-          ? "border-amber-500/50 bg-amber-500/10"
+          ? "border-warning/50 bg-warning/10"
           : "border-border bg-background",
       )}
     >
@@ -101,9 +101,9 @@ export function PortionPrompt({
         <p
           className={cn(
             "rounded-xl px-3 py-2 text-sm",
-            portion.key === "high" && "bg-emerald-500/10",
-            portion.key === "medium" && "bg-amber-500/10",
-            portion.key === "low" && "bg-orange-500/15 font-medium",
+            portion.key === "high" && "bg-primary/10",
+            portion.key === "medium" && "bg-warning/10",
+            portion.key === "low" && "bg-destructive/10 font-medium",
           )}
         >
           Menge {portion.label} ({confidencePercent(portionConfidence)} %).{" "}

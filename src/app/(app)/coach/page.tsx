@@ -141,19 +141,19 @@ export default async function CoachPage() {
               label="Protein (Ø/Tag)"
               current={weekStats.averages.protein}
               goal={weekStats.goals.dailyProteinGoal}
-              colorClass="bg-teal-600"
+              colorClass="bg-chart-2"
             />
             <NutrientProgress
               label="Ballaststoffe (Ø/Tag)"
               current={weekStats.averages.fiber}
               goal={weekStats.goals.dailyFiberGoal}
-              colorClass="bg-emerald-700"
+              colorClass="bg-chart-5"
             />
             <NutrientProgress
               label="Zucker (Ø/Tag)"
               current={weekStats.averages.sugar}
               goal={weekStats.goals.dailySugarGoal}
-              colorClass="bg-rose-600"
+              colorClass="bg-chart-3"
             />
           </CardContent>
         </Card>

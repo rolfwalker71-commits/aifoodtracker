@@ -37,7 +37,7 @@ type Props = {
 export function TrendChart({
   data,
   metric,
-  color = "#0f766e",
+  color = "var(--primary)",
   unit = "",
 }: Props) {
   if (!data.length) {

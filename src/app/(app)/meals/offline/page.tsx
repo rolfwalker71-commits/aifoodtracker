@@ -58,7 +58,7 @@ export default function OfflineDraftsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
           Offline-Entwürfe

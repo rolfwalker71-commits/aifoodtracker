@@ -15,7 +15,7 @@ type Props = {
   fat: number;
 };
 
-const COLORS = ["#0f766e", "#0891b2", "#ea580c"];
+const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
 
 export function MacroChart({ protein, carbs, fat }: Props) {
   const data = [

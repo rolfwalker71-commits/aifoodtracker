@@ -33,7 +33,7 @@ export function NutrientProgress({
           {unit === "kcal" ? " kcal" : unit}
           <span
             className={
-              over ? "ml-2 font-medium text-rose-600" : "ml-2"
+              over ? "ml-2 font-medium text-destructive" : "ml-2"
             }
           >
             ({formatNumber(rawPercent, 0)}%)
@@ -42,7 +42,7 @@ export function NutrientProgress({
       </div>
       <Progress
         value={barPercent}
-        indicatorClassName={over ? "bg-rose-600" : colorClass}
+        indicatorClassName={over ? "bg-destructive" : colorClass}
       />
     </div>
   );

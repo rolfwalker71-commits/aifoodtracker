@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MotifCard } from "@/components/push/motif-card";
@@ -36,6 +37,7 @@ export function WeightCard({
   const [editKg, setEditKg] = useState("");
   const [editDate, setEditDate] = useState("");
   const [entriesOpen, setEntriesOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const previous = entries.length >= 2 ? entries[entries.length - 2] : null;
   const latest = entries.at(-1) ?? null;
@@ -126,12 +128,15 @@ export function WeightCard({
     }
   }
 
-  async function removeEntry(id: string | undefined) {
+  function requestRemove(id: string | undefined) {
     if (!id) {
       toast.error("Eintrag kann nicht gelöscht werden");
       return;
     }
-    if (!window.confirm("Diesen Gewichtseintrag löschen?")) return;
+    setPendingDeleteId(id);
+  }
+
+  async function removeEntry(id: string) {
     setBusy(true);
     try {
       const response = await fetch(`/api/weight/${id}`, { method: "DELETE" });
@@ -170,9 +175,9 @@ export function WeightCard({
               <p
                 className={`text-sm ${
                   delta < 0
-                    ? "text-emerald-700"
+                    ? "text-primary"
                     : delta > 0
-                      ? "text-amber-700"
+                      ? "text-warning"
                       : "text-muted-foreground"
                 }`}
               >
@@ -213,9 +218,10 @@ export function WeightCard({
 
         {recent.length ? (
           <div className="space-y-2">
-            <button
+            <Button
               type="button"
-              className="flex w-full items-center justify-between gap-2 rounded-xl px-1 py-1 text-left text-sm font-medium transition hover:bg-muted/50"
+              variant="ghost"
+              className="h-11 w-full justify-between px-2"
               aria-expanded={entriesOpen}
               onClick={() => setEntriesOpen((open) => !open)}
             >
@@ -231,7 +237,7 @@ export function WeightCard({
                   entriesOpen && "rotate-180",
                 )}
               />
-            </button>
+            </Button>
             {entriesOpen ? (
               <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70">
                 {recent.map((entry) => {
@@ -302,7 +308,7 @@ export function WeightCard({
                               variant="ghost"
                               aria-label="Eintrag löschen"
                               disabled={busy || !entry.id}
-                              onClick={() => void removeEntry(entry.id)}
+                              onClick={() => requestRemove(entry.id)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -317,6 +323,18 @@ export function WeightCard({
           </div>
         ) : null}
       </CardContent>
+      <ConfirmDialog
+        open={Boolean(pendingDeleteId)}
+        title="Gewichtseintrag löschen?"
+        description="Dieser Eintrag wird dauerhaft entfernt."
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+        onConfirm={() => {
+          if (pendingDeleteId) void removeEntry(pendingDeleteId);
+          setPendingDeleteId(null);
+        }}
+      />
     </Card>
   );
 }
