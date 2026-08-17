@@ -118,6 +118,16 @@ function SwipeMealCard({
   onDelete: () => void;
   onDuplicate: () => void;
 }) {
+  const [coarsePointer, setCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const sync = () => setCoarsePointer(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   function onDragEnd(_: unknown, info: PanInfo) {
     const shouldOpen = info.offset.x + info.velocity.x * 0.2 < -48;
     if (shouldOpen) onOpen();
@@ -130,7 +140,7 @@ function SwipeMealCard({
   return (
     <div className="relative overflow-hidden rounded-2xl">
       <div
-        className="absolute inset-y-0 right-0 z-0 flex w-[222px]"
+        className="absolute inset-y-0 right-0 z-0 hidden w-[222px] max-md:flex"
         aria-hidden={!open}
       >
         <button
@@ -176,6 +186,7 @@ function SwipeMealCard({
       <motion.div
         drag="x"
         dragDirectionLock
+        dragListener={coarsePointer}
         dragConstraints={{ left: OPEN_X, right: 0 }}
         dragElastic={0.06}
         animate={{ x: open ? OPEN_X : 0 }}
@@ -222,6 +233,34 @@ function SwipeMealCard({
                   </p>
                 ) : null}
                 <p className="text-sm text-muted-foreground">{macrosLine}</p>
+                <div className="hidden gap-1 pt-1 md:flex">
+                  <Link
+                    href={`/meals/${meal.id}`}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+                    onClick={onClose}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Ändern
+                  </Link>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-60"
+                    disabled={duplicating}
+                    onClick={onDuplicate}
+                  >
+                    <CopyPlus className="h-4 w-4" />
+                    Nochmal
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                    disabled={deleting}
+                    onClick={onDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Löschen
+                  </button>
+                </div>
               </div>
 
               <Link
@@ -352,8 +391,16 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
   if (!items.length) {
     return (
       <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Noch keine Mahlzeiten erfasst. Tippe auf Erfassen, um zu starten.
+        <CardContent className="space-y-3 py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Noch keine Mahlzeiten erfasst.
+          </p>
+          <Link
+            href="/meals/new"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
+          >
+            Erfassen
+          </Link>
         </CardContent>
       </Card>
     );

@@ -156,7 +156,7 @@ export function PortionPrompt({
         </Button>
         {onSkip ? (
           <Button type="button" variant="ghost" onClick={onSkip}>
-            Überspringen
+            Vorschlag übernehmen
           </Button>
         ) : null}
       </div>

@@ -5,6 +5,7 @@ import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { MacroChart } from "@/components/dashboard/macro-chart";
 import { TrendChart } from "@/components/stats/trend-chart";
 import { WeightTrend } from "@/components/weight/weight-trend";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -44,26 +45,41 @@ export default function StatsPage() {
   const [weight, setWeight] = useState<Array<{ recordedOn: string; kg: number }>>(
     [],
   );
+  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">(
+    "loading",
+  );
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const [statsRes, weightRes] = await Promise.all([
-        fetch(`/api/stats?range=${range}`, { cache: "no-store" }),
-        fetch("/api/weight", { cache: "no-store" }),
-      ]);
-      const data = await statsRes.json();
-      const weightData = await weightRes.json().catch(() => ({}));
-      if (!cancelled && statsRes.ok) setStats(data);
-      if (!cancelled && weightRes.ok) setWeight(weightData.entries || []);
+      setLoadState("loading");
+      try {
+        const [statsRes, weightRes] = await Promise.all([
+          fetch(`/api/stats?range=${range}`, { cache: "no-store" }),
+          fetch("/api/weight", { cache: "no-store" }),
+        ]);
+        const data = await statsRes.json();
+        const weightData = await weightRes.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!statsRes.ok) {
+          setLoadState("error");
+          return;
+        }
+        setStats(data);
+        if (weightRes.ok) setWeight(weightData.entries || []);
+        setLoadState("ready");
+      } catch {
+        if (!cancelled) setLoadState("error");
+      }
     }
 
     load();
     return () => {
       cancelled = true;
     };
-  }, [range]);
+  }, [range, reloadTick]);
 
   return (
     <div className="space-y-5">
@@ -84,7 +100,21 @@ export default function StatsPage() {
         </TabsList>
 
         <TabsContent value={range} className="space-y-4">
-          {!stats ? (
+          {loadState === "error" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-destructive">
+                Statistiken konnten nicht geladen werden.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                onClick={() => setReloadTick((tick) => tick + 1)}
+              >
+                Erneut versuchen
+              </Button>
+            </div>
+          ) : loadState === "loading" || !stats ? (
             <p className="text-sm text-muted-foreground">Lade Statistiken…</p>
           ) : (
             <>

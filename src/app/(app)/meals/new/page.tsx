@@ -135,6 +135,7 @@ function NewMealPageInner() {
   const [offMatch, setOffMatch] = useState<FoodLookupItem | null>(null);
   const [offLookupPending, setOffLookupPending] = useState(false);
   const [confirmedGrams, setConfirmedGrams] = useState<number | null>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
 
   const formKey = useMemo(
     () =>
@@ -194,7 +195,6 @@ function NewMealPageInner() {
   function startAssist(
     pending: PendingFood,
     entry: CaptureEntryKind,
-    options?: { lookupOff?: boolean },
   ) {
     const estimate =
       pending.estimatedPortionGrams && pending.estimatedPortionGrams > 0
@@ -220,13 +220,8 @@ function NewMealPageInner() {
     setPhase("assist");
     setConfirmedGrams(null);
     setFormValues(emptyForm());
-
-    if (options?.lookupOff && pending.allowOffCompare) {
-      void lookupOffMatch(pending.name);
-    } else {
-      setOffMatch(null);
-      setOffLookupPending(false);
-    }
+    setOffMatch(null);
+    setOffLookupPending(false);
   }
 
   async function lookupOffMatch(query: string) {
@@ -313,7 +308,6 @@ function NewMealPageInner() {
         allowOffCompare: !isOff,
       },
       entry,
-      { lookupOff: !isOff },
     );
   }
 
@@ -349,7 +343,6 @@ function NewMealPageInner() {
         allowOffCompare: true,
       },
       "photo",
-      { lookupOff: true },
     );
   }
 
@@ -510,7 +503,7 @@ function NewMealPageInner() {
       navigateFresh(router, "/meals/offline");
       return;
     }
-    navigateFresh(router, "/dashboard");
+    navigateFresh(router, "/meals");
   }
 
   async function queuePhotoOffline(file: File) {
@@ -792,38 +785,6 @@ function NewMealPageInner() {
             />
           ) : null}
 
-          {assistStep === "source" ? (
-            offMatch ? (
-              <OffCompareCard
-                aiName={pendingFood.name}
-                aiPer100g={pendingFood.nutrientsPer100g}
-                match={offMatch}
-                onUseOff={applyOffMatch}
-                onDismiss={() => {
-                  setOffMatch(null);
-                  setAssistStep("confirm");
-                }}
-              />
-            ) : (
-              <div className="space-y-4 rounded-2xl border border-border p-5 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {offLookupPending
-                    ? "Suche passende Open-Food-Facts-Produkte…"
-                    : "Kein Open-Food-Facts-Treffer – weiter mit der KI-Schätzung."}
-                </p>
-                {!offLookupPending ? (
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    onClick={() => setAssistStep("confirm")}
-                  >
-                    Weiter zum Speichern
-                  </button>
-                ) : null}
-              </div>
-            )
-          ) : null}
-
           {assistStep === "confirm" ? (
             <MealSaveConfirm
               key={`confirm-${formKey}`}
@@ -834,6 +795,19 @@ function NewMealPageInner() {
               onRecalculateIngredientGrams={recalculateIngredientGrams}
               onSave={() => saveMeal()}
               onEditDetails={() => setPhase("details")}
+              more={
+                pendingFood.allowOffCompare ? (
+                  <OffCompareMore
+                    pendingName={pendingFood.name}
+                    aiPer100g={pendingFood.nutrientsPer100g}
+                    offMatch={offMatch}
+                    offLookupPending={offLookupPending}
+                    onLookup={() => void lookupOffMatch(pendingFood.name)}
+                    onUseOff={applyOffMatch}
+                    onDismiss={() => setOffMatch(null)}
+                  />
+                ) : null
+              }
             />
           ) : null}
         </MealCaptureAssistant>
@@ -898,20 +872,30 @@ function NewMealPageInner() {
 
           <TabsContent value="manual" className="space-y-4">
             <FoodLookup onSelect={onFoodSelected} />
-            <Card>
-              <CardHeader>
-                <CardTitle>Oder komplett manuell</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MealForm
-                  key={`manual-${formKey}`}
-                  initialValues={emptyForm()}
-                  submitLabel="Mahlzeit speichern"
-                  onSubmit={saveMeal}
-                  busy={busy}
-                />
-              </CardContent>
-            </Card>
+            {showManualForm ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Komplett manuell</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MealForm
+                    key={`manual-${formKey}`}
+                    initialValues={emptyForm()}
+                    submitLabel="Mahlzeit speichern"
+                    onSubmit={saveMeal}
+                    busy={busy}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <button
+                type="button"
+                className="h-11 w-full rounded-xl text-sm font-semibold text-muted-foreground underline-offset-4 hover:underline"
+                onClick={() => setShowManualForm(true)}
+              >
+                Mehr: komplett manuell eingeben
+              </button>
+            )}
           </TabsContent>
         </Tabs>
       ) : null}
@@ -923,4 +907,48 @@ function localizeAmount(label: string, fallbackGrams: number) {
   const trimmed = label.trim();
   if (!trimmed) return formatPortionLabel(fallbackGrams);
   return trimmed;
+}
+
+function OffCompareMore({
+  pendingName,
+  aiPer100g,
+  offMatch,
+  offLookupPending,
+  onLookup,
+  onUseOff,
+  onDismiss,
+}: {
+  pendingName: string;
+  aiPer100g: NutrientValues;
+  offMatch: FoodLookupItem | null;
+  offLookupPending: boolean;
+  onLookup: () => void;
+  onUseOff: (item: FoodLookupItem) => void;
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    onLookup();
+    // Lookup once when «Mehr» opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (offMatch) {
+    return (
+      <OffCompareCard
+        aiName={pendingName}
+        aiPer100g={aiPer100g}
+        match={offMatch}
+        onUseOff={onUseOff}
+        onDismiss={onDismiss}
+      />
+    );
+  }
+
+  return (
+    <p className="text-center text-sm text-muted-foreground">
+      {offLookupPending
+        ? "Suche passende Open-Food-Facts-Produkte…"
+        : "Kein Open-Food-Facts-Treffer zur KI-Schätzung."}
+    </p>
+  );
 }

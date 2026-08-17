@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { isNavActive } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -21,7 +22,7 @@ const links = [
   { href: "/meals/new", label: "Erfassen", icon: Camera },
   { href: "/coach", label: "Coach", icon: Sparkles },
   { href: "/stats", label: "Statistiken", icon: ChartColumn },
-  { href: "/settings", label: "Benutzer", icon: Settings },
+  { href: "/settings", label: "Profil", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -42,9 +43,7 @@ export function Sidebar() {
       </div>
       <nav className="space-y-1">
         {links.map(({ href, label, icon: Icon }) => {
-          const active =
-            pathname === href ||
-            (href !== "/dashboard" && pathname.startsWith(href));
+          const active = isNavActive(pathname, href);
           return (
             <Link
               key={href}

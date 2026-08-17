@@ -39,21 +39,14 @@ const STEP_META: Record<
 
 export function buildAssistSteps(
   entry: CaptureEntryKind,
-  allowOffCompare: boolean,
-  /** @deprecated kept for call-site compat; source is included whenever OFF compare is allowed */
+  _allowOffCompare: boolean,
+  /** @deprecated kept for call-site compat */
   _hasOffMatch = false,
 ): AssistStepId[] {
-  const steps: AssistStepId[] = ["identity", "portion"];
-  // Always reserve Quelle when OFF compare is allowed, so a late search
-  // result is not skipped after the user already left the portion step.
-  if (allowOffCompare) {
-    steps.push("source");
-  }
-  steps.push("confirm");
-  // Barcode/Suche: identity label adapts to "Produkt" via stepMeta
   void entry;
+  void _allowOffCompare;
   void _hasOffMatch;
-  return steps;
+  return ["identity", "portion", "confirm"];
 }
 
 export function stepMeta(id: AssistStepId, entry: CaptureEntryKind) {
@@ -111,7 +104,7 @@ export function MealCaptureAssistant({
                 <div className="flex w-full items-center">
                   <span
                     className={cn(
-                      "mx-auto flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold",
+                      "mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold",
                       done && "bg-primary text-primary-foreground",
                       active &&
                         "border-2 border-primary bg-background text-primary",

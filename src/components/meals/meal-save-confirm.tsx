@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, Check, Pencil, RefreshCw } from "lucide-react";
 import { MealType } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ type Props = {
   onRecalculateIngredientGrams?: (index: number, grams: number) => void;
   onSave: () => Promise<void>;
   onEditDetails?: () => void;
+  more?: ReactNode;
 };
 
 function gramsFromValues(values: MealFormValues) {
@@ -50,7 +51,9 @@ export function MealSaveConfirm({
   onRecalculateIngredientGrams,
   onSave,
   onEditDetails,
+  more,
 }: Props) {
+  const [moreOpen, setMoreOpen] = useState(false);
   const storedGrams = gramsFromValues(values);
   const [gramsInput, setGramsInput] = useState(
     storedGrams ? String(Math.round(storedGrams)) : "",
@@ -276,16 +279,34 @@ export function MealSaveConfirm({
                 ? "Zuerst neuberechnen"
                 : "Speichern"}
           </Button>
-          {onEditDetails ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={onEditDetails}
-            >
-              <Pencil className="h-4 w-4" />
-              Alle Nährwerte bearbeiten
-            </Button>
+          {more || onEditDetails ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-11 w-full"
+                onClick={() => setMoreOpen((open) => !open)}
+                aria-expanded={moreOpen}
+              >
+                {moreOpen ? "Weniger" : "Mehr"}
+              </Button>
+              {moreOpen ? (
+                <div className="space-y-3">
+                  {more}
+                  {onEditDetails ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-full"
+                      onClick={onEditDetails}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Alle Nährwerte bearbeiten
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
       </CardContent>

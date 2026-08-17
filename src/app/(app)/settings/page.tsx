@@ -81,24 +81,29 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  async function loadProfile() {
+    setLoadError(null);
+    try {
+      const response = await fetch("/api/profile", { cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setLoadError(data.error || "Einstellungen konnten nicht geladen werden");
+        return;
+      }
+      setProfile({
+        ...data.profile,
+        goalMode: data.profile.goalMode ?? "MAINTAIN",
+        reminders: parseReminderSettings(data.profile.reminders),
+      });
+    } catch {
+      setLoadError("Einstellungen konnten nicht geladen werden");
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const response = await fetch("/api/profile", { cache: "no-store" });
-      const data = await response.json();
-      if (!cancelled && response.ok) {
-        setProfile({
-          ...data.profile,
-          goalMode: data.profile.goalMode ?? "MAINTAIN",
-          reminders: parseReminderSettings(data.profile.reminders),
-        });
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
+    void loadProfile();
   }, []);
 
   const previewGoals = useMemo(() => {
@@ -232,6 +237,22 @@ export default function SettingsPage() {
     toast.success("OpenAI API Key entfernt");
   }
 
+  if (loadError && !profile) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-destructive">{loadError}</p>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11"
+          onClick={() => void loadProfile()}
+        >
+          Erneut versuchen
+        </Button>
+      </div>
+    );
+  }
+
   if (!profile) {
     return <p className="text-sm text-muted-foreground">Lade Einstellungen…</p>;
   }
@@ -240,328 +261,335 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
-          Benutzer & Tagesbedarf
+          Profil
         </h1>
         <p className="text-sm text-muted-foreground">
-          Körperdaten für die Kalorienberechnung, Passwort und API-Key
+          Körperdaten, Ziele, Erinnerungen und Konto
         </p>
       </div>
 
-      <PushSetupCard />
-
-      {session?.user?.isAdmin ? (
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/admin/users">
-            <Shield className="h-4 w-4" />
-            Benutzerverwaltung (Admin)
-          </Link>
-        </Button>
-      ) : null}
-
-      <form onSubmit={onSubmit} className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Benutzer</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <AvatarUploader
-              avatarPath={profile.avatarPath}
-              onChange={(avatarPath) =>
-                setProfile({ ...profile, avatarPath })
-              }
-            />
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={profile.name ?? ""}
-                onChange={(e) =>
-                  setProfile({ ...profile, name: e.target.value })
+      <form onSubmit={onSubmit} className="space-y-5">
+        <section className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Benutzer</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <AvatarUploader
+                avatarPath={profile.avatarPath}
+                onChange={(avatarPath) =>
+                  setProfile({ ...profile, avatarPath })
                 }
               />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>E-Mail</Label>
-              <Input value={profile.email} disabled />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Körperdaten</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Geschlecht</Label>
-              <Select
-                value={profile.sex ?? undefined}
-                onValueChange={(value) =>
-                  setProfile({ ...profile, sex: value as Sex })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MALE">Mann</SelectItem>
-                  <SelectItem value="FEMALE">Frau</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="birthYear">Geburtsjahr</Label>
-              <Input
-                id="birthYear"
-                type="number"
-                min={1920}
-                max={2015}
-                value={profile.birthYear ?? ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    birthYear: e.target.value
-                      ? Number(e.target.value)
-                      : null,
-                  })
-                }
-                placeholder="z. B. 1990"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="heightCm">Körpergrösse (cm)</Label>
-              <Input
-                id="heightCm"
-                type="number"
-                min={100}
-                max={250}
-                step="any"
-                value={profile.heightCm ?? ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    heightCm: e.target.value ? Number(e.target.value) : null,
-                  })
-                }
-                placeholder="z. B. 178"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="weightKg">Gewicht (kg)</Label>
-              <Input
-                id="weightKg"
-                type="number"
-                min={30}
-                max={400}
-                step="any"
-                value={profile.weightKg ?? ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    weightKg: e.target.value ? Number(e.target.value) : null,
-                  })
-                }
-                placeholder="z. B. 75"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Aktivitätslevel</Label>
-              <Select
-                value={profile.activityLevel}
-                onValueChange={(value) =>
-                  setProfile({
-                    ...profile,
-                    activityLevel: value as ActivityLevel,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map(
-                    (level) => (
-                      <SelectItem key={level} value={level}>
-                        {ACTIVITY_LABELS[level]}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Ziel-Modus</Label>
-              <Select
-                value={profile.goalMode ?? "MAINTAIN"}
-                onValueChange={(value) =>
-                  setProfile({
-                    ...profile,
-                    goalMode: value as GoalMode,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(GOAL_MODE_LABELS) as GoalMode[]).map((mode) => (
-                    <SelectItem key={mode} value={mode}>
-                      {GOAL_MODE_LABELS[mode]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {GOAL_MODE_HINTS[profile.goalMode ?? "MAINTAIN"]} Steuert Coach
-                und – bei Auto-Zielen – kcal/Protein.
-              </p>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3 sm:col-span-2">
-              <div>
-                <p className="text-sm font-medium">Ziele automatisch berechnen</p>
-                <p className="text-xs text-muted-foreground">
-                  Mifflin-St Jeor + Aktivitätsfaktor → Kalorien & Makros
-                </p>
-              </div>
-              <Switch
-                checked={profile.autoCalculateGoals}
-                onCheckedChange={(checked) =>
-                  setProfile({ ...profile, autoCalculateGoals: checked })
-                }
-              />
-            </div>
-            {previewGoals && (
-              <div className="rounded-xl bg-muted/50 p-3 text-sm sm:col-span-2">
-                <p className="font-medium">Vorschau Tagesbedarf</p>
-                <p className="mt-1 text-muted-foreground">
-                  ca. {formatNumber(previewGoals.dailyCaloriesGoal)} kcal · P{" "}
-                  {formatNumber(previewGoals.dailyProteinGoal, 0)} g · K{" "}
-                  {formatNumber(previewGoals.dailyCarbsGoal, 0)} g · F{" "}
-                  {formatNumber(previewGoals.dailyFatGoal, 0)} g
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tagesziele</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            {!profile.autoCalculateGoals && (
-              <p className="text-sm text-muted-foreground sm:col-span-2">
-                Automatik aus – Werte manuell anpassen.
-              </p>
-            )}
-            {profile.autoCalculateGoals && (
-              <p className="text-sm text-muted-foreground sm:col-span-2">
-                Werden beim Speichern aus den Körperdaten neu gesetzt.
-              </p>
-            )}
-            {(
-              [
-                ["dailyCaloriesGoal", "Kalorien (kcal)"],
-                ["dailyProteinGoal", "Protein (g)"],
-                ["dailyCarbsGoal", "Kohlenhydrate (g)"],
-                ["dailyFatGoal", "Fett (g)"],
-                ["dailyFiberGoal", "Ballaststoffe (g)"],
-                ["dailySugarGoal", "Zucker (g)"],
-                ["dailySodiumGoal", "Natrium (mg)"],
-                ["dailyPotassiumGoal", "Kalium (mg)"],
-                ["dailyVitaminAGoal", "Vitamin A (µg)"],
-                ["dailyVitaminCGoal", "Vitamin C (mg)"],
-                ["dailyVitaminDGoal", "Vitamin D (µg)"],
-                ["dailyCalciumGoal", "Kalzium (mg)"],
-                ["dailyIronGoal", "Eisen (mg)"],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="space-y-2">
-                <Label htmlFor={key}>{label}</Label>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="name">Name</Label>
                 <Input
-                  id={key}
-                  type="number"
-                  min={1}
-                  step="any"
-                  disabled={profile.autoCalculateGoals}
-                  value={
-                    profile.autoCalculateGoals && previewGoals
-                      ? previewGoals[key]
-                      : profile[key]
-                  }
+                  id="name"
+                  value={profile.name ?? ""}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      [key]: Number(e.target.value || 0),
-                    })
+                    setProfile({ ...profile, name: e.target.value })
                   }
                 />
               </div>
-            ))}
-          </CardContent>
-        </Card>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>E-Mail</Label>
+                <Input value={profile.email} disabled />
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
-        <RemindersCard
-          settings={profile.reminders}
-          onChange={(reminders) => setProfile({ ...profile, reminders })}
-        />
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold tracking-tight">
+            Ziele
+          </h2>
+          <Card>
+            <CardHeader>
+              <CardTitle>Körperdaten</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Geschlecht</Label>
+                <Select
+                  value={profile.sex ?? undefined}
+                  onValueChange={(value) =>
+                    setProfile({ ...profile, sex: value as Sex })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MALE">Mann</SelectItem>
+                    <SelectItem value="FEMALE">Frau</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthYear">Geburtsjahr</Label>
+                <Input
+                  id="birthYear"
+                  type="number"
+                  min={1920}
+                  max={2015}
+                  value={profile.birthYear ?? ""}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      birthYear: e.target.value
+                        ? Number(e.target.value)
+                        : null,
+                    })
+                  }
+                  placeholder="z. B. 1990"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="heightCm">Körpergrösse (cm)</Label>
+                <Input
+                  id="heightCm"
+                  type="number"
+                  min={100}
+                  max={250}
+                  step="any"
+                  value={profile.heightCm ?? ""}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      heightCm: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                  placeholder="z. B. 178"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weightKg">Gewicht (kg)</Label>
+                <Input
+                  id="weightKg"
+                  type="number"
+                  min={30}
+                  max={400}
+                  step="any"
+                  value={profile.weightKg ?? ""}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      weightKg: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                  placeholder="z. B. 75"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Aktivitätslevel</Label>
+                <Select
+                  value={profile.activityLevel}
+                  onValueChange={(value) =>
+                    setProfile({
+                      ...profile,
+                      activityLevel: value as ActivityLevel,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map(
+                      (level) => (
+                        <SelectItem key={level} value={level}>
+                          {ACTIVITY_LABELS[level]}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Ziel-Modus</Label>
+                <Select
+                  value={profile.goalMode ?? "MAINTAIN"}
+                  onValueChange={(value) =>
+                    setProfile({
+                      ...profile,
+                      goalMode: value as GoalMode,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(GOAL_MODE_LABELS) as GoalMode[]).map((mode) => (
+                      <SelectItem key={mode} value={mode}>
+                        {GOAL_MODE_LABELS[mode]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {GOAL_MODE_HINTS[profile.goalMode ?? "MAINTAIN"]} Steuert Coach
+                  und – bei Auto-Zielen – kcal/Protein.
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3 sm:col-span-2">
+                <div>
+                  <p className="text-sm font-medium">Ziele automatisch berechnen</p>
+                  <p className="text-xs text-muted-foreground">
+                    Mifflin-St Jeor + Aktivitätsfaktor → Kalorien & Makros
+                  </p>
+                </div>
+                <Switch
+                  checked={profile.autoCalculateGoals}
+                  onCheckedChange={(checked) =>
+                    setProfile({ ...profile, autoCalculateGoals: checked })
+                  }
+                />
+              </div>
+              {previewGoals && (
+                <div className="rounded-xl bg-muted/50 p-3 text-sm sm:col-span-2">
+                  <p className="font-medium">Vorschau Tagesbedarf</p>
+                  <p className="mt-1 text-muted-foreground">
+                    ca. {formatNumber(previewGoals.dailyCaloriesGoal)} kcal · P{" "}
+                    {formatNumber(previewGoals.dailyProteinGoal, 0)} g · K{" "}
+                    {formatNumber(previewGoals.dailyCarbsGoal, 0)} g · F{" "}
+                    {formatNumber(previewGoals.dailyFatGoal, 0)} g
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Fehlende Bilder</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Erzeugt AI-Symbolbilder für Mahlzeiten ohne Datei (z. B. nach
-              Deploy). Braucht einen gültigen OpenAI-Key.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                toast.message("Starte Bild-Backfill…");
-                triggerMissingImageBackfill();
-              }}
-            >
-              Fehlende Bilder jetzt erzeugen
-            </Button>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Tagesziele</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              {!profile.autoCalculateGoals && (
+                <p className="text-sm text-muted-foreground sm:col-span-2">
+                  Automatik aus – Werte manuell anpassen.
+                </p>
+              )}
+              {profile.autoCalculateGoals && (
+                <p className="text-sm text-muted-foreground sm:col-span-2">
+                  Werden beim Speichern aus den Körperdaten neu gesetzt.
+                </p>
+              )}
+              {(
+                [
+                  ["dailyCaloriesGoal", "Kalorien (kcal)"],
+                  ["dailyProteinGoal", "Protein (g)"],
+                  ["dailyCarbsGoal", "Kohlenhydrate (g)"],
+                  ["dailyFatGoal", "Fett (g)"],
+                  ["dailyFiberGoal", "Ballaststoffe (g)"],
+                  ["dailySugarGoal", "Zucker (g)"],
+                  ["dailySodiumGoal", "Natrium (mg)"],
+                  ["dailyPotassiumGoal", "Kalium (mg)"],
+                  ["dailyVitaminAGoal", "Vitamin A (µg)"],
+                  ["dailyVitaminCGoal", "Vitamin C (mg)"],
+                  ["dailyVitaminDGoal", "Vitamin D (µg)"],
+                  ["dailyCalciumGoal", "Kalzium (mg)"],
+                  ["dailyIronGoal", "Eisen (mg)"],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key} className="space-y-2">
+                  <Label htmlFor={key}>{label}</Label>
+                  <Input
+                    id={key}
+                    type="number"
+                    min={1}
+                    step="any"
+                    disabled={profile.autoCalculateGoals}
+                    value={
+                      profile.autoCalculateGoals && previewGoals
+                        ? previewGoals[key]
+                        : profile[key]
+                    }
+                    onChange={(e) =>
+                      setProfile({
+                        ...profile,
+                        [key]: Number(e.target.value || 0),
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>OpenAI API Key</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Wird verschlüsselt gespeichert und für GPT-4o Vision genutzt.
-              {profile.hasOpenAiApiKey
-                ? ` Aktuell: ${profile.openAiApiKeyMasked}`
-                : " Noch kein Key hinterlegt."}
-            </p>
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">Neuer API Key</Label>
-              <Input
-                id="apiKey"
-                type="password"
-                placeholder="sk-..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                autoComplete="off"
-              />
-            </div>
-            {profile.hasOpenAiApiKey && (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold tracking-tight">
+            Erinnerungen
+          </h2>
+          <RemindersCard
+            settings={profile.reminders}
+            onChange={(reminders) => setProfile({ ...profile, reminders })}
+          />
+          <PushSetupCard />
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold tracking-tight">
+            Erweitert
+          </h2>
+          <Card>
+            <CardHeader>
+              <CardTitle>Fehlende Bilder</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Erzeugt AI-Symbolbilder für Mahlzeiten ohne Datei (z. B. nach
+                Deploy). Braucht einen gültigen OpenAI-Key.
+              </p>
               <Button
                 type="button"
                 variant="outline"
-                onClick={clearKey}
-                disabled={busy}
+                onClick={() => {
+                  toast.message("Starte Bild-Backfill…");
+                  triggerMissingImageBackfill();
+                }}
               >
-                Key entfernen
+                Fehlende Bilder jetzt erzeugen
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>OpenAI API Key</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Wird verschlüsselt gespeichert und für GPT-4o Vision genutzt.
+                {profile.hasOpenAiApiKey
+                  ? ` Aktuell: ${profile.openAiApiKeyMasked}`
+                  : " Noch kein Key hinterlegt."}
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="apiKey">Neuer API Key</Label>
+                <Input
+                  id="apiKey"
+                  type="password"
+                  placeholder="sk-..."
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              {profile.hasOpenAiApiKey && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={clearKey}
+                  disabled={busy}
+                >
+                  Key entfernen
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
         <Button type="submit" className="w-full" size="lg" disabled={busy}>
           {busy ? "Speichern…" : "Profil & Ziele speichern"}
@@ -572,7 +600,18 @@ export default function SettingsPage() {
 
       <ApiAccessKeysCard />
 
-      <form onSubmit={changePassword}>
+      {session?.user?.isAdmin ? (
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/admin/users">
+            <Shield className="h-4 w-4" />
+            Benutzerverwaltung (Admin)
+          </Link>
+        </Button>
+      ) : null}
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-bold tracking-tight">Konto</h2>
+        <form onSubmit={changePassword}>
         <Card>
           <CardHeader>
             <CardTitle>Passwort ändern</CardTitle>
@@ -614,6 +653,7 @@ export default function SettingsPage() {
       >
         Abmelden
       </Button>
+      </section>
     </div>
   );
 }

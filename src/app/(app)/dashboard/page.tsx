@@ -127,53 +127,33 @@ export default async function DashboardPage() {
         </div>
         <UserAvatar
           src={avatarPath}
+          name={session.user.name}
           className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
         />
       </section>
 
-      <Card className="animate-rise">
-        <CardContent className="flex items-start justify-between gap-3 pt-5">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-primary">Coach</p>
-            <p className="mt-1 text-sm text-muted-foreground">{coachTip.body}</p>
-          </div>
-          <Button asChild variant="outline" size="sm" className="shrink-0">
-            <Link href="/coach">
-              <Sparkles className="h-4 w-4" />
-              Öffnen
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-
-      <DayRestBudgetCard budget={restBudget} />
+      <Button asChild size="lg" className="h-14 w-full justify-center px-5">
+        <Link href="/meals/new">
+          <Camera className="h-5 w-5" />
+          Mahlzeit erfassen
+        </Link>
+      </Button>
 
       <CachedDayPanel />
 
-      <PushEnableButton compact />
-
-      <WeightCard
-        currentKg={weightEntries.at(-1)?.kg ?? profile?.weightKg ?? null}
-        entries={weightEntries.map((entry) => ({
-          id: entry.id,
-          kg: entry.kg,
-          recordedOn: entry.recordedOn.toISOString().slice(0, 10),
-        }))}
-      />
-
-      <section className="grid gap-3 sm:grid-cols-2 animate-rise-delay">
-        <Button asChild size="lg" className="h-14 justify-start px-5">
-          <Link href="/meals/new">
-            <Camera className="h-5 w-5" />
-            Mahlzeit erfassen
-          </Link>
-        </Button>
-        <Button asChild size="lg" variant="outline" className="h-14 justify-start px-5">
-          <Link href="/stats">
-            <ChartColumn className="h-5 w-5" />
-            Statistiken öffnen
-          </Link>
-        </Button>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-bold">Heute</h2>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/meals">Alle anzeigen</Link>
+          </Button>
+        </div>
+        <MealList
+          meals={meals.map((meal) => ({
+            ...meal,
+            consumedAt: meal.consumedAt.toISOString(),
+          }))}
+        />
       </section>
 
       <FavoriteMealsStrip
@@ -215,20 +195,40 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-bold">Heute</h2>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/meals">Alle anzeigen</Link>
+      <DayRestBudgetCard budget={restBudget} />
+
+      <Card className="animate-rise">
+        <CardContent className="flex items-start justify-between gap-3 pt-5">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-primary">Coach</p>
+            <p className="mt-1 text-sm text-muted-foreground">{coachTip.body}</p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <Link href="/coach">
+              <Sparkles className="h-4 w-4" />
+              Öffnen
+            </Link>
           </Button>
-        </div>
-        <MealList
-          meals={meals.map((meal) => ({
-            ...meal,
-            consumedAt: meal.consumedAt.toISOString(),
-          }))}
-        />
-      </section>
+        </CardContent>
+      </Card>
+
+      <WeightCard
+        currentKg={weightEntries.at(-1)?.kg ?? profile?.weightKg ?? null}
+        entries={weightEntries.map((entry) => ({
+          id: entry.id,
+          kg: entry.kg,
+          recordedOn: entry.recordedOn.toISOString().slice(0, 10),
+        }))}
+      />
+
+      <PushEnableButton compact />
+
+      <Button asChild variant="outline" className="w-full">
+        <Link href="/stats">
+          <ChartColumn className="h-4 w-4" />
+          Statistiken
+        </Link>
+      </Button>
     </div>
   );
 }

@@ -135,9 +135,13 @@ export function PushEnableButton({ compact = false }: { compact?: boolean }) {
 
   const hint =
     status === "needs-keys"
-      ? "Die laufende App sieht keine VAPID-Keys. Stehen sie in der .env, Dev-Server neu starten — bei Docker: docker compose up -d --force-recreate."
+      ? compact
+        ? "Push ist auf dem Server noch nicht eingerichtet."
+        : "Die laufende App sieht keine VAPID-Keys. Stehen sie in der .env, Dev-Server neu starten — bei Docker: docker compose up -d --force-recreate."
       : status === "unsupported"
-        ? "Dieser Browser kann kein Web Push. Auf dem Handy: NutriSight auf den Homescreen legen (PWA) und hier nochmals öffnen. Desktop: Chrome/Edge, nicht im Inkognito."
+        ? compact
+          ? "Dieser Browser unterstützt keine Push-Erinnerungen."
+          : "Dieser Browser kann kein Web Push. Auf dem Handy: NutriSight auf den Homescreen legen (PWA) und hier nochmals öffnen. Desktop: Chrome/Edge, nicht im Inkognito."
         : status === "on"
           ? "Erinnerungen kommen auch bei geschlossener App."
           : "Tippe auf «Push aktivieren» und erlaube Benachrichtigungen.";

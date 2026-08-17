@@ -44,7 +44,7 @@ const numberFields: Array<{
   { key: "potassium", label: "Kalium (mg)" },
   { key: "vitaminA", label: "Vitamin A (µg)" },
   { key: "vitaminC", label: "Vitamin C (mg)" },
-  { key: "vitaminD", label: "Vitamin D (mg)" },
+  { key: "vitaminD", label: "Vitamin D (µg)" },
   { key: "calcium", label: "Kalzium (mg)" },
   { key: "iron", label: "Eisen (mg)" },
 ];

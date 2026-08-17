@@ -42,7 +42,7 @@ type Props = {
 };
 
 const PAGE_COUNT = 3;
-const PAGE_LABELS = ["Überblick", "Zutaten & Coach", "Heute & Ziele"] as const;
+const PAGE_LABELS = ["Überblick", "Zutaten", "Ziele"] as const;
 const AXIS_LOCK_PX = 10;
 const SWIPE_RATIO = 0.18;
 
@@ -110,6 +110,17 @@ export function MealDetailViewer({
   useEffect(() => {
     pageRefs.current[page]?.scrollTo({ top: 0 });
   }, [page]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   function goTo(index: number) {
     setPage(Math.min(PAGE_COUNT - 1, Math.max(0, index)));
@@ -187,13 +198,15 @@ export function MealDetailViewer({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-x-0 z-40 flex flex-col",
-        "top-14 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]",
-        "md:inset-0 md:z-50 md:items-center md:justify-center md:bg-black/45 md:p-6 md:backdrop-blur-[2px]",
+        "fixed inset-0 z-50 flex flex-col",
+        "md:items-center md:justify-center md:bg-black/45 md:p-6 md:backdrop-blur-[2px]",
       )}
       role="dialog"
       aria-modal="true"
       aria-label="Mahlzeit-Details"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <div
         className={cn(
@@ -207,7 +220,7 @@ export function MealDetailViewer({
               Mahlzeit
             </h1>
             <p className="truncate text-xs text-muted-foreground">
-              {PAGE_LABELS[page]} · wischen
+              {PAGE_LABELS[page]}
             </p>
           </div>
           <Button
@@ -284,26 +297,28 @@ export function MealDetailViewer({
           </motion.div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-center gap-1 border-t border-border/70 px-4 py-2.5">
-          <div className="flex items-center justify-center gap-2">
-            {PAGE_LABELS.map((label, index) => (
-              <button
-                key={label}
-                type="button"
-                aria-label={label}
-                className={cn(
-                  "h-2.5 rounded-full transition-all",
-                  index === page
-                    ? "w-6 bg-primary"
-                    : "w-2.5 bg-muted-foreground/35",
-                )}
-                onClick={() => goTo(index)}
-              />
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            {PAGE_LABELS[page]}
-          </p>
+        <div
+          role="tablist"
+          aria-label="Detail-Bereiche"
+          className="grid shrink-0 grid-cols-3 gap-1 border-t border-border/70 p-2"
+        >
+          {PAGE_LABELS.map((label, index) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={index === page}
+              className={cn(
+                "h-11 rounded-xl px-2 text-xs font-semibold sm:text-sm",
+                index === page
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/70 text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+              onClick={() => goTo(index)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
     </div>,

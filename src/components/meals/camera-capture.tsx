@@ -14,7 +14,8 @@ type Props = {
 };
 
 export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -87,7 +88,7 @@ export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
       <CardContent className="space-y-4">
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => galleryRef.current?.click()}
           className="group relative flex min-h-56 w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-muted/40 transition hover:border-primary/50 hover:bg-muted/70"
         >
           {preview ? (
@@ -101,7 +102,7 @@ export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
           ) : (
             <>
               <ImagePlus className="mb-3 h-8 w-8 text-muted-foreground transition group-hover:text-primary" />
-              <p className="text-sm font-medium">Kamera oder Galerie öffnen</p>
+              <p className="text-sm font-medium">Foto wählen</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Offline: Foto zwischenspeichern, später mit KI bearbeiten
               </p>
@@ -109,13 +110,40 @@ export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
           )}
         </button>
         <input
-          ref={inputRef}
+          ref={cameraRef}
           type="file"
           accept="image/*"
           capture="environment"
           className="hidden"
           onChange={(e) => onFileChange(e.target.files?.[0])}
         />
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => onFileChange(e.target.files?.[0])}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11"
+            onClick={() => cameraRef.current?.click()}
+          >
+            <Camera className="h-4 w-4" />
+            Kamera
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11"
+            onClick={() => galleryRef.current?.click()}
+          >
+            <ImagePlus className="h-4 w-4" />
+            Galerie
+          </Button>
+        </div>
         <Button
           type="button"
           className="w-full"
