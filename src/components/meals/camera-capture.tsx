@@ -155,7 +155,7 @@ export function CameraCapture({ onAnalyzed, onOfflineQueue }: Props) {
           {analyzing ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              {offline ? "Speichere offline…" : "Analysiere mit GPT-4o…"}
+              {offline ? "Speichere offline…" : "Analysiere mit KI…"}
             </>
           ) : (
             <>

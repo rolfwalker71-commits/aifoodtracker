@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     const dbUser = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { openAiApiKey: true },
+      select: { openAiApiKey: true, openAiAnalysisModel: true },
     });
 
     const buffer = Buffer.from(await image.arrayBuffer());
@@ -38,6 +38,7 @@ export async function POST(request: Request) {
       imageBase64: buffer.toString("base64"),
       mimeType: image.type || "image/jpeg",
       encryptedUserKey: dbUser.openAiApiKey,
+      model: dbUser.openAiAnalysisModel,
     });
 
     return NextResponse.json({ analysis, imagePath });

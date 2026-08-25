@@ -45,8 +45,10 @@ model User {
   passwordHash       String
   role               UserRole       @default(USER)
   isActive           Boolean        @default(true)
-  openAiApiKey       String?
-  avatarPath         String?
+  openAiApiKey        String?
+  /// Chat/Vision model for photo analysis + free-text estimates
+  openAiAnalysisModel String         @default("gpt-4o")
+  avatarPath          String?
   sex                Sex?
   heightCm           Float?
   weightKg           Float?

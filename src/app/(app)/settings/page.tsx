@@ -41,6 +41,12 @@ import {
   GOAL_MODE_LABELS,
   type GoalMode,
 } from "@/lib/goal-mode";
+import {
+  ANALYSIS_MODELS,
+  DEFAULT_ANALYSIS_MODEL,
+  analysisModelLabel,
+  type AnalysisModelId,
+} from "@/lib/openai-models";
 
 type Profile = {
   name: string;
@@ -69,6 +75,7 @@ type Profile = {
   reminders: ReminderSettings;
   hasOpenAiApiKey: boolean;
   openAiApiKeyMasked?: string;
+  openAiAnalysisModel: AnalysisModelId;
   profileComplete?: boolean;
   bmr?: number | null;
   tdee?: number | null;
@@ -95,6 +102,8 @@ export default function SettingsPage() {
       setProfile({
         ...data.profile,
         goalMode: data.profile.goalMode ?? "MAINTAIN",
+        openAiAnalysisModel:
+          data.profile.openAiAnalysisModel ?? DEFAULT_ANALYSIS_MODEL,
         reminders: parseReminderSettings(data.profile.reminders),
       });
     } catch {
@@ -164,6 +173,7 @@ export default function SettingsPage() {
         dailyIronGoal: profile.dailyIronGoal,
         reminders: serializeReminderSettings(profile.reminders),
         openAiApiKey: apiKey || undefined,
+        openAiAnalysisModel: profile.openAiAnalysisModel,
       }),
     });
     const data = await response.json();
@@ -215,6 +225,28 @@ export default function SettingsPage() {
     setCurrentPassword("");
     setNewPassword("");
     toast.success("Passwort geändert");
+  }
+
+  async function saveAnalysisModel(model: AnalysisModelId) {
+    if (!profile) return;
+    const previous = profile.openAiAnalysisModel;
+    setProfile((prev) =>
+      prev ? { ...prev, openAiAnalysisModel: model } : prev,
+    );
+    const response = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ openAiAnalysisModel: model }),
+    });
+    if (!response.ok) {
+      setProfile((prev) =>
+        prev ? { ...prev, openAiAnalysisModel: previous } : prev,
+      );
+      toast.error("Modell konnte nicht gespeichert werden");
+      return;
+    }
+    toast.success(`Analysemodell: ${analysisModelLabel(model)}`);
   }
 
   async function clearKey() {
@@ -557,11 +589,40 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>OpenAI API Key</CardTitle>
+              <CardTitle>OpenAI</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="analysisModel">Analysemodell</Label>
+                <Select
+                  value={profile.openAiAnalysisModel}
+                  onValueChange={(value) =>
+                    void saveAnalysisModel(value as AnalysisModelId)
+                  }
+                >
+                  <SelectTrigger id="analysisModel" aria-label="Analysemodell">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ANALYSIS_MODELS.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {
+                    ANALYSIS_MODELS.find(
+                      (model) => model.id === profile.openAiAnalysisModel,
+                    )?.hint
+                  }
+                  . Gilt für Foto-Analyse und Freitext-Schätzung. Symbolbilder
+                  bleiben separat (gpt-image-1-mini).
+                </p>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Wird verschlüsselt gespeichert und für GPT-4o Vision genutzt.
+                Der API Key wird verschlüsselt gespeichert.
                 {profile.hasOpenAiApiKey
                   ? ` Aktuell: ${profile.openAiApiKeyMasked}`
                   : " Noch kein Key hinterlegt."}

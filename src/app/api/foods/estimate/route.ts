@@ -24,12 +24,13 @@ export async function POST(request: Request) {
 
     const dbUser = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { openAiApiKey: true },
+      select: { openAiApiKey: true, openAiAnalysisModel: true },
     });
 
     const estimate = await estimateFoodByName({
       query: parsed.data.query,
       encryptedUserKey: dbUser.openAiApiKey,
+      model: dbUser.openAiAnalysisModel,
     });
 
     const item: FoodLookupItem = {

@@ -15,6 +15,10 @@ import {
   type ActivityLevel,
   type Sex,
 } from "@/lib/tdee";
+import {
+  isAnalysisModelId,
+  resolveAnalysisModel,
+} from "@/lib/openai-models";
 
 const reminderItemSchema = z.object({
   id: z.string().min(1),
@@ -67,6 +71,10 @@ const profileSchema = z.object({
   reminders: reminderSettingsSchema.optional(),
   openAiApiKey: z.string().optional().nullable(),
   clearOpenAiApiKey: z.boolean().optional(),
+  openAiAnalysisModel: z
+    .string()
+    .refine(isAnalysisModelId, "Ungültiges Analysemodell")
+    .optional(),
 });
 
 const profileSelect = {
@@ -96,6 +104,7 @@ const profileSelect = {
   dailyIronGoal: true,
   reminders: true,
   openAiApiKey: true,
+  openAiAnalysisModel: true,
   createdAt: true,
 } as const;
 
@@ -170,6 +179,7 @@ export async function GET() {
         avatarPath,
         reminders: parseReminderSettings(profile.reminders),
         openAiApiKey: undefined,
+        openAiAnalysisModel: resolveAnalysisModel(profile.openAiAnalysisModel),
         hasOpenAiApiKey: Boolean(profile.openAiApiKey),
         openAiApiKeyMasked: maskedKey,
         ...meta,
@@ -212,6 +222,12 @@ export async function PUT(request: Request) {
       data.openAiApiKey = null;
     } else if (parsed.data.openAiApiKey && parsed.data.openAiApiKey.trim()) {
       data.openAiApiKey = encryptSecret(parsed.data.openAiApiKey.trim());
+    }
+
+    if (parsed.data.openAiAnalysisModel) {
+      data.openAiAnalysisModel = resolveAnalysisModel(
+        parsed.data.openAiAnalysisModel,
+      );
     }
 
     const merged = {
@@ -302,6 +318,7 @@ export async function PUT(request: Request) {
           ...profile,
           reminders: parseReminderSettings(profile.reminders),
           openAiApiKey: undefined,
+          openAiAnalysisModel: resolveAnalysisModel(profile.openAiAnalysisModel),
           hasOpenAiApiKey: Boolean(profile.openAiApiKey),
           ...meta,
         },

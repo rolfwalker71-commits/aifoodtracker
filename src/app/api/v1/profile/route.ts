@@ -36,6 +36,7 @@ export async function GET(request: Request) {
       dailyCalciumGoal: true,
       dailyIronGoal: true,
       reminders: true,
+      openAiAnalysisModel: true,
       themePreference: true,
       createdAt: true,
       updatedAt: true,

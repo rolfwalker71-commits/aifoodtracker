@@ -6,6 +6,11 @@ import { localizeGermanLabel } from "@/lib/de-labels";
 import { normalizeIngredients } from "@/lib/meal-ingredients";
 import { scaleNutrients } from "@/lib/portion";
 import type { NutrientValues, PortionAwareAnalysis } from "@/types/nutrition";
+import {
+  resolveAnalysisModel,
+  supportsChatTemperature,
+  type AnalysisModelId,
+} from "@/lib/openai-models";
 
 const nutrientsSchema = z.object({
   calories: z.coerce.number().nonnegative().default(0),
@@ -285,18 +290,26 @@ export function toPortionAwareAnalysis(
   };
 }
 
+function chatCompletionOptions(model: AnalysisModelId) {
+  return {
+    model,
+    response_format: { type: "json_object" as const },
+    ...(supportsChatTemperature(model) ? { temperature: 0.2 } : {}),
+  };
+}
+
 export async function analyzeMealImage(params: {
   imageBase64: string;
   mimeType: string;
   encryptedUserKey?: string | null;
+  model?: string | null;
 }): Promise<PortionAwareAnalysis> {
   const apiKey = resolveApiKey(params.encryptedUserKey);
   const client = new OpenAI({ apiKey });
+  const model = resolveAnalysisModel(params.model);
 
   const response = await client.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.2,
-    response_format: { type: "json_object" },
+    ...chatCompletionOptions(model),
     messages: [
       { role: "system", content: ANALYSIS_PROMPT },
       {
@@ -329,14 +342,14 @@ export async function analyzeMealImage(params: {
 export async function estimateFoodByName(params: {
   query: string;
   encryptedUserKey?: string | null;
+  model?: string | null;
 }) {
   const apiKey = resolveApiKey(params.encryptedUserKey);
   const client = new OpenAI({ apiKey });
+  const model = resolveAnalysisModel(params.model);
 
   const response = await client.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.2,
-    response_format: { type: "json_object" },
+    ...chatCompletionOptions(model),
     messages: [
       { role: "system", content: TEXT_FOOD_PROMPT },
       {
