@@ -421,7 +421,7 @@ function InsightPage({
           </p>
         </div>
         {ingredients.length ? (
-          <ul className="max-h-80 divide-y divide-border overflow-y-auto rounded-2xl border border-border sm:max-h-96">
+          <ul className="glass-soft max-h-80 divide-y divide-border overflow-y-auto rounded-2xl sm:max-h-96">
             {ingredients.map((item, index) => (
               <li
                 key={`${item.name}-${index}`}
@@ -527,7 +527,7 @@ function TodaySummary({
     : todayProtein;
 
   return (
-    <div className="grid gap-2 rounded-2xl border border-border bg-background p-2.5 text-sm sm:grid-cols-3 sm:p-3">
+    <div className="glass-soft grid gap-2 rounded-2xl p-2.5 text-sm sm:grid-cols-3 sm:p-3">
       {mealIsToday ? (
         <>
           <div className="space-y-0.5 rounded-xl bg-muted/40 px-3 py-2.5">
@@ -637,7 +637,7 @@ function GoalsPage({
             Beitrag dieser Mahlzeit zu deinen heutigen Zielen.
           </p>
         </div>
-        <div className="space-y-3 rounded-2xl border border-border bg-background p-3.5">
+        <div className="glass-soft space-y-3 rounded-2xl p-3.5">
           <NutrientProgress
             label="Kalorien"
             current={values.calories}

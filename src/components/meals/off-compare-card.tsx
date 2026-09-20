@@ -41,7 +41,7 @@ export function OffCompareCard({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 rounded-xl bg-background/70 px-3 py-3 text-center text-xs sm:text-sm">
+      <div className="glass-soft grid grid-cols-3 gap-2 rounded-xl px-3 py-3 text-center text-xs sm:text-sm">
         <div className="text-muted-foreground">pro 100 g</div>
         <div className="font-medium">KI</div>
         <div className="font-medium">OFF</div>

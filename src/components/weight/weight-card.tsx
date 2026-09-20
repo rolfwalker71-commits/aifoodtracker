@@ -239,7 +239,7 @@ export function WeightCard({
               />
             </Button>
             {entriesOpen ? (
-              <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70">
+              <ul className="glass-soft divide-y divide-border/70 overflow-hidden rounded-2xl">
                 {recent.map((entry) => {
                   const isEditing = editingId === entry.id;
                   return (

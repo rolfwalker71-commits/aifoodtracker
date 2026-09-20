@@ -5,7 +5,7 @@
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#f4fbf7",
   "theme_color": "#0f766e",
   "lang": "de",
@@ -28,5 +28,10 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
   ]
 }

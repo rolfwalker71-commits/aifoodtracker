@@ -140,7 +140,7 @@ export function MealSaveConfirm({
         </div>
 
         {ingredients.length > 0 && onRecalculateIngredientGrams ? (
-          <div className="space-y-3 rounded-2xl border border-border bg-muted/30 p-4">
+          <div className="glass-soft space-y-3 rounded-2xl p-4">
             <div>
               <Label>Zutatenmengen (g)</Label>
               <p className="mt-1 text-sm text-muted-foreground">

@@ -116,7 +116,8 @@ export function ApiAccessKeysCard() {
           <code className="text-xs">GET /api/v1/meals</code>,{" "}
           <code className="text-xs">GET /api/v1/meals/:id</code>,{" "}
           <code className="text-xs">GET /api/v1/stats?range=day|week|month</code>
-          , <code className="text-xs">GET /api/v1/profile</code>
+          , <code className="text-xs">GET /api/v1/profile</code>,{" "}
+          <code className="text-xs">GET /api/v1/widget</code>
         </p>
 
         {freshKey ? (
@@ -124,7 +125,7 @@ export function ApiAccessKeysCard() {
             <p className="text-sm font-medium">
               Neuer Key (nur jetzt sichtbar)
             </p>
-            <code className="block break-all rounded-lg bg-background/80 px-3 py-2 text-xs">
+            <code className="glass-soft block break-all rounded-lg px-3 py-2 text-xs">
               {freshKey}
             </code>
             <div className="flex flex-wrap gap-2">
@@ -148,7 +149,7 @@ export function ApiAccessKeysCard() {
                 Ausblenden
               </Button>
             </div>
-            <pre className="overflow-x-auto rounded-lg bg-background/80 p-3 text-xs leading-relaxed text-muted-foreground">
+            <pre className="glass-soft overflow-x-auto rounded-lg p-3 text-xs leading-relaxed text-muted-foreground">
               {example}
             </pre>
           </div>
@@ -182,7 +183,7 @@ export function ApiAccessKeysCard() {
           </p>
         ) : null}
 
-        <ul className="divide-y divide-border/70 rounded-xl border border-border">
+        <ul className="glass-soft divide-y divide-border/70 rounded-xl">
           {keys.length === 0 ? (
             <li className="px-3 py-4 text-sm text-muted-foreground">
               Noch kein API-Key vorhanden.

@@ -246,7 +246,7 @@ export function BarcodeCapture({ onSelect, onOfflineQueue }: Props) {
         </div>
 
         {preview ? (
-          <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/30 p-3">
+          <div className="glass-soft space-y-3 rounded-2xl p-3">
             <div className="flex gap-3">
               {preview.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

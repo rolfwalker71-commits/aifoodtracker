@@ -1,11 +1,22 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * Liquid-glass surface. `variant="solid"` opts out of the material for places
+ * that sit on top of another glass pane, where stacking two blurs turns muddy.
+ */
+function Card({
+  className,
+  variant = "glass",
+  ...props
+}: React.ComponentProps<"div"> & { variant?: "glass" | "solid" }) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/80 bg-card text-card-foreground shadow-sm",
+        "rounded-2xl text-card-foreground",
+        variant === "glass"
+          ? "glass glass-sheen"
+          : "border border-border/80 bg-card shadow-sm",
         className,
       )}
       {...props}

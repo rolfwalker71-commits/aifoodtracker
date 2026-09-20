@@ -19,6 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
 import { ApiAccessKeysCard } from "@/components/settings/api-access-keys-card";
+import { ScriptableWidgetsCard } from "@/components/settings/scriptable-widgets-card";
 import { InviteFriendsCard } from "@/components/settings/invite-friends-card";
 import { RemindersCard } from "@/components/settings/reminders-card";
 import { PushSetupCard } from "@/components/push/push-enable-button";
@@ -290,7 +291,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 lg:max-w-3xl">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">
           Profil
@@ -658,6 +659,8 @@ export default function SettingsPage() {
       </form>
 
       <InviteFriendsCard />
+
+      <ScriptableWidgetsCard />
 
       <ApiAccessKeysCard />
 

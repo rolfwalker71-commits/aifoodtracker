@@ -111,124 +111,132 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <section className="flex items-start justify-between gap-4 animate-rise">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {format(todayLabel, `EEEE, ${APP_DATE_FORMAT}`, { locale: de })}
-          </p>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            Hallo {session.user.name?.split(" ")[0] || "du"}
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Heute {formatNumber(stats.totals.calories)} /{" "}
-            {formatNumber(stats.goals.dailyCaloriesGoal)} kcal
-          </p>
-        </div>
-        <UserAvatar
-          src={avatarPath}
-          name={session.user.name}
-          className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
-        />
-      </section>
+    /* One column on iPhone, two on iPad landscape and wider: the day's numbers
+       stay in view on the right while the meal list scrolls on the left. */
+    <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:space-y-0">
+      <div className="space-y-6">
+        <section className="flex items-start justify-between gap-4 animate-rise">
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">
+              {format(todayLabel, `EEEE, ${APP_DATE_FORMAT}`, { locale: de })}
+            </p>
+            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              Hallo {session.user.name?.split(" ")[0] || "du"}
+            </h1>
+            <p className="mt-1 text-muted-foreground">
+              Heute {formatNumber(stats.totals.calories)} /{" "}
+              {formatNumber(stats.goals.dailyCaloriesGoal)} kcal
+            </p>
+          </div>
+          <UserAvatar
+            src={avatarPath}
+            name={session.user.name}
+            className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
+          />
+        </section>
 
-      <Button asChild size="lg" className="h-14 w-full justify-center px-5">
-        <Link href="/meals/new">
-          <Camera className="h-5 w-5" />
-          Mahlzeit erfassen
-        </Link>
-      </Button>
+        <Button asChild size="lg" className="h-14 w-full justify-center px-5">
+          <Link href="/meals/new">
+            <Camera className="h-5 w-5" />
+            Mahlzeit erfassen
+          </Link>
+        </Button>
 
-      <CachedDayPanel />
+        <CachedDayPanel />
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-bold">Heute</h2>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/meals">Alle anzeigen</Link>
-          </Button>
-        </div>
-        <MealList
-          meals={meals.map((meal) => ({
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl font-bold">Heute</h2>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/meals">Alle anzeigen</Link>
+            </Button>
+          </div>
+          <MealList
+            meals={meals.map((meal) => ({
+              ...meal,
+              consumedAt: meal.consumedAt.toISOString(),
+            }))}
+          />
+        </section>
+
+        <FavoriteMealsStrip
+          meals={favorites.map((meal) => ({
             ...meal,
-            consumedAt: meal.consumedAt.toISOString(),
           }))}
         />
-      </section>
-
-      <FavoriteMealsStrip
-        meals={favorites.map((meal) => ({
-          ...meal,
-        }))}
-      />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="animate-rise">
-          <CardHeader>
-            <CardTitle>Tagesbedarf</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DailyGoalsSummary
-              totals={stats.totals}
-              goals={stats.goals}
-              profileComplete={profileComplete}
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="animate-rise-delay">
-          <CardHeader>
-            <CardTitle>Makro-Verteilung</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MacroChart
-              protein={stats.totals.protein}
-              carbs={stats.totals.carbs}
-              fat={stats.totals.fat}
-            />
-            <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
-              <div>Protein {formatNumber(stats.totals.protein, 0)} g</div>
-              <div>Kohlenhydrate {formatNumber(stats.totals.carbs, 0)} g</div>
-              <div>Fett {formatNumber(stats.totals.fat, 0)} g</div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      <DayRestBudgetCard budget={restBudget} />
+      <div className="space-y-6 lg:sticky lg:top-24">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <Card className="animate-rise">
+            <CardHeader>
+              <CardTitle>Tagesbedarf</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DailyGoalsSummary
+                totals={stats.totals}
+                goals={stats.goals}
+                profileComplete={profileComplete}
+              />
+            </CardContent>
+          </Card>
 
-      <Card className="animate-rise">
-        <CardContent className="flex items-start justify-between gap-3 pt-5">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-primary">Coach</p>
-            <p className="mt-1 text-sm text-muted-foreground">{coachTip.body}</p>
-          </div>
-          <Button asChild variant="outline" size="sm" className="shrink-0">
-            <Link href="/coach">
-              <Sparkles className="h-4 w-4" />
-              Öffnen
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+          <Card className="animate-rise-delay">
+            <CardHeader>
+              <CardTitle>Makro-Verteilung</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MacroChart
+                protein={stats.totals.protein}
+                carbs={stats.totals.carbs}
+                fat={stats.totals.fat}
+              />
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+                <div>Protein {formatNumber(stats.totals.protein, 0)} g</div>
+                <div>Kohlenhydrate {formatNumber(stats.totals.carbs, 0)} g</div>
+                <div>Fett {formatNumber(stats.totals.fat, 0)} g</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      <WeightCard
-        currentKg={weightEntries.at(-1)?.kg ?? profile?.weightKg ?? null}
-        entries={weightEntries.map((entry) => ({
-          id: entry.id,
-          kg: entry.kg,
-          recordedOn: entry.recordedOn.toISOString().slice(0, 10),
-        }))}
-      />
+        <DayRestBudgetCard budget={restBudget} />
 
-      <PushEnableButton compact />
+        <Card className="animate-rise">
+          <CardContent className="flex items-start justify-between gap-3 pt-5">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-primary">Coach</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {coachTip.body}
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="shrink-0">
+              <Link href="/coach">
+                <Sparkles className="h-4 w-4" />
+                Öffnen
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
 
-      <Button asChild variant="outline" className="w-full">
-        <Link href="/stats">
-          <ChartColumn className="h-4 w-4" />
-          Statistiken
-        </Link>
-      </Button>
+        <WeightCard
+          currentKg={weightEntries.at(-1)?.kg ?? profile?.weightKg ?? null}
+          entries={weightEntries.map((entry) => ({
+            id: entry.id,
+            kg: entry.kg,
+            recordedOn: entry.recordedOn.toISOString().slice(0, 10),
+          }))}
+        />
+
+        <PushEnableButton compact />
+
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/stats">
+            <ChartColumn className="h-4 w-4" />
+            Statistiken
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }

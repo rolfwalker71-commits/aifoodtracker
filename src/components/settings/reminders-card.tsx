@@ -60,7 +60,7 @@ export function RemindersCard({
             return (
               <div
                 key={reminder.id}
-                className="flex min-w-0 items-center gap-3 rounded-xl border border-border/70 p-2.5"
+                className="glass-soft flex min-w-0 items-center gap-3 rounded-xl p-2.5"
               >
                 <MotifCard
                   kind={kind}
@@ -114,7 +114,7 @@ export function RemindersCard({
             );
           })}
 
-          <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/70 p-2.5">
+          <div className="glass-soft flex min-w-0 items-center gap-3 rounded-xl p-2.5">
             <MotifCard kind="rest" caption="Abend-Coach" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">Abend-Coach</p>
@@ -164,13 +164,13 @@ export function RemindersCard({
             </div>
           </div>
 
-          <div className="flex min-w-0 items-start gap-3 rounded-xl border border-border/70 p-2.5 sm:items-center">
+          <div className="glass-soft flex min-w-0 items-start gap-3 rounded-xl p-2.5 sm:items-center">
             <MotifCard kind="weight" caption="Gewicht" />
             <div className="min-w-0 flex-1 space-y-2">
               <p className="text-sm font-medium">Gewicht-Erinnerung</p>
               <div className="flex flex-wrap gap-2">
                 <select
-                  className="h-9 max-w-full rounded-lg border border-border bg-background px-2 text-sm"
+                  className="glass-soft h-9 max-w-full rounded-lg px-2 text-sm"
                   value={settings.extras.weeklyWeight.weekday}
                   onChange={(e) =>
                     onChange({

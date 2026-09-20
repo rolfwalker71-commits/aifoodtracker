@@ -5,6 +5,7 @@ Mobile-first Progressive Web App zum Erfassen und Auswerten von Mahlzeiten mit G
 ## Stack
 
 - **Frontend:** Next.js (App Router), React, Tailwind CSS, Shadcn-UI-Komponenten, Lucide Icons, Recharts
+- **Design:** «Liquid Glass» – translucente Flächen mit Backdrop-Blur, Specular-Kante und Safe-Area-Layout für iPhone und iPad
 - **Backend:** Next.js API Routes
 - **Auth:** Auth.js / NextAuth (Credentials + JWT)
 - **DB:** PostgreSQL + Prisma ORM 7
@@ -24,6 +25,7 @@ Mobile-first Progressive Web App zum Erfassen und Auswerten von Mahlzeiten mit G
 - Dashboard + Statistiken (Tag / Woche / Monat)
 - Dark / Light Mode
 - Offline-Caching der UI-Shell (PWA)
+- Scriptable-Widgets für iPhone- und iPad-Home- und -Sperrbildschirm
 
 ## Schnellstart (lokal)
 
@@ -89,6 +91,42 @@ App: [http://localhost:3333](http://localhost:3333)
 **Hinweis:** Unter GitHub → Packages das Image ggf. auf **Public** stellen,  
 damit `docker compose pull` ohne Login funktioniert.
 
+## Widgets für iPhone & iPad (Scriptable)
+
+Unter **Einstellungen › Widgets für iPhone & iPad** baut die App ein fertiges
+Skript für [Scriptable](https://apps.apple.com/app/scriptable/id1405459188).
+Adresse der Instanz und ein persönlicher API-Key werden hineingeschrieben, dann
+kopieren oder als Datei sichern und in Scriptable einfügen.
+
+Abgedeckte Grössen:
+
+| Familie | Inhalt |
+|---|---|
+| Klein | Kalorienring mit Restbudget, Makros als Kurzwerte |
+| Mittel | Ring plus Makro-Balken, Mahlzeitenliste oder nur der Ring |
+| Gross | Tageskopf, Ring, alle Makros inkl. Ballaststoffe, Mahlzeiten, Serie |
+| Extragross (iPad) | Zweispaltig: Tagesübersicht links, 7-Tage-Verlauf, Serie und Gewicht rechts |
+| Sperrbildschirm rund | Ring mit verbleibenden Kalorien |
+| Sperrbildschirm Zeile | Restkalorien und die drei Makros |
+| Sperrbildschirm über der Uhr | Eine Zeile mit den verbleibenden Kalorien |
+
+Widget-Parameter (Widget lange drücken › *Widget bearbeiten* › *Parameter*),
+mehrere durch Komma getrennt: `makros`, `mahlzeiten` oder `ring` für den Inhalt,
+`hell` bzw. `dunkel` für ein festes Farbschema. Ein Skript reicht damit für
+mehrere Widgets.
+
+Das Skript liest `GET /api/v1/widget` mit `Authorization: Bearer ns_…`, cached
+die letzte Antwort lokal und zeigt sie offline weiter an. Antippen öffnet die
+App, der Erfassen-Chip springt direkt in die Kamera.
+
+Der Skript-Quelltext liegt in `src/lib/scriptable/widget-source.ts`. Da er nur
+in Scriptable läuft und hier nicht mitkompiliert wird, prüft ihn ein Smoke-Test
+gegen eine nachgebaute Scriptable-Umgebung:
+
+```bash
+npm run check:widget
+```
+
 ## Wichtige Umgebungsvariablen
 
 | Variable | Beschreibung |
@@ -119,6 +157,9 @@ src/
     ui/ layout/ meals/ dashboard/ stats/ pwa/
   lib/
     auth.ts prisma.ts openai.ts crypto.ts nutrition.ts stats.ts
+    scriptable/   Quelltext und Generator für die Scriptable-Widgets
+scripts/
+  check-widget-script.mjs
 ```
 
 ## API-Überblick
@@ -129,6 +170,7 @@ src/
 - `GET/PUT/DELETE /api/meals/:id` – einzelne Mahlzeit
 - `GET/PUT /api/profile` – Ziele & API Key
 - `GET /api/stats?range=day|week|month` – Aggregationen
+- `GET /api/v1/widget` – kompakte Tagesdaten für Widgets (Bearer-Key)
 
 ## Hinweise
 

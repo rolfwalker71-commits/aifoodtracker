@@ -53,7 +53,7 @@ export function FavoriteMealsStrip({ meals }: { meals: FavoriteMeal[] }) {
         {meals.map((meal) => (
           <div
             key={meal.id}
-            className="w-44 shrink-0 rounded-2xl border border-border bg-background p-3"
+            className="glass glass-sheen w-44 shrink-0 rounded-2xl p-3"
           >
             <Link href={`/meals/${meal.id}`} className="block space-y-2">
               <div className="h-20 overflow-hidden rounded-xl bg-muted">

@@ -14,20 +14,29 @@ const links = [
   { href: "/settings", label: "Profil", icon: Settings },
 ];
 
+/**
+ * Floating glass tab bar. It hovers above the content instead of sitting on a
+ * bar edge, so the page scrolls visibly underneath it — that motion is what
+ * makes the material read as glass rather than as a tinted rectangle.
+ */
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] md:hidden">
-      <ul className="mx-auto grid max-w-lg grid-cols-5 gap-0.5 px-1 py-1.5">
+    <nav
+      aria-label="Hauptnavigation"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 md:hidden"
+    >
+      <ul className="glass-strong glass-sheen pointer-events-auto mx-auto grid max-w-md grid-cols-5 gap-1 rounded-full p-1.5">
         {links.map(({ href, label, icon: Icon, primary }) => {
           const active = isNavActive(pathname, href);
           return (
             <li key={href}>
               <Link
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-xs font-semibold leading-tight transition-colors",
+                  "glass-press flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-full px-0.5 py-1 text-[0.6875rem] font-semibold leading-tight",
                   primary
                     ? "text-primary"
                     : active
@@ -37,14 +46,16 @@ export function BottomNav() {
               >
                 <span
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full transition-transform",
+                    "flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 ease-out",
                     primary &&
-                      "bg-primary text-primary-foreground shadow-md shadow-primary/30",
-                    primary && active && "scale-105",
-                    !primary && active && "bg-accent",
+                      "sheen-fill bg-primary text-primary-foreground shadow-[0_2px_6px_rgb(16_35_28/0.18),0_10px_22px_-8px_var(--primary)]",
+                    primary && active && "scale-110",
+                    !primary &&
+                      active &&
+                      "bg-[var(--glass-tint)] shadow-[inset_0_1px_0_0_var(--glass-highlight)]",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-[1.125rem] w-[1.125rem]" />
                 </span>
                 {label}
               </Link>

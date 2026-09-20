@@ -203,7 +203,7 @@ function SwipeMealCard({
         onDragEnd={onDragEnd}
         className="relative z-10 touch-pan-y rounded-2xl bg-background"
       >
-        <div className="overflow-hidden rounded-2xl border border-border bg-background text-card-foreground shadow-sm">
+        <div className="glass glass-sheen overflow-hidden rounded-2xl text-card-foreground">
           <div className="p-3">
             <div className="flex gap-3">
               <div className="min-w-0 flex-1 space-y-1.5">
@@ -413,7 +413,7 @@ export function MealList({ meals }: { meals: MealListItem[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 xl:grid xl:grid-cols-2 xl:gap-3 xl:space-y-0">
       {items.map((meal) => (
         <SwipeMealCard
           key={meal.id}

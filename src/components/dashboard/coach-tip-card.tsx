@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { CoachTip } from "@/lib/coach-tip";
 
 const toneClass: Record<CoachTip["tone"], string> = {
-  neutral: "border-border/70 bg-card",
+  neutral: "glass glass-sheen",
   positive: "border-primary/30 bg-primary/10",
   attention: "border-warning/40 bg-warning/10",
 };

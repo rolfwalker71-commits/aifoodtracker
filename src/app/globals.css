@@ -198,3 +198,284 @@ h2.text-6xl {
 .animate-rise-delay {
   animation: rise-in 0.55s ease-out 0.08s both;
 }
+
+/* ===========================================================================
+   Liquid Glass
+   Material tokens for the translucent surfaces. Light travels through the
+   surface (tint + blur + saturation), gets caught at the top edge (highlight)
+   and drops a soft shadow underneath. Every glass class shares this recipe so
+   cards, bars and sheets read as one material.
+   =========================================================================== */
+
+:root {
+  --glass-tint: rgb(255 255 255 / 0.58);
+  --glass-tint-strong: rgb(255 255 255 / 0.78);
+  --glass-tint-soft: rgb(255 255 255 / 0.34);
+  --glass-stroke: rgb(255 255 255 / 0.65);
+  --glass-stroke-edge: rgb(16 35 28 / 0.1);
+  --glass-highlight: rgb(255 255 255 / 0.9);
+  --glass-sheen: linear-gradient(
+    150deg,
+    rgb(255 255 255 / 0.55) 0%,
+    rgb(255 255 255 / 0.12) 28%,
+    rgb(255 255 255 / 0) 56%
+  );
+  --glass-shadow: 0 1px 2px rgb(16 35 28 / 0.05),
+    0 14px 34px -14px rgb(16 35 28 / 0.28);
+  --glass-shadow-lifted: 0 2px 4px rgb(16 35 28 / 0.06),
+    0 26px 60px -20px rgb(16 35 28 / 0.35);
+  --glass-blur: 26px;
+  --glass-blur-strong: 40px;
+  --glass-saturate: 180%;
+  /* Tap targets: 44pt is the Apple minimum, 48px keeps it comfortable. */
+  --tap-target: 2.75rem;
+}
+
+.dark {
+  --glass-tint: rgb(20 46 40 / 0.55);
+  --glass-tint-strong: rgb(15 36 31 / 0.78);
+  --glass-tint-soft: rgb(24 52 45 / 0.34);
+  --glass-stroke: rgb(255 255 255 / 0.14);
+  --glass-stroke-edge: rgb(0 0 0 / 0.5);
+  --glass-highlight: rgb(255 255 255 / 0.28);
+  --glass-sheen: linear-gradient(
+    150deg,
+    rgb(255 255 255 / 0.16) 0%,
+    rgb(255 255 255 / 0.04) 30%,
+    rgb(255 255 255 / 0) 58%
+  );
+  --glass-shadow: 0 1px 2px rgb(0 0 0 / 0.5),
+    0 16px 36px -14px rgb(0 0 0 / 0.65);
+  --glass-shadow-lifted: 0 2px 6px rgb(0 0 0 / 0.55),
+    0 30px 64px -20px rgb(0 0 0 / 0.75);
+}
+
+/* The material itself. `glass` is the default card weight, `glass-strong` the
+   bar/sheet weight that has to stay legible over scrolling content, and
+   `glass-soft` the quiet weight for nested surfaces inside a card. */
+@utility glass {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 -1px 0 0 var(--glass-stroke-edge);
+}
+
+@utility glass-strong {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--glass-tint-strong);
+  backdrop-filter: blur(var(--glass-blur-strong))
+    saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-shadow-lifted),
+    inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 -1px 0 0 var(--glass-stroke-edge);
+}
+
+@utility glass-soft {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--glass-tint-soft);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: inset 0 1px 0 0 var(--glass-highlight);
+}
+
+/* Specular sheen: the highlight that makes the surface look curved rather than
+   flat. Needs a border-radius on the element itself — it inherits it. */
+@utility glass-sheen {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--glass-sheen);
+    pointer-events: none;
+  }
+}
+
+/* Touch feedback that matches iOS: the surface compresses, it does not flash. */
+@utility glass-press {
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 0.18s ease-out,
+    background-color 0.18s ease-out;
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@utility glass-hairline {
+  border: 1px solid var(--glass-stroke);
+}
+
+/* Safe areas. iPhone needs the bottom inset for the home indicator, iPad in
+   landscape needs the side insets. */
+@utility pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+@utility pl-safe {
+  padding-left: max(env(safe-area-inset-left), 0px);
+}
+@utility pr-safe {
+  padding-right: max(env(safe-area-inset-right), 0px);
+}
+@utility px-safe {
+  padding-left: max(env(safe-area-inset-left), 0px);
+  padding-right: max(env(safe-area-inset-right), 0px);
+}
+@utility mb-safe {
+  margin-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+/* Content gutter that grows with the device: 16px on iPhone, 24/32 on iPad,
+   plus whatever the notch or rounded corners demand in landscape. */
+@utility px-gutter {
+  padding-left: calc(1rem + env(safe-area-inset-left));
+  padding-right: calc(1rem + env(safe-area-inset-right));
+  @media (min-width: 640px) {
+    padding-left: calc(1.5rem + env(safe-area-inset-left));
+    padding-right: calc(1.5rem + env(safe-area-inset-right));
+  }
+  @media (min-width: 1024px) {
+    padding-left: calc(2rem + env(safe-area-inset-left));
+    padding-right: calc(2rem + env(safe-area-inset-right));
+  }
+}
+
+/* Fallbacks -------------------------------------------------------------- */
+
+/* No backdrop-filter (older Android WebView, Firefox with the flag off):
+   fall back to an opaque surface so text never sits on bare background. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-tint: rgb(255 255 255 / 0.94);
+    --glass-tint-strong: rgb(255 255 255 / 0.98);
+    --glass-tint-soft: rgb(255 255 255 / 0.9);
+  }
+  .dark {
+    --glass-tint: rgb(15 34 29 / 0.94);
+    --glass-tint-strong: rgb(12 28 24 / 0.98);
+    --glass-tint-soft: rgb(18 40 34 / 0.9);
+  }
+}
+
+/* "Reduce Transparency" in iOS accessibility settings. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-tint: rgb(255 255 255 / 0.97);
+    --glass-tint-strong: rgb(255 255 255 / 1);
+    --glass-tint-soft: rgb(255 255 255 / 0.95);
+    --glass-blur: 0px;
+    --glass-blur-strong: 0px;
+  }
+  .dark {
+    --glass-tint: rgb(13 30 26 / 0.97);
+    --glass-tint-strong: rgb(10 24 21 / 1);
+    --glass-tint-soft: rgb(16 36 31 / 0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-delay,
+  .animate-float {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto;
+  }
+}
+
+/* iOS behaviour ---------------------------------------------------------- */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* The blobs the glass refracts. Fixed so they stay put while content scrolls,
+   which is what sells the material as a pane in front of a scene. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--page-blobs);
+  filter: blur(40px);
+  opacity: 0.85;
+}
+
+:root {
+  --page-blobs: radial-gradient(
+      38vmax 38vmax at 12% 8%,
+      rgb(45 212 191 / 0.4) 0%,
+      transparent 60%
+    ),
+    radial-gradient(34vmax 34vmax at 88% 4%, rgb(56 189 248 / 0.32) 0%, transparent 62%),
+    radial-gradient(40vmax 40vmax at 78% 82%, rgb(134 239 172 / 0.3) 0%, transparent 64%);
+}
+
+.dark {
+  --page-blobs: radial-gradient(
+      40vmax 40vmax at 10% 6%,
+      rgb(13 148 136 / 0.34) 0%,
+      transparent 62%
+    ),
+    radial-gradient(36vmax 36vmax at 90% 2%, rgb(14 116 144 / 0.3) 0%, transparent 64%),
+    radial-gradient(44vmax 44vmax at 80% 86%, rgb(6 95 70 / 0.34) 0%, transparent 66%);
+}
+
+/* Inputs must not zoom the viewport on iOS: Safari zooms below 16px. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Interactive things should feel like buttons, not text. */
+button,
+[role="button"],
+a[href] {
+  -webkit-touch-callout: none;
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-float {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+/* Sheen baked into the background image, for tinted (non-translucent) surfaces
+   like the primary button where a ::before overlay would wash out the label. */
+@utility sheen-fill {
+  background-image: linear-gradient(
+    160deg,
+    rgb(255 255 255 / 0.3) 0%,
+    rgb(255 255 255 / 0.06) 45%,
+    rgb(255 255 255 / 0) 72%
+  );
+}

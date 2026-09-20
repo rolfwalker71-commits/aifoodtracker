@@ -31,7 +31,7 @@ export function DayRestBudgetCard({ budget }: { budget: DayRestBudget }) {
             className="col-span-2 sm:col-span-1"
           />
         </div>
-        <div className="rounded-xl bg-background/80 px-3 py-3">
+        <div className="glass-soft rounded-xl px-3 py-3">
           <p className="text-sm font-semibold">{budget.suggestion.title}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {budget.suggestion.body}
@@ -40,7 +40,7 @@ export function DayRestBudgetCard({ budget }: { budget: DayRestBudget }) {
             {budget.suggestion.ideas.map((idea) => (
               <li
                 key={`${idea.name}-${idea.amount}`}
-                className="rounded-lg border border-border/60 bg-background/60 px-3 py-2.5"
+                className="glass-soft rounded-lg px-3 py-2.5"
               >
                 <p className="text-sm font-medium leading-snug">{idea.name}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -73,7 +73,7 @@ function BudgetTile({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl bg-background/80 px-3 py-2.5 ${className || ""}`}>
+    <div className={`glass-soft rounded-xl px-3 py-2.5 ${className || ""}`}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 font-semibold tabular-nums">
         {warn && warnLabel ? warnLabel : value}
