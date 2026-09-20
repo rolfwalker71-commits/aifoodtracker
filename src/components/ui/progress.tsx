@@ -13,7 +13,7 @@ const Progress = React.forwardRef<
   <ProgressPrimitive.Root
     ref={ref}
     className={cn(
-      "relative h-2.5 w-full overflow-hidden rounded-full bg-[var(--glass-tint-soft)] shadow-[inset_0_1px_2px_rgb(16_35_28/0.12)]",
+      "relative h-2.5 w-full overflow-hidden rounded-full bg-primary/15 shadow-[inset_0_1px_2px_rgb(16_35_28/0.1)]",
       className,
     )}
     {...props}

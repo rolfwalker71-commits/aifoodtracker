@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
 import { Button } from "@/components/ui/button";
+import { MACRO_COLORS } from "@/lib/macro-colors";
 import { cn } from "@/lib/utils";
 import type { NutrientTotals, NutritionGoals } from "@/lib/nutrition";
 
@@ -39,25 +40,25 @@ export function DailyGoalsSummary({ totals, goals, profileComplete }: Props) {
         label="Protein"
         current={totals.protein}
         goal={goals.dailyProteinGoal}
-            colorClass="bg-chart-2"
+        colorClass={MACRO_COLORS.protein.bar}
       />
       <NutrientProgress
         label="Kohlenhydrate"
         current={totals.carbs}
         goal={goals.dailyCarbsGoal}
-            colorClass="bg-chart-3"
+        colorClass={MACRO_COLORS.carbs.bar}
       />
       <NutrientProgress
         label="Fett"
         current={totals.fat}
         goal={goals.dailyFatGoal}
-            colorClass="bg-chart-4"
+        colorClass={MACRO_COLORS.fat.bar}
       />
       <NutrientProgress
         label="Ballaststoffe"
         current={totals.fiber}
         goal={goals.dailyFiberGoal}
-            colorClass="bg-chart-5"
+        colorClass={MACRO_COLORS.fiber.bar}
       />
 
       <div className="space-y-3 border-t border-border/60 pt-3">
@@ -84,7 +85,7 @@ export function DailyGoalsSummary({ totals, goals, profileComplete }: Props) {
               label="Zucker"
               current={totals.sugar}
               goal={goals.dailySugarGoal}
-              colorClass="bg-chart-3"
+              colorClass={MACRO_COLORS.sugar.bar}
             />
             <NutrientProgress
               label="Natrium"

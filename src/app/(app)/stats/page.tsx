@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { NutrientProgress } from "@/components/dashboard/nutrient-progress";
+import { MACRO_COLORS } from "@/lib/macro-colors";
 import { MacroChart } from "@/components/dashboard/macro-chart";
 import { TrendChart } from "@/components/stats/trend-chart";
 import { WeightTrend } from "@/components/weight/weight-trend";
@@ -228,30 +229,31 @@ export default function StatsPage() {
                       label="Protein"
                       current={stats.averages.protein}
                       goal={stats.goals.dailyProteinGoal}
+                      colorClass={MACRO_COLORS.protein.bar}
                     />
                     <NutrientProgress
                       label="Kohlenhydrate"
                       current={stats.averages.carbs}
                       goal={stats.goals.dailyCarbsGoal}
-                      colorClass="bg-chart-3"
+                      colorClass={MACRO_COLORS.carbs.bar}
                     />
                     <NutrientProgress
                       label="Fett"
                       current={stats.averages.fat}
                       goal={stats.goals.dailyFatGoal}
-                      colorClass="bg-chart-4"
+                      colorClass={MACRO_COLORS.fat.bar}
                     />
                     <NutrientProgress
                       label="Ballaststoffe"
                       current={stats.averages.fiber}
                       goal={stats.goals.dailyFiberGoal}
-                      colorClass="bg-chart-5"
+                      colorClass={MACRO_COLORS.fiber.bar}
                     />
                     <NutrientProgress
                       label="Zucker"
                       current={stats.averages.sugar}
                       goal={stats.goals.dailySugarGoal}
-                      colorClass="bg-chart-4"
+                      colorClass={MACRO_COLORS.sugar.bar}
                     />
                   </CardContent>
                 </Card>

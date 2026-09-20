@@ -167,37 +167,37 @@ export default async function DashboardPage() {
       </div>
 
       <div className="space-y-6 lg:sticky lg:top-24">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          <Card className="animate-rise">
-            <CardHeader>
-              <CardTitle>Tagesbedarf</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DailyGoalsSummary
-                totals={stats.totals}
-                goals={stats.goals}
-                profileComplete={profileComplete}
-              />
-            </CardContent>
-          </Card>
+        {/* Container query, not a breakpoint: these two cards sit in a narrow
+            right-hand column on iPad and full width on iPhone, so what matters
+            is the space they actually have, not the size of the window. */}
+        <div className="@container">
+          <div className="grid gap-4 @3xl:grid-cols-2">
+            <Card className="animate-rise">
+              <CardHeader>
+                <CardTitle>Tagesbedarf</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DailyGoalsSummary
+                  totals={stats.totals}
+                  goals={stats.goals}
+                  profileComplete={profileComplete}
+                />
+              </CardContent>
+            </Card>
 
-          <Card className="animate-rise-delay">
-            <CardHeader>
-              <CardTitle>Makro-Verteilung</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MacroChart
-                protein={stats.totals.protein}
-                carbs={stats.totals.carbs}
-                fat={stats.totals.fat}
-              />
-              <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
-                <div>Protein {formatNumber(stats.totals.protein, 0)} g</div>
-                <div>Kohlenhydrate {formatNumber(stats.totals.carbs, 0)} g</div>
-                <div>Fett {formatNumber(stats.totals.fat, 0)} g</div>
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="animate-rise-delay">
+              <CardHeader>
+                <CardTitle>Makro-Verteilung</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MacroChart
+                  protein={stats.totals.protein}
+                  carbs={stats.totals.carbs}
+                  fat={stats.totals.fat}
+                />
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <DayRestBudgetCard budget={restBudget} />
